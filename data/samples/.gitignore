@@ -1,0 +1,2 @@
+# Avoid storing large files in the repository
+*.csv
