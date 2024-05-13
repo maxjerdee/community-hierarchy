@@ -7,8 +7,9 @@
 
 // After making the file (run make in the directory), the executable may be run for example as:
 // ./SBM-BT -i ../../data/gml_files/AddHealth/highschool_1.gml -o ../../data/samples/AddHealth/SBM-BT/highschool_1.csv
-// ./SBM-BT -i ../../data/gml_files/AddHealth/highschool_57.gml -o ../../data/samples/AddHealth/SBM-BT/highschool_57.csv
+// ./SBM-BT -i ../../data/gml_files/AddHealth/highschool_27.gml -o ../../data/samples/AddHealth/SBM-BT/highschool_27.csv
 // ./SBM-BT -i ../../data/gml_files/misc/test.gml -o ../../data/samples/misc/SBM-BT/test.csv
+// ./SBM-BT -i ../../data/gml_files/AddHealth/highschool_27.gml -o out.csv
 
 #include <getopt.h>
 #include <math.h>
@@ -50,13 +51,17 @@ const int SAMPLES_BACK_BURNIN_CHECK = 500; // Number of samples back that we wil
 const int ITERATIONS_BETWEEN_SAMPLES = 10000; // Total number of iterations between recorded samples
 const int NUM_SAMPLES = 20000; // How many samples to take
 
-const double NUMERICAL_CHECK_EPSILON = 0.00001; // Tolerance to use when checking that the bookkeeping is in sync.
+const double NUMERICAL_CHECK_EPSILON = 0.001; // Tolerance to use when checking that the bookkeeping is in sync.
 
 const double SIGMA_C_TILDE_STEP_SIZE = 0.25;// Typical amount to change sigma_C in each proposal (in the transformed parameter space)
 const double SIGMA_I_TILDE_STEP_SIZE = 0.1;
 const double NU_TILDE_STEP_SIZE = 0.1;
 const double TOTAL_STATUS_TILDE_STEP_SIZE = 0.5;
 const double COMMUNITY_STATUS_TILDE_STEP_SIZE = 0.25;
+
+const double SIGMA_KICK = 0.1; // There is a logarithmic singularity when the sigma -> 0 which it is pretty easy for the Monte Carlo to get stuck in. 
+// If this threshold is above 0, apply the constraint that sigma_C and sigma_I must be above this threshold.
+// Note that this changes the form of the hyperprior on the sigma
 
 std::vector<std::vector<double>> log_q_vals; // log q(m,n) values, to be precomputed
 
@@ -450,8 +455,8 @@ StateType initialize_state(std::vector<int>& partition_init, std::mt19937& rng){
     std::uniform_real_distribution<double> uniform_01_dist(0, 1);
 
     double p = uniform_01_dist(rng);
-    double sigma_C_init = p;
-    double sigma_I_init = p;
+    double sigma_C_init = p + 1; 
+    double sigma_I_init = p + 1;
 
     std::vector<double> community_status_init;
     for(int r = 0; r < q; r++){
@@ -1059,8 +1064,8 @@ std::tuple<std::string, int, double, double, int> generate_proposal(StateType& s
         var_index = 0;
         old_val = sigma_C;
         new_val = old_val + SIGMA_C_TILDE_STEP_SIZE*z; // Apply the change
-        if(new_val < 0){ // sigma_C can't go negative
-            new_val *= -1;
+        if(new_val < SIGMA_KICK){ // sigma_C can't go below SIGMA_KICK
+            new_val = SIGMA_KICK + (SIGMA_KICK - new_val); // Reflective boundary condition
         }
         return std::make_tuple(var_name, var_index, new_val, old_val, 0);
     }else{
@@ -1071,8 +1076,8 @@ std::tuple<std::string, int, double, double, int> generate_proposal(StateType& s
         var_index = 0;
         old_val = sigma_I;
         new_val = old_val + SIGMA_I_TILDE_STEP_SIZE*z; // Apply the change
-        if(new_val < 0){ // sigma_I can't go negative
-            new_val *= -1;
+        if(new_val < SIGMA_KICK){ // sigma_I can't go below SIGMA_KICK
+            new_val = SIGMA_KICK + (SIGMA_KICK - new_val); // Reflective boundary condition
         }
         return std::make_tuple(var_name, var_index, new_val, old_val, 0);
     }else{
