@@ -6,7 +6,8 @@
  */
 
 // After making the file (run make in the directory), the executable may be run for example as:
-// ./SBM -i ../../data/gml_files/AddHealth/highschool_1.gml -o ../../data/samples/AddHealth/SBM-BT/highschool_1.csv
+// ./SBM-BT -i ../../data/gml_files/AddHealth/highschool_1.gml -o ../../data/samples/AddHealth/SBM-BT/highschool_1.csv
+// ./SBM-BT -i ../../data/gml_files/AddHealth/highschool_57.gml -o ../../data/samples/AddHealth/SBM-BT/highschool_57.csv
 // ./SBM-BT -i ../../data/gml_files/misc/test.gml -o ../../data/samples/misc/SBM-BT/test.csv
 
 #include <getopt.h>
@@ -80,6 +81,9 @@ std::vector<double>, // community_status, \vec{c}, community statuses
 std::vector<double>, // total_status, \vec{s}, total statuses
 double // nu, the parameter that controls the likelihood of ties
 > StateType;
+
+const int sigma_C_StateTypeIndex = 1;
+const int sigma_I_StateTypeIndex = 2;
 
 // MCMC State bookkeeping (information that can be inferred from the MCMC state but is useful to have on hand)
 typedef std::tuple<
@@ -406,7 +410,8 @@ int main(int argc, char *argv[]) {
                 double beta = all_betas[beta_is[state_i]];
                 if(std::abs(beta - MAX_BETA) < 0.001){
                     outfile << state_csv_string(states[state_i], state_bookkeepings[state_i], const_info) << "\n"; // For some reason this is writing strange results at times?
-                    std::cout << " energy: " << std::get<energyStateBookkeepingTypeIndex>(state_bookkeepings[state_i]) << " q: " << std::get<qStateBookkeepingTypeIndex>(state_bookkeepings[state_i]) << " ";
+                    std::cout << " energy: " << std::get<energyStateBookkeepingTypeIndex>(state_bookkeepings[state_i]) << " q: " << std::get<qStateBookkeepingTypeIndex>(state_bookkeepings[state_i])
+                     << " sigma_C: " << std::get<sigma_C_StateTypeIndex>(states[state_i]) << " sigma_I: " << std::get<sigma_I_StateTypeIndex>(states[state_i])  << " ";
                     
                 }
             }
@@ -422,7 +427,8 @@ int main(int argc, char *argv[]) {
                     }else{
                         energy_history[num_warmups_taken % SAMPLES_BACK_BURNIN_CHECK] = energy;
                         num_warmups_taken += 1;
-                    std::cout << " energy: " << std::get<energyStateBookkeepingTypeIndex>(state_bookkeepings[state_i]) << " q: " << std::get<qStateBookkeepingTypeIndex>(state_bookkeepings[state_i]) << " ";
+                        std::cout << " energy: " << std::get<energyStateBookkeepingTypeIndex>(state_bookkeepings[state_i]) << " q: " << std::get<qStateBookkeepingTypeIndex>(state_bookkeepings[state_i])
+                     << " sigma_C: " << std::get<sigma_C_StateTypeIndex>(states[state_i]) << " sigma_I: " << std::get<sigma_I_StateTypeIndex>(states[state_i])  << " ";
                         std::cout << "Warming up, " << num_warmups_taken << " warmup samples taken.\n";
                     }
                 }
@@ -1458,6 +1464,30 @@ void print(ConstInfoType& const_info){
         degree_list // std::vector<int> , \vec{k}
         ] = const_info;
     std::cout << "n: " << n << ", m: " << m << "\n";
+    std::cout << "wins:\n";
+    for(int i = 0; i < n; i++){
+        std::cout << "Node "<<i<<": ";
+        for(auto& [j, Aij]: wins[i]){
+            std::cout << j << " ";
+        }
+        std::cout << "\n";
+    }
+    std::cout << "ties:\n";
+    for(int i = 0; i < n; i++){
+        std::cout << "Node "<<i<<": ";
+        for(auto& [j, Aij]: ties[i]){
+            std::cout << j << " ";
+        }
+        std::cout << "\n";
+    }
+    std::cout << "losses:\n";
+    for(int i = 0; i < n; i++){
+        std::cout << "Node "<<i<<": ";
+        for(auto& [j, Aij]: losses[i]){
+            std::cout << j << " ";
+        }
+        std::cout << "\n";
+    }
     std::cout << "neighbors:\n";
     for(int i = 0; i < n; i++){
         std::cout << "Node "<<i<<": ";
