@@ -1,13 +1,13 @@
 /* This script uses parallel tempering on single site moves to sample from the posterior distribution
- * of the microcanonical Degree-Corrected Stochastic Block Model (DCSBM) as implemented in graph-tool
- * coupled to the Bradley-Terry model (with ties) by way of community status variables common to all individuals belonging to a community. 
+ * of the microcanonical Degree-Corrected Stochastic Block Model (DCSBM) as implemented in graph-tool.
+ * 
  * 
  * Written by Max Jerdee  11 MAY 2024
  */
 
-// After making the file, run the executable as ./DCSBM_old_resolution -i ../../data/networks/polbooks.gml -o ../../data/samples/polbooks.csv
-// ./DCSBM_old_resolution -i ../../data/networks/polbooks.gml -o out.csv
-// ./DCSBM_old_resolution -i ../../data/networks/dogs.gml -o out.csv -D t -M t -T t
+// After making the file (run make in the directory), the executable may be run for example as:
+// ./SBM -i ../../data/gml_files/AddHealth/highschool_1.gml -o ../../data/samples/AddHealth/SBM-BT/highschool_1.csv
+// ./SBM-BT -i ../../data/gml_files/misc/test.gml -o ../../data/samples/misc/SBM-BT/test.csv
 
 #include <getopt.h>
 #include <math.h>
@@ -29,6 +29,8 @@
 
 /* Global variables */
 // Model configuration:
+const double MEAN_SIGMA = 3; // A priori mean value of sigma_I and sigma_C, the inter and intra community status spreads
+
 const bool FIX_Q = false; // Whether to fix the number of groups q
 // const bool FIX_Q = true; // Whether to fix the number of groups q
 
@@ -49,6 +51,12 @@ const int NUM_SAMPLES = 20000; // How many samples to take
 
 const double NUMERICAL_CHECK_EPSILON = 0.00001; // Tolerance to use when checking that the bookkeeping is in sync.
 
+const double SIGMA_C_TILDE_STEP_SIZE = 0.25;// Typical amount to change sigma_C in each proposal (in the transformed parameter space)
+const double SIGMA_I_TILDE_STEP_SIZE = 0.1;
+const double NU_TILDE_STEP_SIZE = 0.1;
+const double TOTAL_STATUS_TILDE_STEP_SIZE = 0.5;
+const double COMMUNITY_STATUS_TILDE_STEP_SIZE = 0.25;
+
 std::vector<std::vector<double>> log_q_vals; // log q(m,n) values, to be precomputed
 
 /* Custom types */
@@ -56,13 +64,21 @@ std::vector<std::vector<double>> log_q_vals; // log q(m,n) values, to be precomp
 typedef std::tuple<
     int, // n
     int, // m
+    std::vector<std::unordered_map<int,int>>, // wins
+    std::vector<std::unordered_map<int,int>>, // ties
+    std::vector<std::unordered_map<int,int>>, // losses
     std::vector<std::unordered_map<int,int>>, // neighbors (map the neighbor to the A[i,j] value [multiplicity])
     std::vector<int> // degree_list, \vec{k} (qxk_max matrix)
 > ConstInfoType; 
 
 // MCMC State (independent latent parameters over which we sample)
 typedef std::tuple<
-std::vector<int> // partition, \vec{b}
+std::vector<int>, // partition, \vec{b}
+double, // sigma_C, spread of community statuses
+double, // sigma_I, spread of status inside communities
+std::vector<double>, // community_status, \vec{c}, community statuses
+std::vector<double>, // total_status, \vec{s}, total statuses
+double // nu, the parameter that controls the likelihood of ties
 > StateType;
 
 // MCMC State bookkeeping (information that can be inferred from the MCMC state but is useful to have on hand)
@@ -71,22 +87,17 @@ typedef std::tuple<
     std::vector<int>, // node_counts, n^{(b)}
     std::vector<std::unordered_set<int>>, // group_members (list of the indices that belong to each group)
     std::vector<std::vector<int>>, // edge_counts, \mat{M} (qxq matrix)
-    std::vector<int>, // edge_counts_sum, \vec{m}
-    int, // m_in, sum of diagonal entries of M (divided by 2)
+    std::vector<int>, // edge_counts_sum, \vec{m} (q vector)
     std::vector<std::unordered_map<int,int>>, // degree_counts_by_group, degree_counts_by_group[r] is a map between the degree and its multiplicity in group r
-    std::vector<double>, // degree_covs, covs[r](1 - q^(-1)) is the variance of degrees in group r, covs[r](0 - q^(-1)) is the covariance of diff degrees in same group. (The degrees of different groups are uncorrelated)
-    std::vector<double>, // A_alphas, alpha values used for the Dirichlet-Multinomial distributions for the degrees relevant for transmission of A
-    double, // M_alpha_diag, alpha value used for the Dirichlet-Multinomial distributions for the edge_counts_sum relevant for transmission of M (conditioning on the diagonal)
-    double, // M_alpha_nodiag, alpha value used for the Dirichlet-Multinomial distributions for the edge_counts_sum relevant for transmission of M (not conditioning on the diagonal)
-    double, // H_A_G_k_M_b_Poisson, Poisson encoding of the edges
-    double, // H_A_G_M_k_b_Multigraph, Multigraph (geometric) encoding of the edges
-    double, // H_k, unconditional entropy of the degree distribution (independently optimized)
+    double, // H_A_G_Abar_s_nu
+    double, // H_nu
+    double, // H_s_G_c_b_sigmaI
+    double, // H_c_G_sigmaC
+    double, // H_sigmaC
+    double, // H_sigmaI
+    double, // H_Abar_G_M_b, Poisson encoding of the edges
     double, // H_k_G_eta, cost to transmit degrees given degree counts eta
-    double, // H_eta_G_M_nb, cost to transmit the degree counts
-    double, // H_M_G_ms_m_in, cost to transmit the edge_counts matrix given its margin and diagonal sum
-    double, // H_M_G_ms, cost to transmit the edge_counts matrix given its margin (not conditioning on the diagonal)
-    double, // H_M_G_m_in_q, cost to transmit the edge_counts matrix given the diagonal sum
-    double, // H_m_in, cost to transmit the diagonal sum
+    double, // H_eta_G_M_nb, cost to transmit the degree counts given the group sizes and the edge_count matrix
     double, // H_M_G_q, cost to transmit the edge_count matrix without conditioning on the diagonal or the margin
     double, // H_b_G_nb, cost to transmit the partition given the group sizes
     double, // H_nb_G_q, cost to transmit the group sizes
@@ -96,11 +107,11 @@ typedef std::tuple<
 
 // Indices in the tuple at which to extract important information
 const int qStateBookkeepingTypeIndex = 0;
-const int energyStateBookkeepingTypeIndex = 24;
+const int energyStateBookkeepingTypeIndex = 19;
 
 /* Function declarations */
 // Initialize the state with a given partition
-StateType initialize_state(std::vector<int>& partition);
+StateType initialize_state(std::vector<int>& partition_init, std::mt19937& rng);
 
 // Randomly initialize the state 
 StateType initialize_rand_state(ConstInfoType& const_info, std::mt19937& rng);
@@ -115,7 +126,7 @@ void check_state_bookkeeping(StateType& state, StateBookkeepingType& state_bookk
 std::tuple<std::string, int, double, double, int> generate_proposal(StateType& state, StateBookkeepingType& state_bookkeeping, std::mt19937& rng);
 
 // Implement the proposed swap. Also return the change in energy, relevant for deciding whether to in fact accept this swap
-double implement_proposal(std::string var_name, int var_index, double new_val, double old_val, int delta_q, StateType& state, StateBookkeepingType& state_bookkeeping, ConstInfoType& const_info);
+double implement_proposal(std::string var_name, int var_index, double new_val, double old_val, int delta_q, StateType& state, StateBookkeepingType& state_bookkeeping, ConstInfoType& const_info, std::mt19937& rng);
 
 // Parse an edgelist and community partition from a GML file
 std::pair<std::vector<std::pair<int, int>>, std::vector<int>> parseGML(const std::string& filename);
@@ -123,24 +134,21 @@ std::pair<std::vector<std::pair<int, int>>, std::vector<int>> parseGML(const std
 // Helper functions for computation
 // Function to compute log(binomial(a,b))
 double log_binom(double a, double b);
+
+// Overflow protected version of log(e^(sij/2) + 2 nu + e^(sji/2)) for evaluating H(A|Abar,s,nu)
+double log_denom(double score_diff, double nu);
+
 // Overflow protected version of log(e^a + e^b) for precomputing log_q_vals
 double log_sum_exp(double a, double b);
 
 double log_factorial(int n);
 double log_factorial2(int n);
 
-double alpha_from_m_m_in_q(double m, double m_in, double q);
-double alpha_from_m_q(double m, double q);
-
-double compute_Hk(std::vector<int> degree_list); // For now we will just use the Dirichlet-Multinomial encoding and neglect the cost of the alpha parameter. 
-double compute_H_k_G_alpha(std::vector<int> degree_list, double alpha);
-double alpha_star_golden_section_vector(std::vector<int> degree_list);
-bool upperHalfMin(double a, double b, double c, double d);
-
 // Write samples to file
 std::string state_csv_string(StateType& state, StateBookkeepingType& state_bookkeeping, ConstInfoType& const_info);
 
 // Printing quantities (for debugging)
+void print(ConstInfoType& const_info);
 void print(StateBookkeepingType& state_bookkeeping);
 void print(StateType& state);
 void print(std::vector<std::vector<int>> table);
@@ -166,60 +174,23 @@ int main(int argc, char *argv[]) {
         case 'o':
             output_filename = optarg;
             break;
-        case 'D':
-            if(optarg[0] == 't'){
-                CONDITION_ON_DIAGONAL = true;
-            }else if(optarg[0] == 'f'){
-                CONDITION_ON_DIAGONAL = false;
-            }else{
-                std::cout << "Error: invalid argument for -D flag (CONDITION_ON_DIAGONAL). Use 't' for true or 'f' for false.\n";
-                exit(0);
-            }
-            break;
-        case 'M':
-            if(optarg[0] == 't'){
-                MULTIGRAPH_ENCODING = true;
-            }else if(optarg[0] == 'f'){
-                MULTIGRAPH_ENCODING = false;
-            }else{
-                std::cout << "Error: invalid argument for -M flag (MULTIGRAPH_ENCODING). Use 't' for true or 'f' for false.\n";
-                exit(0);
-            }
-            break;
-        case 'T':
-            if(optarg[0] == 't'){
-                NEW_TRANSMISSION_ORDER = true;
-            }else if(optarg[0] == 'f'){
-                NEW_TRANSMISSION_ORDER = false;
-            }else{
-                std::cout << "Error: invalid argument for -T flag (NEW_TRANSMISSION_ORDER). Use 't' for true or 'f' for false.\n";
-                exit(0);
-            }
-            break;
         default:
             exit(EXIT_FAILURE);
         }
     }
-    // Write the header line of the csv
+    // Write the header line of the samples csv
     std::ofstream outfile(output_filename);
-    outfile <<"partition,H_A_G_k_M_b_Poisson,H_A_G_M_k_b_Multigraph,H_k,H_k_G_eta,H_eta_G_M_nb,H_M_G_ms_m_in,H_M_G_ms,H_M_G_m_in_q,H_m_in,H_M_G_q,H_b_G_nb,H_nb_G_q,H_q,energy\n";
+    std::cout <<"Writing samples to "<< output_filename << "\n";
+    outfile <<"partition,sigma_C,sigma_I,community_status,total_status,nu,H_A_G_Abar_s_nu,H_nu,H_s_G_c_b_sigmaI,H_c_G_sigmaC,H_sigmaC,H_sigmaI,H_Abar_G_M_b,H_k_G_eta,H_eta_G_M_nb,H_M_G_q,H_b_G_nb,H_nb_G_q,H_q,energy\n";
 
-    // Write the header line of the csv (including all chains)
-    std::string output_all_betas_filename = output_filename.substr(0,output_filename.size() - 4) + "_all_betas.csv";
-
-    std::cout <<"Model configuration: CONDITION_ON_DIAGONAL "<< CONDITION_ON_DIAGONAL << ", MULTIGRAPH_ENCODING " << MULTIGRAPH_ENCODING << ", NEW_TRANSMISSION_ORDER " << NEW_TRANSMISSION_ORDER << "\n";
-    std::cout <<"Writing to "<< output_filename << " and " << output_all_betas_filename << "\n";
-    std::ofstream outfile_all_betas(output_all_betas_filename);
-    outfile_all_betas <<"partition,H_A_G_k_M_b_Poisson,H_A_G_M_k_b_Multigraph,H_k,H_k_G_eta,H_eta_G_M_nb,H_M_G_ms_m_in,H_M_G_ms,H_M_G_m_in_q,H_m_in,H_M_G_q,H_b_G_nb,H_nb_G_q,H_q,beta\n";
-
-    bool warmup_done = false; // Start to record samples after a burn-in period
+    bool warmup_done = false; // Start to record samples after a burn-in period, this is set to true when the energy starts to increase in the beta = 1 chain
 
     // RNG
     std::random_device rd;     // Only used once to initialise (seed) engine
     std::mt19937 rng(0);    // Seed
     // std::mt19937 rng(rd());    // Seed
 
-    // Parse an edgelist and community partition from the given GML file
+    // Parse an edgelist and community partition from the given GML file. If no initial partition is given, initially assign all nodes to a single community.
     auto result = parseGML(input_filename);
 
     std::vector<std::pair<int, int>> edgelist = result.first;
@@ -227,12 +198,19 @@ int main(int argc, char *argv[]) {
 
     // From the edgelist, produce the background information constant across all of the chains:
     int n = partition_init.size();
-    int m = edgelist.size();
-    std::cout << "Successfully parsed the GML file. n = "<<n<<", m = "<<m<<".\n";
+    std::vector<std::unordered_map<int,int>> wins;
+    std::vector<std::unordered_map<int,int>> ties;
+    std::vector<std::unordered_map<int,int>> losses;
     std::vector<std::unordered_map<int,int>> neighbors; 
     for(int i = 0; i < n; i++){
         std::unordered_map<int,int> neighbors_i;
         neighbors.push_back(neighbors_i);
+        std::unordered_map<int,int> wins_i;
+        wins.push_back(wins_i);
+        std::unordered_map<int,int> ties_i;
+        ties.push_back(ties_i);
+        std::unordered_map<int,int> losses_i;
+        losses.push_back(losses_i);
     }
     std::vector<int> degree_list;
 
@@ -248,14 +226,16 @@ int main(int argc, char *argv[]) {
             // If i is not already in the list of j's neighbors:
             if(neighbors[j].find(i) == neighbors[j].end()){
                 neighbors[j][i] = 1;
-            }else{ // If already present increment the multiplicity
-                neighbors[j][i] += 1;
+            }else{ // No multiplicity increment for undirected edges
+                // neighbors[j][i] += 1;
+                ties[j][i] = 1; // Record a reciprocated interaction as a tie
             }
             // If j is not already in the list of i's neighbors:
             if(neighbors[i].find(j) == neighbors[i].end()){
                 neighbors[i][j] = 1;
-            }else{ // If already present increment the multiplicity
-                neighbors[i][j] += 1;
+            }else{ // No multiplicity increment for undirected edges
+                // neighbors[i][j] += 1;
+                ties[i][j] = 1; // Record a reciprocated interaction as a tie
             }
         }
         // To only allow simple graphs:
@@ -270,15 +250,31 @@ int main(int argc, char *argv[]) {
         //     exit(0);
         // }
     }
-    // Loop through to count degrees
+    // Loop back through to record unreciprocated interactions as wins and losses
+    for(std::pair<int,int> edge : edgelist){
+        int i = edge.first;
+        int j = edge.second;
+        // Check that i and j did not reciprocate
+        if(ties[i].find(j) == ties[i].end()) {
+            // This edge indicates that i has an reciprocated friendship with j. A win for j, a loss for i. 
+            losses[i][j] = 1;
+            wins[j][i] = 1;
+        }
+    }
+    // Loop through to count degrees and the total edges
+    int m = 0;
     for(int i = 0; i < n; i++){
         degree_list.push_back(0);
         for(auto& [j, Aij] : neighbors[i]){
             degree_list[i] += Aij;
+            m += 1;
         }
     }
+    m /= 2; // Edges had been double counted
+    std::cout << "Successfully parsed the GML file. n = "<<n<<", m = "<<m<<".\n";
 
-    ConstInfoType const_info = std::make_tuple(n, m, neighbors, degree_list);
+    ConstInfoType const_info = std::make_tuple(n, m, wins, ties, losses, neighbors, degree_list);
+    print(const_info);
 
     // Precompute the values of q(m,n) up to the total number of interactions 
     /* Boundary conditions from Xiaoran:
@@ -328,7 +324,7 @@ int main(int argc, char *argv[]) {
     // Checks
     // std::cout << "q(2,2) = " << std::exp(log_q_vals[2][2]) << "\n"; // 2
     // std::cout << "q(10,7) = " << std::exp(log_q_vals[10][7]) << "\n"; // 38
-    std::cout << "Precomputation finished.\n";
+    std::cout << "Precomputation of q(m,n) values finished.\n";
 
     // Create the states
     std::vector<double> all_betas; // All of the betas available in order
@@ -343,7 +339,7 @@ int main(int argc, char *argv[]) {
     std::vector<double> beta_is; // State i will evolve according to beta = all_betas[beta_is[i]]
     for(int i = 0; i < num_states; i++){
         beta_is.push_back(i);
-        StateType state = initialize_state(partition_init);
+        StateType state = initialize_state(partition_init, rng);
         StateBookkeepingType state_bookkeeping = get_state_bookkeeping(state, const_info);
         states.push_back(state);
         state_bookkeepings.push_back(state_bookkeeping);
@@ -363,10 +359,10 @@ int main(int argc, char *argv[]) {
             // Perform a move on each state
             for(int state_i = 0; state_i < all_betas.size(); state_i++){
                 auto [var_name, var_index, new_val, old_val, delta_q] = generate_proposal(states[state_i], state_bookkeepings[state_i], rng);
-                double deltaH = implement_proposal(var_name, var_index, new_val, old_val, delta_q, states[state_i], state_bookkeepings[state_i], const_info);
-                // check_state_bookkeeping(states[state_i],state_bookkeepings[state_i], const_info);
+                double deltaH = implement_proposal(var_name, var_index, new_val, old_val, delta_q, states[state_i], state_bookkeepings[state_i], const_info, rng);
+                // check_state_bookkeeping(states[state_i],state_bookkeepings[state_i], const_info); // Check bookkeeping after each move
                 
-                // std::cout << dH << " " << "\n";
+                // std::cout << deltaH << " " << "\n";
                 // Accept/reject
                 double beta = all_betas[beta_is[state_i]];
                 double p = std::uniform_real_distribution<double>(0.0, 1.0)(rng);
@@ -375,7 +371,7 @@ int main(int argc, char *argv[]) {
                     // std::cout << "deltaH: " << deltaH << " energy: " << std::get<energyStateBookkeepingTypeIndex>(state_bookkeepings[state_i]) << "\n";
                 }else{
                     // Revert the flip (we could potentially speed this up by storing the proposed change in the bookkeeping and reverting it here, although I'm not sure if the added saving to memory overhead is worth it?)
-                    deltaH = implement_proposal(var_name, var_index, old_val, new_val, -delta_q, states[state_i], state_bookkeepings[state_i], const_info);
+                    deltaH = implement_proposal(var_name, var_index, old_val, new_val, -delta_q, states[state_i], state_bookkeepings[state_i], const_info, rng);
                     // check_state_bookkeeping(states[state_i],state_bookkeepings[state_i], const_info);
                 }
             }
@@ -413,8 +409,6 @@ int main(int argc, char *argv[]) {
                     std::cout << " energy: " << std::get<energyStateBookkeepingTypeIndex>(state_bookkeepings[state_i]) << " q: " << std::get<qStateBookkeepingTypeIndex>(state_bookkeepings[state_i]) << " ";
                     
                 }
-                // Write all samples across all chains to this file, include the beta of the chain it came from. 
-                outfile_all_betas << state_csv_string(states[state_i], state_bookkeepings[state_i], const_info) << "," << beta << "\n";
             }
         }else{
             // Check if the warmup is done (if we have an increase in energy in the beta = 1 chain)
@@ -441,43 +435,64 @@ int main(int argc, char *argv[]) {
 }
 
 // Initialize the state given the initial partition
-StateType initialize_state(std::vector<int>& partition_init){
-    // int q = *std::max_element(partition_init.begin(), partition_init.end());
-    // q += 1;
-    // int n = partition_init.size();
+StateType initialize_state(std::vector<int>& partition_init, std::mt19937& rng){
+    int q = *std::max_element(partition_init.begin(), partition_init.end());
+    q += 1;
+    int n = partition_init.size();
 
-    StateType state = std::make_tuple(partition_init);
+    std::normal_distribution<double> unit_normal_dist(0, 1);
+    std::uniform_real_distribution<double> uniform_01_dist(0, 1);
+
+    double p = uniform_01_dist(rng);
+    double sigma_C_init = p;
+    double sigma_I_init = p;
+
+    std::vector<double> community_status_init;
+    for(int r = 0; r < q; r++){
+        double rand_community_status = sigma_C_init*unit_normal_dist(rng);
+        community_status_init.push_back(rand_community_status);
+    }
+
+    std::vector<double> total_status_init;
+    for(int i = 0; i < n; i++){
+        double rand_individual_status = sigma_I_init*unit_normal_dist(rng);
+        double rand_total_status = rand_individual_status + community_status_init[partition_init[i]];
+        total_status_init.push_back(rand_total_status);
+    }
+
+    double nu_init = uniform_01_dist(rng);
+
+    StateType state = std::make_tuple(partition_init, sigma_C_init, sigma_I_init, community_status_init, total_status_init, nu_init);
     
     return state;
 }
 
 // Implement the proposed swap. Also return the change in the log-likelihood, relevant for deciding whether to in fact accept this swap
 // Goal is amortized (average) O(n/q) time complexity
-double implement_proposal(std::string var_name, int var_index, double new_val, double old_val, int delta_q, StateType& state, StateBookkeepingType& state_bookkeeping, ConstInfoType& const_info){
+double implement_proposal(std::string var_name, int var_index, double new_val, double old_val, int delta_q, StateType& state, StateBookkeepingType& state_bookkeeping, ConstInfoType& const_info, std::mt19937& rng){
     // Unpack the tuples
-    auto& [partition // \vec{b}
-            ] = state;
+    auto& [partition, 
+        sigma_C, 
+        sigma_I,
+        community_status, 
+        total_status,
+        nu] = state;
 
     auto& [q, 
         node_counts, 
         group_members,
         edge_counts, 
         edge_counts_sum,
-        m_in,
         degree_counts_by_group, 
-        degree_covs, 
-        A_alphas,
-        M_alpha_diag,
-        M_alpha_nodiag,
-        H_A_G_k_M_b_Poisson, 
-        H_A_G_M_k_b_Multigraph,
-        H_k, 
+        H_A_G_Abar_s_nu,
+        H_nu,
+        H_s_G_c_b_sigmaI,
+        H_c_G_sigmaC,
+        H_sigmaC,
+        H_sigmaI,
+        H_Abar_G_M_b, 
         H_k_G_eta, 
         H_eta_G_M_nb,
-        H_M_G_ms_m_in,
-        H_M_G_ms,
-        H_M_G_m_in_q,
-        H_m_in, 
         H_M_G_q, 
         H_b_G_nb, 
         H_nb_G_q, 
@@ -486,16 +501,121 @@ double implement_proposal(std::string var_name, int var_index, double new_val, d
 
     auto& [n,
         m,
-        neighbors, // std::vector<std::vector<int>>
+        wins, 
+        ties, 
+        losses,
+        neighbors,
         degree_list // std::vector<int> , \vec{k}
         ] = const_info;
 
     double deltaH = 0;
+    // std::cout << var_name << " " << var_index << " " << old_val << " " << new_val << " " << delta_q << "\n";
     // std::cout << "partition["<<var_index<<"] = "<<old_val<<" -> "<<new_val<<"\n";
     // std::cout << "Initial ";
     // print(node_counts);
     // print(partition);
-    
+    // H_A_G_Abar_s_nu + H_nu + H_s_G_c_b_sigmaI + H_c_G_sigmaC + H_sigmaC + H_sigmaI
+    if(var_name == "sigma_C"){
+        // This will impact H_c_G_sigmaC and H_sigmaC, the H_c_G_sigmaC change needs to be accept/rejected
+        sigma_C = new_val;
+        // state_bookkeeping change
+        double H_sigmaC_new = std::log(M_PI*MEAN_SIGMA) + std::pow(sigma_C/MEAN_SIGMA,2)/M_PI;
+        double H_c_G_sigmaC_new = q*std::log(sigma_C) + q*0.5*std::log(2*M_PI) + std::pow(old_val/sigma_C,2)*(H_c_G_sigmaC - q*std::log(old_val) - q*0.5*std::log(2*M_PI));
+        deltaH = H_c_G_sigmaC_new - H_c_G_sigmaC + H_sigmaC_new - H_sigmaC; // Change in likelihood
+        H_c_G_sigmaC = H_c_G_sigmaC_new;
+        H_sigmaC = H_sigmaC_new;
+        energy = H_A_G_Abar_s_nu + H_nu + H_s_G_c_b_sigmaI + H_c_G_sigmaC + H_sigmaC + H_sigmaI + H_Abar_G_M_b + H_k_G_eta + H_eta_G_M_nb + H_M_G_q + H_b_G_nb + H_nb_G_q + H_q;
+    }
+    if(var_name == "sigma_I"){
+        // This will impact H_s_G_c_b_sigmaI and H_sigmaI, the H_s_G_c_b_sigmaI change needs to be accept/rejected
+        // state change
+        sigma_I = new_val;
+        // state_bookkeeping change
+        double H_sigmaI_new = std::log(M_PI*MEAN_SIGMA) + std::pow(sigma_I/MEAN_SIGMA,2)/M_PI;
+        double H_s_G_c_b_sigmaI_new = n*std::log(sigma_I) + n*0.5*std::log(2*M_PI) + std::pow(old_val/sigma_I,2)*(H_s_G_c_b_sigmaI - n*std::log(old_val) - n*0.5*std::log(2*M_PI));
+        deltaH = H_s_G_c_b_sigmaI_new - H_s_G_c_b_sigmaI + H_sigmaI_new - H_sigmaI; // Change in likelihood
+        H_s_G_c_b_sigmaI = H_s_G_c_b_sigmaI_new;
+        H_sigmaI = H_sigmaI_new;
+        energy = H_A_G_Abar_s_nu + H_nu + H_s_G_c_b_sigmaI + H_c_G_sigmaC + H_sigmaC + H_sigmaI + H_Abar_G_M_b + H_k_G_eta + H_eta_G_M_nb + H_M_G_q + H_b_G_nb + H_nb_G_q + H_q;
+    }
+    if(var_name == "community_status"){
+        // This will impact H_s_G_c_b_sigmaI and H_c_G_sigmaC, the H_s_G_c_b_sigmaI change needs to be accept/rejected
+        // state change
+        int r = var_index;
+        community_status[r] = new_val;
+        // state_bookkeeping change
+        double H_c_G_sigmaC_new = H_c_G_sigmaC;
+        H_c_G_sigmaC_new -= 0.5*std::pow(old_val/sigma_C,2) + std::log(sigma_C) + 0.5*std::log(2*M_PI);
+        H_c_G_sigmaC_new += 0.5*std::pow(community_status[r]/sigma_C,2) + std::log(sigma_C) + 0.5*std::log(2*M_PI);
+        double H_s_G_c_b_sigmaI_new = H_s_G_c_b_sigmaI;
+        for(int i : group_members[r]){
+            H_s_G_c_b_sigmaI_new -= 0.5*std::pow((total_status[i]-old_val)/sigma_I,2) + std::log(sigma_I) + 0.5*std::log(2*M_PI);
+            H_s_G_c_b_sigmaI_new += 0.5*std::pow((total_status[i]-community_status[partition[i]])/sigma_I,2) + std::log(sigma_I) + 0.5*std::log(2*M_PI);
+        }
+        deltaH = H_s_G_c_b_sigmaI_new - H_s_G_c_b_sigmaI + H_c_G_sigmaC_new - H_c_G_sigmaC;
+        H_s_G_c_b_sigmaI = H_s_G_c_b_sigmaI_new;
+        H_c_G_sigmaC = H_c_G_sigmaC_new;
+        energy = H_A_G_Abar_s_nu + H_nu + H_s_G_c_b_sigmaI + H_c_G_sigmaC + H_sigmaC + H_sigmaI + H_Abar_G_M_b + H_k_G_eta + H_eta_G_M_nb + H_M_G_q + H_b_G_nb + H_nb_G_q + H_q;
+    }
+    if(var_name == "total_status"){
+        // This will impact H_A_G_Abar_s_nu and H_s_G_c_b_sigmaI, the H_A_G_Abar_s_nu change needs to be accept/rejected
+        // state change
+        int i = var_index;
+        total_status[i] = new_val;
+        // state_bookkeeping change
+        double H_s_G_c_b_sigmaI_new = H_s_G_c_b_sigmaI;
+        H_s_G_c_b_sigmaI_new -= 0.5*std::pow((old_val-community_status[partition[i]])/sigma_I,2) + std::log(sigma_I) + 0.5*std::log(2*M_PI);
+        H_s_G_c_b_sigmaI_new += 0.5*std::pow((total_status[i]-community_status[partition[i]])/sigma_I,2) + std::log(sigma_I) + 0.5*std::log(2*M_PI);
+        double H_A_G_Abar_s_nu_new = H_A_G_Abar_s_nu;
+        for(auto& [j, Aij] : wins[i]){
+            double old_score_diff = old_val - total_status[j];
+            double score_diff = total_status[i] - total_status[j];
+            H_A_G_Abar_s_nu_new -= Aij*(log_denom(old_score_diff,nu) - old_score_diff/2); // -log P(i beat j)
+            H_A_G_Abar_s_nu_new += Aij*(log_denom(score_diff,nu) - score_diff/2); // -log P(i beat j)
+        }
+        for(auto& [j, Aij] : ties[i]){
+            double old_score_diff = old_val - total_status[j];
+            double score_diff = total_status[i] - total_status[j];
+            H_A_G_Abar_s_nu_new -= Aij*(log_denom(old_score_diff,nu) - std::log(2*nu)); // -log P(i ties j)
+            H_A_G_Abar_s_nu_new += Aij*(log_denom(score_diff,nu) - std::log(2*nu)); // -log P(i ties j)
+        }
+        for(auto& [j, Aij] : losses[i]){
+            double old_score_diff = total_status[j] - old_val; // Flip the score difference
+            double score_diff =  total_status[j] - total_status[i];
+            H_A_G_Abar_s_nu_new -= Aij*(log_denom(old_score_diff,nu) - old_score_diff/2); // -log P(j beat i)
+            H_A_G_Abar_s_nu_new += Aij*(log_denom(score_diff,nu) - score_diff/2); // -log P(j beat i)
+        }
+        deltaH = H_A_G_Abar_s_nu_new - H_A_G_Abar_s_nu + H_s_G_c_b_sigmaI_new - H_s_G_c_b_sigmaI; // Change in likelihood
+        H_A_G_Abar_s_nu = H_A_G_Abar_s_nu_new;
+        H_s_G_c_b_sigmaI = H_s_G_c_b_sigmaI_new;
+        energy = H_A_G_Abar_s_nu + H_nu + H_s_G_c_b_sigmaI + H_c_G_sigmaC + H_sigmaC + H_sigmaI + H_Abar_G_M_b + H_k_G_eta + H_eta_G_M_nb + H_M_G_q + H_b_G_nb + H_nb_G_q + H_q;
+    }
+    if(var_name == "nu"){
+        // Pretty sure that we just need to fully recalculate H_A_G_Abar_s_nu
+        // This will impact H_A_G_Abar_s_nu and H_nu, the H_A_G_Abar_s_nu change needs to be accept/rejected
+        // state change
+        nu = new_val;
+        // state_bookkeeping change
+        double H_nu_new = 2*std::log(1+nu);
+        double H_A_G_Abar_s_nu_new = 0;
+        for(int i = 0; i < n; i++){
+            for(auto& [j, Aij] : wins[i]){
+                double score_diff = total_status[i] - total_status[j];
+                H_A_G_Abar_s_nu_new += Aij*(log_denom(score_diff,nu) - score_diff/2); // -log P(i beat j)
+            }
+            for(auto& [j, Aij] : ties[i]){
+                if(i < j){ // Only count the ties once
+                    double score_diff = total_status[i] - total_status[j];
+                    H_A_G_Abar_s_nu_new += Aij*(log_denom(score_diff,nu) - std::log(2*nu)); // -log P(i ties j)
+                }
+            }
+            // Note that we do not need to include the losses since they are captured by the wins of the opponent
+        }
+        deltaH = H_A_G_Abar_s_nu_new - H_A_G_Abar_s_nu + H_nu_new - H_nu; // Change in likelihood
+        H_A_G_Abar_s_nu = H_A_G_Abar_s_nu_new;
+        H_nu = H_nu_new;
+        energy = H_A_G_Abar_s_nu + H_nu + H_s_G_c_b_sigmaI + H_c_G_sigmaC + H_sigmaC + H_sigmaI + H_Abar_G_M_b + H_k_G_eta + H_eta_G_M_nb + H_M_G_q + H_b_G_nb + H_nb_G_q + H_q;
+    }
     if(var_name == "partition"){
         int i = var_index;
         int r_old = old_val;
@@ -510,6 +630,13 @@ double implement_proposal(std::string var_name, int var_index, double new_val, d
                     partition[i] -= 1;
                 }
             }
+            for(int r = 0; r < q; r++){
+                if(r > old_val){
+                    community_status[r-1] = community_status[r];
+                }
+            }
+            // Remove last element of community_status
+            community_status.pop_back();
             // Recompute the bookkeeping from scratch (maybe this could be done more efficiently)
             state_bookkeeping = get_state_bookkeeping(state, const_info);
             double energy = std::get<energyStateBookkeepingTypeIndex>(state_bookkeeping);
@@ -521,6 +648,15 @@ double implement_proposal(std::string var_name, int var_index, double new_val, d
                     partition[i] += 1;
                 }
             }
+            community_status.push_back(0);
+            for(int r = 0; r <= q; r++){
+                if(r >= new_val){
+                    community_status[r] = community_status[r - 1];
+                }
+            }
+            // Randomly initialize the status of the new community
+            std::normal_distribution<double> unit_normal_dist(0, 1);
+            community_status[new_val] = sigma_C*unit_normal_dist(rng);
             // Recompute the bookkeeping from scratch (maybe this could be done more efficiently)
             state_bookkeeping = get_state_bookkeeping(state, const_info);
             double energy = std::get<energyStateBookkeepingTypeIndex>(state_bookkeeping);
@@ -528,59 +664,35 @@ double implement_proposal(std::string var_name, int var_index, double new_val, d
         }else{ // Compute the local changes
             // std::cout << "Implementing local change\n";
             // Removing old contributions to the energy
-            if(MULTIGRAPH_ENCODING){
-                // H_A_G_M_k_b_Multigraph
-                H_A_G_M_k_b_Multigraph -= log_binom(edge_counts[r_old][r_old]/2 + node_counts[r_old] * (node_counts[r_old] + 1)/2 - 1, node_counts[r_old] * (node_counts[r_old] + 1)/2 - 1);
-                H_A_G_M_k_b_Multigraph -= log_binom(edge_counts[r_new][r_new]/2 + node_counts[r_new] * (node_counts[r_new] + 1)/2 - 1, node_counts[r_new] * (node_counts[r_new] + 1)/2 - 1);
-                for(int s = 0; s < q; s++){ // Convert this to O(q)?
-                    if(s != r_old){
-                        H_A_G_M_k_b_Multigraph -= log_binom(edge_counts[r_old][s] + node_counts[r_old] * node_counts[s] - 1, node_counts[r_old] * node_counts[s] - 1);
-                        if(s != r_new){
-                            H_A_G_M_k_b_Multigraph -= log_binom(edge_counts[r_new][s] + node_counts[r_new] * node_counts[s] - 1, node_counts[r_new] * node_counts[s] - 1);
-                        }
-                    }
-                }
-                for(int r = 0; r < q; r++){
-                    H_A_G_M_k_b_Multigraph += log_binom(edge_counts_sum[r] + node_counts[r]*A_alphas[r] - 1, node_counts[r]*A_alphas[r] - 1);
-                }
-                for(int r = 0; r < q; r++){
-                    for(auto& [k, count] : degree_counts_by_group[r]){
-                        H_A_G_M_k_b_Multigraph -= count*log_binom(k + A_alphas[r] - 1, A_alphas[r] - 1);
-                    }
-                }
-            }else{
-                // H_A_G_k_M_b_Poisson 
-                H_A_G_k_M_b_Poisson -= std::lgamma(edge_counts_sum[r_old] + 1); // log(M[r]!)
-                H_A_G_k_M_b_Poisson += (edge_counts[r_old][r_old]/2*std::log(2) + std::lgamma(edge_counts[r_old][r_old]/2 + 1)); // log(M[r][r]!!) = log(2^(M[r][r]/2)M[r][r]!)
-                H_A_G_k_M_b_Poisson -= std::lgamma(edge_counts_sum[r_new] + 1); // log(M[r]!)
-                H_A_G_k_M_b_Poisson += (edge_counts[r_new][r_new]/2*std::log(2) + std::lgamma(edge_counts[r_new][r_new]/2 + 1)); // log(M[r][r]!!) = log(2^(M[r][r]/2)M[r][r]!)
-                for(int s = 0; s < q; s++){ // log Omega, remove the 2*(q - 1) - 1 entries that will be impacted
-                    if(s != r_old){
-                        H_A_G_k_M_b_Poisson += std::lgamma(edge_counts[r_old][s] + 1); // log(M[r][s]!)
-                        if(s != r_new){
-                            H_A_G_k_M_b_Poisson += std::lgamma(edge_counts[r_new][s] + 1); // log(M[r][s]!)
-                        }
+            // H_s_G_c_b_sigmaI
+            H_s_G_c_b_sigmaI -= 0.5*std::pow((total_status[i]-community_status[r_old])/sigma_I,2) + std::log(sigma_I) + 0.5*std::log(2*M_PI); 
+            // H_Abar_G_M_b 
+            H_Abar_G_M_b -= std::lgamma(edge_counts_sum[r_old] + 1); // log(M[r]!)
+            H_Abar_G_M_b += (edge_counts[r_old][r_old]/2*std::log(2) + std::lgamma(edge_counts[r_old][r_old]/2 + 1)); // log(M[r][r]!!) = log(2^(M[r][r]/2)M[r][r]!)
+            H_Abar_G_M_b -= std::lgamma(edge_counts_sum[r_new] + 1); // log(M[r]!)
+            H_Abar_G_M_b += (edge_counts[r_new][r_new]/2*std::log(2) + std::lgamma(edge_counts[r_new][r_new]/2 + 1)); // log(M[r][r]!!) = log(2^(M[r][r]/2)M[r][r]!)
+            for(int s = 0; s < q; s++){ // log Omega, remove the 2*(q - 1) - 1 entries that will be impacted
+                if(s != r_old){
+                    H_Abar_G_M_b += std::lgamma(edge_counts[r_old][s] + 1); // log(M[r][s]!)
+                    if(s != r_new){
+                        H_Abar_G_M_b += std::lgamma(edge_counts[r_new][s] + 1); // log(M[r][s]!)
                     }
                 }
             }
-            if(NEW_TRANSMISSION_ORDER){
-
-            }else{
-                // H_k_G_eta
-                H_k_G_eta -= std::lgamma(node_counts[r_old] + 1); // log(nb[r]!)
-                // H_k_G_eta += std::lgamma(degree_counts_by_group[r_old][degree_list[i]] + 1); // log(eta[r][k]!) [in terms of vector]
-                for(auto& [k, count] : degree_counts_by_group[r_old]){
-                    H_k_G_eta += std::lgamma(count + 1); // log(eta[r][k]!)
-                }
-                H_k_G_eta -= std::lgamma(node_counts[r_new] + 1); // log(nb[r]!)
-                // H_k_G_eta += std::lgamma(degree_counts_by_group[r_new][degree_list[i]] + 1); // log(eta[r][k]!) [in terms of vector]
-                for(auto& [k, count] : degree_counts_by_group[r_new]){
-                    H_k_G_eta += std::lgamma(count + 1); // log(eta[r][k]!)
-                }
-                // H_eta_G_M_nb
-                H_eta_G_M_nb -= log_q_vals[edge_counts_sum[r_old]][node_counts[r_old]];
-                H_eta_G_M_nb -= log_q_vals[edge_counts_sum[r_new]][node_counts[r_new]];
+            // H_k_G_eta
+            H_k_G_eta -= std::lgamma(node_counts[r_old] + 1); // log(nb[r]!)
+            // H_k_G_eta += std::lgamma(degree_counts_by_group[r_old][degree_list[i]] + 1); // log(eta[r][k]!) [in terms of vector]
+            for(auto& [k, count] : degree_counts_by_group[r_old]){
+                H_k_G_eta += std::lgamma(count + 1); // log(eta[r][k]!)
             }
+            H_k_G_eta -= std::lgamma(node_counts[r_new] + 1); // log(nb[r]!)
+            // H_k_G_eta += std::lgamma(degree_counts_by_group[r_new][degree_list[i]] + 1); // log(eta[r][k]!) [in terms of vector]
+            for(auto& [k, count] : degree_counts_by_group[r_new]){
+                H_k_G_eta += std::lgamma(count + 1); // log(eta[r][k]!)
+            }
+            // H_eta_G_M_nb
+            H_eta_G_M_nb -= log_q_vals[edge_counts_sum[r_old]][node_counts[r_old]];
+            H_eta_G_M_nb -= log_q_vals[edge_counts_sum[r_new]][node_counts[r_new]];
             
             // H_b_G_nb
             H_b_G_nb += std::lgamma(node_counts[r_old] + 1); // log(nb[r]!)
@@ -596,7 +708,6 @@ double implement_proposal(std::string var_name, int var_index, double new_val, d
             group_members[r_new].insert(i);
             // edge_counts
             // edge_counts_sum
-            // m_in
             for(auto& [j, Aij] : neighbors[i]){
                 edge_counts[r_old][partition[j]] -= Aij;
                 edge_counts[partition[j]][r_old] -= Aij;
@@ -604,12 +715,6 @@ double implement_proposal(std::string var_name, int var_index, double new_val, d
                 edge_counts[partition[j]][r_new] += Aij;
                 edge_counts_sum[r_old] -= Aij;
                 edge_counts_sum[r_new] += Aij;
-                if(r_old == partition[j]){
-                    m_in -= Aij;
-                }
-                if(r_new == partition[j]){
-                    m_in += Aij;
-                }
             }
             // degree_counts_by_group
             degree_counts_by_group[r_old][degree_list[i]] -= 1;
@@ -621,185 +726,80 @@ double implement_proposal(std::string var_name, int var_index, double new_val, d
             }else{
                 degree_counts_by_group[r_new][degree_list[i]] += 1;
             }
-            if(MULTIGRAPH_ENCODING){
-                // degree_covs
-                for(int r = 0; r < q; r++){
-                    // Contribution from the block diagonal: (M[[r, r]]/2)/(nb[[r]] (nb[[r]] + 1)/2) ((nb[[r]] (nb[[r]] + 1)/2 + (M[[r, r]]/2))/(nb[[r]] (nb[[r]] + 1)/2 + 1)) (nb[[r]] + 2)
-                    double block_diag_cov = ((float(edge_counts[r][r]) / 2) / (node_counts[r] * (node_counts[r] + 1) / 2))*
-                        ((float(node_counts[r]) * (node_counts[r] + 1) / 2 + (edge_counts[r][r] / 2)) /
-                        (float(node_counts[r]) * (node_counts[r] + 1) / 2 + 1)) * (node_counts[r] + 2);
-                    // Contributions from the off block diagonals
-                    double off_block_diag_cov = 0;
-                    for(int s = 0; s < q; s++){
-                        if(s != r){
-                            // M[[r, s]]/nb[[r]] (nb[[r]] nb[[s]] + M[[r, s]])/(nb[[r]] nb[[s]] + 1)
-                            off_block_diag_cov += (float(edge_counts[r][s]) / node_counts[r]) * (node_counts[r] * node_counts[s] + edge_counts[r][s]) /
-                                (node_counts[r] * node_counts[s] + 1);
-                        }
-                    }
-                    // std::cout << block_diag_cov << " " << off_block_diag_cov << " " << (block_diag_cov + off_block_diag_cov) << "\n";
-                    degree_covs[r] = block_diag_cov + off_block_diag_cov;
-                }
-
-                // A_alphas   
-                for(int r = 0; r < q; r++){
-                    // (covs[[r]] nb[[r]] - ms[[r]]^2)/(nb[[r]] (ms[[r]] - covs[[r]] nb[[r]]))
-                    A_alphas[r] = ((degree_covs[r] * node_counts[r] - edge_counts_sum[r] * edge_counts_sum[r]) / 
-                    (node_counts[r] * (edge_counts_sum[r] - degree_covs[r] * node_counts[r]))); // TODO: update this to be a prior
-                }
-            }
-
-            // M_alpha_diag
-            M_alpha_diag = alpha_from_m_m_in_q(m, m_in, q);
-
-            // M_alpha_nodiag
-            M_alpha_nodiag = alpha_from_m_q(m, q);
-
-            // Just overwrite the H(M) terms [O(q) evaluation anyway]
-            if(NEW_TRANSMISSION_ORDER){
-                if(CONDITION_ON_DIAGONAL){
-                    // H_M_G_ms_m_in
-                    // logBinom[mOut + q (q - 1)/2 - 1, q (q - 1)/2 - 1] + logBinom[mIn + q - 1, q - 1] - logBinom[2 m + q \[Alpha] - 1, q \[Alpha] - 1] + Total[logBinom[ms + \[Alpha] - 1, \[Alpha] - 1]]
-                    H_M_G_ms_m_in = log_binom(m - m_in + q * (q - 1) / 2 - 1, q * (q - 1) / 2 - 1) +
-                                    log_binom(m_in + q - 1, q - 1) -
-                                    log_binom(2 * m + q * M_alpha_diag - 1, q * M_alpha_diag - 1);
-
-                    for (int mVal : edge_counts_sum) {
-                        H_M_G_ms_m_in += log_binom(mVal + M_alpha_diag - 1,M_alpha_diag - 1);
-                    }
-                }else{
-                    // H_M_G_ms
-                    // logBinom[m + q (q + 1)/2 - 1, q (q + 1)/2 - 1] - logBinom[2 m + q \[Alpha] - 1, q \[Alpha] - 1] + Sum[logBinom[ms[[i]] + \[Alpha] - 1, \[Alpha] - 1], {i, 1, q}]
-                    H_M_G_ms = log_binom(m + q * (q + 1) / 2 - 1, q * (q + 1) / 2 - 1) - log_binom(2 * m + q * M_alpha_nodiag - 1, q * M_alpha_nodiag - 1);
-
-                    for (int r = 0; r < q; r++) {
-                        H_M_G_ms += log_binom(edge_counts_sum[r] + M_alpha_nodiag - 1, M_alpha_nodiag - 1);
-                    }    
-                }
-            }
-            // Just recalculate the H(M) term
-            H_M_G_m_in_q = log_binom(m_in + q - 1, q - 1) + log_binom(m - m_in + q*(q-1)/2 - 1, q*(q-1)/2 - 1);
 
             // Adding terms back to the energy
-            if(MULTIGRAPH_ENCODING){
-                H_A_G_M_k_b_Multigraph += log_binom(edge_counts[r_old][r_old]/2 + node_counts[r_old] * (node_counts[r_old] + 1)/2 - 1, node_counts[r_old] * (node_counts[r_old] + 1)/2 - 1);
-                H_A_G_M_k_b_Multigraph += log_binom(edge_counts[r_new][r_new]/2 + node_counts[r_new] * (node_counts[r_new] + 1)/2 - 1, node_counts[r_new] * (node_counts[r_new] + 1)/2 - 1);
-                for(int s = 0; s < q; s++){ // Convert this to O(q)?
-                    if(s != r_old){
-                        H_A_G_M_k_b_Multigraph += log_binom(edge_counts[r_old][s] + node_counts[r_old] * node_counts[s] - 1, node_counts[r_old] * node_counts[s] - 1);
-                        if(s != r_new){
-                            H_A_G_M_k_b_Multigraph += log_binom(edge_counts[r_new][s] + node_counts[r_new] * node_counts[s] - 1, node_counts[r_new] * node_counts[s] - 1);
-                        }
-                    }
-                }
-                for(int r = 0; r < q; r++){ // All alphas change
-                    H_A_G_M_k_b_Multigraph -= log_binom(edge_counts_sum[r] + node_counts[r]*A_alphas[r] - 1, node_counts[r]*A_alphas[r] - 1);
-                }
-                for(int r = 0; r < q; r++){
-                    for(auto& [k, count] : degree_counts_by_group[r]){
-                        H_A_G_M_k_b_Multigraph += count*log_binom(k + A_alphas[r] - 1, A_alphas[r] - 1);
-                    }
-                }
-            }else{
-                // Adding new contributions to the energy
-                // H_A_G_k_M_b_Poisson TODO: optimize, currently O(q^2) recalculation
-                H_A_G_k_M_b_Poisson += std::lgamma(edge_counts_sum[r_old] + 1); // log(M[r]!)
-                H_A_G_k_M_b_Poisson -= (edge_counts[r_old][r_old]/2*std::log(2) + std::lgamma(edge_counts[r_old][r_old]/2 + 1)); // log(M[r][r]!!) = log(2^(M[r][r]/2)M[r][r]!)
-                H_A_G_k_M_b_Poisson += std::lgamma(edge_counts_sum[r_new] + 1); // log(M[r]!)
-                H_A_G_k_M_b_Poisson -= (edge_counts[r_new][r_new]/2*std::log(2) + std::lgamma(edge_counts[r_new][r_new]/2 + 1)); // log(M[r][r]!!) = log(2^(M[r][r]/2)M[r][r]!)
-                
-                for(int s = 0; s < q; s++){ // log Omega, reintroduce the 2*(q - 1) - 1 entries that will be impacted
-                    if(s != r_old){
-                        H_A_G_k_M_b_Poisson -= std::lgamma(edge_counts[r_old][s] + 1); // log(M[r][s]!)
-                        if(s != r_new){
-                            H_A_G_k_M_b_Poisson -= std::lgamma(edge_counts[r_new][s] + 1); // log(M[r][s]!)
-                        }
+            // Adding new contributions to the energy
+            // H_s_G_c_b_sigmaI
+            H_s_G_c_b_sigmaI += 0.5*std::pow((total_status[i]-community_status[r_new])/sigma_I,2) + std::log(sigma_I) + 0.5*std::log(2*M_PI); 
+            // H_Abar_G_M_b
+            H_Abar_G_M_b += std::lgamma(edge_counts_sum[r_old] + 1); // log(M[r]!)
+            H_Abar_G_M_b -= (edge_counts[r_old][r_old]/2*std::log(2) + std::lgamma(edge_counts[r_old][r_old]/2 + 1)); // log(M[r][r]!!) = log(2^(M[r][r]/2)M[r][r]!)
+            H_Abar_G_M_b += std::lgamma(edge_counts_sum[r_new] + 1); // log(M[r]!)
+            H_Abar_G_M_b -= (edge_counts[r_new][r_new]/2*std::log(2) + std::lgamma(edge_counts[r_new][r_new]/2 + 1)); // log(M[r][r]!!) = log(2^(M[r][r]/2)M[r][r]!)
+            
+            for(int s = 0; s < q; s++){ // log Omega, reintroduce the 2*(q - 1) - 1 entries that will be impacted
+                if(s != r_old){
+                    H_Abar_G_M_b -= std::lgamma(edge_counts[r_old][s] + 1); // log(M[r][s]!)
+                    if(s != r_new){
+                        H_Abar_G_M_b -= std::lgamma(edge_counts[r_new][s] + 1); // log(M[r][s]!)
                     }
                 }
             }
-            if(NEW_TRANSMISSION_ORDER){
-
-            }else{
-                // H_k_G_eta
-                H_k_G_eta += std::lgamma(node_counts[r_old] + 1); // log(nb[r]!)
-                // H_k_G_eta -= std::lgamma(degree_counts_by_group[r_old][degree_list[i]] + 1); // log(eta[r][k]!) [in terms of vector]
-                for(auto& [k, count] : degree_counts_by_group[r_old]){
-                    H_k_G_eta -= std::lgamma(count + 1); // log(eta[r][k]!)
-                }
-                H_k_G_eta += std::lgamma(node_counts[r_new] + 1); // log(nb[r]!)
-                // H_k_G_eta -= std::lgamma(degree_counts_by_group[r_new][degree_list[i]] + 1); // log(eta[r][k]!) [in terms of vector]
-                for(auto& [k, count] : degree_counts_by_group[r_new]){
-                    H_k_G_eta -= std::lgamma(count + 1); // log(eta[r][k]!)
-                }
-                // H_eta_G_M_nb
-                H_eta_G_M_nb += log_q_vals[edge_counts_sum[r_old]][node_counts[r_old]];
-                H_eta_G_M_nb += log_q_vals[edge_counts_sum[r_new]][node_counts[r_new]];
+            // H_k_G_eta
+            H_k_G_eta += std::lgamma(node_counts[r_old] + 1); // log(nb[r]!)
+            // H_k_G_eta -= std::lgamma(degree_counts_by_group[r_old][degree_list[i]] + 1); // log(eta[r][k]!) [in terms of vector]
+            for(auto& [k, count] : degree_counts_by_group[r_old]){
+                H_k_G_eta -= std::lgamma(count + 1); // log(eta[r][k]!)
             }
+            H_k_G_eta += std::lgamma(node_counts[r_new] + 1); // log(nb[r]!)
+            // H_k_G_eta -= std::lgamma(degree_counts_by_group[r_new][degree_list[i]] + 1); // log(eta[r][k]!) [in terms of vector]
+            for(auto& [k, count] : degree_counts_by_group[r_new]){
+                H_k_G_eta -= std::lgamma(count + 1); // log(eta[r][k]!)
+            }
+            // H_eta_G_M_nb
+            H_eta_G_M_nb += log_q_vals[edge_counts_sum[r_old]][node_counts[r_old]];
+            H_eta_G_M_nb += log_q_vals[edge_counts_sum[r_new]][node_counts[r_new]];
+            
             // H_b_G_nb
             H_b_G_nb -= std::lgamma(node_counts[r_old] + 1); // log(nb[r]!)
             H_b_G_nb -= std::lgamma(node_counts[r_new] + 1); // log(nb[r]!)
             // energy
-            // Choose the encoding used for the final network transmission
             energy = 0;
-            if(MULTIGRAPH_ENCODING){
-                energy += H_A_G_M_k_b_Multigraph;
-            }else{
-                energy += H_A_G_k_M_b_Poisson;
-            }
-            // Choose the encoding for M and k based on the transmission order
-            if(NEW_TRANSMISSION_ORDER){
-                // Decide whether to condition on the diagonal
-                if(CONDITION_ON_DIAGONAL){
-                    energy += H_M_G_ms_m_in + H_m_in + H_k;
-                }else{
-                    energy += H_M_G_ms + H_k;
-                }
-            }else{
-                // Decide whether to condition on the diagonal
-                if(CONDITION_ON_DIAGONAL){
-                    energy += H_k_G_eta + H_eta_G_M_nb + H_M_G_m_in_q + H_m_in;
-                }else{
-                    energy += H_k_G_eta + H_eta_G_M_nb + H_M_G_q;
-                }
-            }
-            // We use the same encoding for the labeling across the board
+            energy += H_A_G_Abar_s_nu + H_nu + H_s_G_c_b_sigmaI + H_c_G_sigmaC + H_sigmaC + H_sigmaI;
+            energy += H_Abar_G_M_b;
+            energy += H_k_G_eta + H_eta_G_M_nb + H_M_G_q;
             energy += H_b_G_nb + H_nb_G_q + H_q;
             deltaH = energy - energy_old;
         }
     }
-    // std::cout << "Final ";
-    // print(node_counts);
-    // print(partition);
-    // std::cout << "done\n";
     return deltaH;
 }
 
 // Check that the state and its bookkeeping are in alignment. If not print the error and exit.
 void check_state_bookkeeping(StateType& state, StateBookkeepingType& state_bookkeeping, ConstInfoType& const_info){
     // Unpack the tuples
-    auto& [partition // \vec{b}
-            ] = state;
+    auto& [partition, 
+        sigma_C, 
+        sigma_I,
+        community_status, 
+        total_status,
+        nu] = state;
 
     auto& [q, 
         node_counts, 
         group_members,
         edge_counts, 
         edge_counts_sum,
-        m_in,
         degree_counts_by_group, 
-        degree_covs, 
-        A_alphas,
-        M_alpha_diag,
-        M_alpha_nodiag,
-        H_A_G_k_M_b_Poisson, 
-        H_A_G_M_k_b_Multigraph,
-        H_k, 
+        H_A_G_Abar_s_nu,
+        H_nu,
+        H_s_G_c_b_sigmaI,
+        H_c_G_sigmaC,
+        H_sigmaC,
+        H_sigmaI,
+        H_Abar_G_M_b, 
         H_k_G_eta, 
         H_eta_G_M_nb,
-        H_M_G_ms_m_in,
-        H_M_G_ms,
-        H_M_G_m_in_q,
-        H_m_in, 
         H_M_G_q, 
         H_b_G_nb, 
         H_nb_G_q, 
@@ -808,6 +808,9 @@ void check_state_bookkeeping(StateType& state, StateBookkeepingType& state_bookk
 
     auto& [n,
         m,
+        wins, 
+        ties, 
+        losses,
         neighbors, // std::vector<std::vector<int>>
         degree_list // std::vector<int> , \vec{k}
         ] = const_info;
@@ -820,25 +823,20 @@ void check_state_bookkeeping(StateType& state, StateBookkeepingType& state_bookk
         group_members_actual,
         edge_counts_actual, 
         edge_counts_sum_actual,
-        m_in_actual,
         degree_counts_by_group_actual, 
-        degree_covs_actual, 
-        A_alphas_actual,
-        M_alpha_diag_actual,
-        M_alpha_nodiag_actual,
-        H_A_G_k_M_b_Poisson_actual, 
-        H_A_G_M_k_b_Multigraph_actual,
-        H_k_actual, 
+        H_A_G_Abar_s_nu_actual,
+        H_nu_actual,
+        H_s_G_c_b_sigmaI_actual,
+        H_c_G_sigmaC_actual,
+        H_sigmaC_actual,
+        H_sigmaI_actual,
+        H_Abar_G_M_b_actual, 
         H_k_G_eta_actual, 
         H_eta_G_M_nb_actual,
-        H_M_G_ms_m_in_actual,
-        H_M_G_ms_actual,
-        H_M_G_m_in_q_actual,
-        H_m_in_actual,
-        H_M_G_q_actual,
-        H_b_G_nb_actual,
-        H_nb_G_q_actual,
-        H_q_actual,
+        H_M_G_q_actual, 
+        H_b_G_nb_actual, 
+        H_nb_G_q_actual, 
+        H_q_actual, 
         energy_actual] = state_bookkeeping_actual;
 
     // Check for equality
@@ -880,10 +878,6 @@ void check_state_bookkeeping(StateType& state, StateBookkeepingType& state_bookk
             exit(0);
         }
     }
-    if(m_in != m_in_actual){
-        std::cout << "Error: bookkeeping value m_in = "<<m_in<<" actual value m_in = "<<m_in_actual<<"\n";
-        exit(0);
-    }
     for(int r = 0; r < q; r++){
         if(degree_counts_by_group[r].size() != degree_counts_by_group_actual[r].size()){
             std::cout << "Error: in group "<<r<<" bookkeeping number of distinct degrees = "<<degree_counts_by_group[r].size()<<" actual number of distinct degrees = "<<degree_counts_by_group_actual[r].size()<<"\n";
@@ -896,21 +890,45 @@ void check_state_bookkeeping(StateType& state, StateBookkeepingType& state_bookk
             }
         }
     }
-    // TODO: include the checks of the new parts
-    // Community
-    if(!MULTIGRAPH_ENCODING && std::abs(H_A_G_k_M_b_Poisson - H_A_G_k_M_b_Poisson_actual) > NUMERICAL_CHECK_EPSILON){
-        std::cout << "Error: bookkeeping value H_A_G_k_M_b_Poisson = "<<H_A_G_k_M_b_Poisson<<" actual value H_A_G_k_M_b_Poisson = "<<H_A_G_k_M_b_Poisson_actual<<"\n";
+    // Direction
+    if(std::abs(H_A_G_Abar_s_nu - H_A_G_Abar_s_nu_actual) > NUMERICAL_CHECK_EPSILON){
+        std::cout << "Error: bookkeeping value H_A_G_Abar_s_nu = "<<H_A_G_Abar_s_nu<<" actual value H_A_G_Abar_s_nu = "<<H_A_G_Abar_s_nu_actual<<"\n";
         exit(0);
     }
-    if(!NEW_TRANSMISSION_ORDER && std::abs(H_k_G_eta - H_k_G_eta_actual) > NUMERICAL_CHECK_EPSILON){
+    if(std::abs(H_nu - H_nu_actual) > NUMERICAL_CHECK_EPSILON){
+        std::cout << "Error: bookkeeping value H_nu = "<<H_nu<<" actual value H_nu = "<<H_nu_actual<<"\n";
+        exit(0);
+    }
+    if(std::abs(H_s_G_c_b_sigmaI - H_s_G_c_b_sigmaI_actual) > NUMERICAL_CHECK_EPSILON){
+        std::cout << "Error: bookkeeping value H_s_G_c_b_sigmaI = "<<H_s_G_c_b_sigmaI<<" actual value H_s_G_c_b_sigmaI = "<<H_s_G_c_b_sigmaI_actual<<"\n";
+        exit(0);
+    }
+    if(std::abs(H_c_G_sigmaC - H_c_G_sigmaC_actual) > NUMERICAL_CHECK_EPSILON){
+        std::cout << "Error: bookkeeping value H_c_G_sigmaC = "<<H_c_G_sigmaC<<" actual value H_c_G_sigmaC = "<<H_c_G_sigmaC_actual<<"\n";
+        exit(0);
+    }
+    if(std::abs(H_sigmaC - H_sigmaC_actual) > NUMERICAL_CHECK_EPSILON){
+        std::cout << "Error: bookkeeping value H_sigmaC = "<<H_sigmaC<<" actual value H_sigmaC = "<<H_sigmaC_actual<<"\n";
+        exit(0);
+    }
+    if(std::abs(H_sigmaI - H_sigmaI_actual) > NUMERICAL_CHECK_EPSILON){
+        std::cout << "Error: bookkeeping value H_sigmaI = "<<H_sigmaI<<" actual value H_sigmaI = "<<H_sigmaI_actual<<"\n";
+        exit(0);
+    }
+    // Community
+    if(std::abs(H_Abar_G_M_b - H_Abar_G_M_b_actual) > NUMERICAL_CHECK_EPSILON){
+        std::cout << "Error: bookkeeping value H_Abar_G_M_b = "<<H_Abar_G_M_b<<" actual value H_Abar_G_M_b = "<<H_Abar_G_M_b_actual<<"\n";
+        exit(0);
+    }
+    if(std::abs(H_k_G_eta - H_k_G_eta_actual) > NUMERICAL_CHECK_EPSILON){
         std::cout << "Error: bookkeeping value H_k_G_eta = "<<H_k_G_eta<<" actual value H_k_G_eta = "<<H_k_G_eta_actual<<"\n";
         exit(0);
     }
-    if(!NEW_TRANSMISSION_ORDER && std::abs(H_eta_G_M_nb - H_eta_G_M_nb_actual) > NUMERICAL_CHECK_EPSILON){
+    if(std::abs(H_eta_G_M_nb - H_eta_G_M_nb_actual) > NUMERICAL_CHECK_EPSILON){
         std::cout << "Error: bookkeeping value H_eta_G_M_nb = "<<H_eta_G_M_nb<<" actual value H_eta_G_M_nb = "<<H_eta_G_M_nb_actual<<"\n";
         exit(0);
     }
-    if(!NEW_TRANSMISSION_ORDER && std::abs(H_M_G_q - H_M_G_q_actual) > NUMERICAL_CHECK_EPSILON){
+    if(std::abs(H_M_G_q - H_M_G_q_actual) > NUMERICAL_CHECK_EPSILON){
         std::cout << "Error: bookkeeping value H_M_G_q = "<<H_M_G_q<<" actual value H_M_G_q = "<<H_M_G_q_actual<<"\n";
         exit(0);
     }
@@ -931,7 +949,13 @@ void check_state_bookkeeping(StateType& state, StateBookkeepingType& state_bookk
         exit(0);
     }
     // If checks are passed, update with the actual values (to stop floating point drift)
-    H_A_G_k_M_b_Poisson = H_A_G_k_M_b_Poisson_actual;
+    H_A_G_Abar_s_nu = H_A_G_Abar_s_nu_actual;
+    H_nu = H_nu_actual;
+    H_s_G_c_b_sigmaI = H_s_G_c_b_sigmaI_actual;
+    H_c_G_sigmaC = H_c_G_sigmaC_actual;
+    H_sigmaC = H_sigmaC_actual;
+    H_sigmaI = H_sigmaI_actual; 
+    H_Abar_G_M_b = H_Abar_G_M_b_actual;
     H_k_G_eta = H_k_G_eta_actual;
     H_eta_G_M_nb = H_eta_G_M_nb_actual;
     H_M_G_q = H_M_G_q_actual;
@@ -944,29 +968,28 @@ void check_state_bookkeeping(StateType& state, StateBookkeepingType& state_bookk
 // Generate proposed MCMC move: var_name, var_index, new_val, old_val
 std::tuple<std::string, int, double, double, int> generate_proposal(StateType& state, StateBookkeepingType& state_bookkeeping, std::mt19937& rng){
     // Unpack the tuples
-    auto& [partition // \vec{b}
-            ] = state;
+    auto& [partition, 
+        sigma_C, 
+        sigma_I,
+        community_status, 
+        total_status,
+        nu] = state;
 
     auto& [q, 
         node_counts, 
         group_members,
         edge_counts, 
         edge_counts_sum,
-        m_in,
         degree_counts_by_group, 
-        degree_covs, 
-        A_alphas,
-        M_alpha_diag,
-        M_alpha_nodiag,
-        H_A_G_k_M_b_Poisson, 
-        H_A_G_M_k_b_Multigraph,
-        H_k, 
+        H_A_G_Abar_s_nu,
+        H_nu,
+        H_s_G_c_b_sigmaI,
+        H_c_G_sigmaC,
+        H_sigmaC,
+        H_sigmaI,
+        H_Abar_G_M_b, 
         H_k_G_eta, 
         H_eta_G_M_nb,
-        H_M_G_ms_m_in,
-        H_M_G_ms,
-        H_M_G_m_in_q,
-        H_m_in, 
         H_M_G_q, 
         H_b_G_nb, 
         H_nb_G_q, 
@@ -981,12 +1004,13 @@ std::tuple<std::string, int, double, double, int> generate_proposal(StateType& s
     int delta_q; 
     
     // Which variable will we change?
-    int total_variables = partition.size();
+    int total_variables = partition.size() + 1 + 1 + community_status.size() + total_status.size() + 1;
     std::uniform_int_distribution<int> rand_int(0, total_variables - 1);
     int rand_var_index = rand_int(rng);
 
     // By how much?
     std::normal_distribution<double> unit_normal_dist(0, 1);
+    double z = unit_normal_dist(rng); // Element of randomness used to preturb continuous variables
     if(rand_var_index < partition.size()){ // Partition swap
         var_name = "partition";
         var_index = rand_var_index;
@@ -1024,6 +1048,61 @@ std::tuple<std::string, int, double, double, int> generate_proposal(StateType& s
     }else{
         rand_var_index -= partition.size();
     }
+    if(rand_var_index < 1){ // Shifting sigma_C
+        var_name = "sigma_C";
+        var_index = 0;
+        old_val = sigma_C;
+        new_val = old_val + SIGMA_C_TILDE_STEP_SIZE*z; // Apply the change
+        if(new_val < 0){ // sigma_C can't go negative
+            new_val *= -1;
+        }
+        return std::make_tuple(var_name, var_index, new_val, old_val, 0);
+    }else{
+        rand_var_index -= 1;
+    }
+    if(rand_var_index < 1){ // Shifting sigma_I
+        var_name = "sigma_I";
+        var_index = 0;
+        old_val = sigma_I;
+        new_val = old_val + SIGMA_I_TILDE_STEP_SIZE*z; // Apply the change
+        if(new_val < 0){ // sigma_I can't go negative
+            new_val *= -1;
+        }
+        return std::make_tuple(var_name, var_index, new_val, old_val, 0);
+    }else{
+        rand_var_index -= 1;
+    }
+    if(rand_var_index < community_status.size()){ // Shifting community_status
+        var_name = "community_status";
+        var_index = rand_var_index;
+        old_val = community_status[var_index];
+        new_val = old_val + COMMUNITY_STATUS_TILDE_STEP_SIZE*z; // Apply the change
+        return std::make_tuple(var_name, var_index, new_val, old_val, 0);
+    }else{
+        rand_var_index -= community_status.size();
+    }
+    if(rand_var_index < total_status.size()){ // Shifting total_status
+        var_name = "total_status";
+        var_index = rand_var_index;
+        old_val = total_status[var_index];
+        new_val = old_val + TOTAL_STATUS_TILDE_STEP_SIZE*z; // Apply the change
+        
+        return std::make_tuple(var_name, var_index, new_val, old_val, 0);
+    }else{
+        rand_var_index -= total_status.size();
+    }
+    if(rand_var_index < 1){ // Shifting nu
+        var_name = "nu";
+        var_index = 0;
+        old_val = nu;
+        new_val = old_val + NU_TILDE_STEP_SIZE*z; // Apply the change
+        if(new_val < 0){ // nu can't go negative
+            new_val *= -1;
+        }
+        return std::make_tuple(var_name, var_index, new_val, old_val, 0);
+    }else{
+        rand_var_index -= 1;
+    }
     std::cout << "Error: No var_name sampled.\n";
     exit(0);
     return std::make_tuple(var_name, var_index, new_val, old_val, delta_q);
@@ -1032,11 +1111,18 @@ std::tuple<std::string, int, double, double, int> generate_proposal(StateType& s
 // Compute the bookkeeping information (including the energy) from the MCMC state. Goal is to compute this in O(n) time.
 StateBookkeepingType get_state_bookkeeping(StateType& state, ConstInfoType& const_info){
     // Unpack the tuples
-    auto& [partition // \vec{b}
-            ] = state;
+    auto& [partition, 
+        sigma_C, 
+        sigma_I,
+        community_status, 
+        total_status,
+        nu] = state;
     
     auto& [n,
         m,
+        wins, 
+        ties, 
+        losses,
         neighbors, // std::vector<std::vector<int>>
         degree_list // std::vector<int> , \vec{k}
         ] = const_info;
@@ -1051,14 +1137,13 @@ StateBookkeepingType get_state_bookkeeping(StateType& state, ConstInfoType& cons
     for(int i = 0; i < n; i++){
         node_counts[partition[i]]++;
     }
-    // TODO: update q in this case and throw this error
-    // // Check that none of the groups have size 0 (this is not allowed in the encoding and we should be relabeling to avoid this)
-    // for(int r = 0; r < q; r++){
-    //     if(node_counts[r] == 0){
-    //         std::cout << "Error: Group " << r << " has 0 elements.\n";
-    //         exit(0); 
-    //     }
-    // }
+    // Check that none of the groups have size 0 (this is not allowed in the encoding and we should be relabeling to avoid this)
+    for(int r = 0; r < q; r++){
+        if(node_counts[r] == 0){
+            std::cout << "Error: Group " << r << " has 0 elements.\n";
+            exit(0); 
+        }
+    }
 
     std::vector<std::unordered_set<int>> group_members;
     for(int r = 0; r < q; r++){
@@ -1088,12 +1173,6 @@ StateBookkeepingType get_state_bookkeeping(StateType& state, ConstInfoType& cons
         }
     }
 
-    // Compute the number of internal edges
-    int m_in = 0;
-    for(int r = 0; r < q; r++){
-        m_in += edge_counts[r][r]/2;
-    }
-
     // Get the degree counts by group
     std::vector<std::unordered_map<int,int>> degree_counts_by_group;
     for(int r = 0; r < q; r++){
@@ -1106,42 +1185,34 @@ StateBookkeepingType get_state_bookkeeping(StateType& state, ConstInfoType& cons
         }
         degree_counts_by_group[partition[i]][degree_list[i]]++;
     }
-    // degree_covs
-    std::vector<double> degree_covs;
-    for(int r = 0; r < q; r++){
-        // Contribution from the block diagonal: (M[[r, r]]/2)/(nb[[r]] (nb[[r]] + 1)/2) ((nb[[r]] (nb[[r]] + 1)/2 + (M[[r, r]]/2))/(nb[[r]] (nb[[r]] + 1)/2 + 1)) (nb[[r]] + 2)
-        double block_diag_cov = ((float(edge_counts[r][r]) / 2) / (node_counts[r] * (node_counts[r] + 1) / 2))*
-            ((float(node_counts[r]) * (node_counts[r] + 1) / 2 + (edge_counts[r][r] / 2)) /
-               (float(node_counts[r]) * (node_counts[r] + 1) / 2 + 1)) * (node_counts[r] + 2);
-        // Contributions from the off block diagonals
-        double off_block_diag_cov = 0;
-        for(int s = 0; s < q; s++){
-            if(s != r){
-                // M[[r, s]]/nb[[r]] (nb[[r]] nb[[s]] + M[[r, s]])/(nb[[r]] nb[[s]] + 1)
-                off_block_diag_cov += (float(edge_counts[r][s]) / node_counts[r]) * (node_counts[r] * node_counts[s] + edge_counts[r][s]) /
-                      (node_counts[r] * node_counts[s] + 1);
+    // Direction
+    double H_A_G_Abar_s_nu = 0;
+    for(int i = 0; i < n; i++){
+        for(auto& [j, Aij] : wins[i]){
+            double score_diff = total_status[i] - total_status[j];
+            H_A_G_Abar_s_nu += Aij*(log_denom(score_diff,nu) - score_diff/2); // -log P(i beat j)
+        }
+        for(auto& [j, Aij] : ties[i]){
+            if(i < j){ // Only count the ties once
+                double score_diff = total_status[i] - total_status[j];
+                H_A_G_Abar_s_nu += Aij*(log_denom(score_diff,nu) - std::log(2*nu)); // -log P(i ties j)
             }
         }
-        // std::cout << block_diag_cov << " " << off_block_diag_cov << " " << (block_diag_cov + off_block_diag_cov) << "\n";
-        degree_covs.push_back(block_diag_cov + off_block_diag_cov);
+        // Note that we do not need to include the losses since they are captured by the wins of the opponent
     }
-
-    // A_alphas   
-    std::vector<double> A_alphas;
+    double H_nu = 2*std::log(1+nu);
+    double H_s_G_c_b_sigmaI = 0;
+    for(int i = 0; i < n; i++){
+        H_s_G_c_b_sigmaI += 0.5*std::pow((total_status[i]-community_status[partition[i]])/sigma_I,2) + std::log(sigma_I) + 0.5*std::log(2*M_PI);
+    }
+    double H_c_G_sigmaC = 0;
     for(int r = 0; r < q; r++){
-        // (covs[[r]] nb[[r]] - ms[[r]]^2)/(nb[[r]] (ms[[r]] - covs[[r]] nb[[r]]))
-        A_alphas.push_back((degree_covs[r] * node_counts[r] - edge_counts_sum[r] * edge_counts_sum[r]) / 
-        (node_counts[r] * (edge_counts_sum[r] - degree_covs[r] * node_counts[r]))); // TODO: update this to be a prior
+        H_c_G_sigmaC += 0.5*std::pow(community_status[r]/sigma_C,2) + std::log(sigma_C) + 0.5*std::log(2*M_PI);
     }
+    double H_sigmaC = std::log(M_PI*MEAN_SIGMA) + std::pow(sigma_C/MEAN_SIGMA,2)/M_PI;
+    double H_sigmaI = std::log(M_PI*MEAN_SIGMA) + std::pow(sigma_I/MEAN_SIGMA,2)/M_PI;
 
-    // M_alpha_diag
-    double M_alpha_diag = alpha_from_m_m_in_q(m, m_in, q);
-
-    // M_alpha_nodiag
-    double M_alpha_nodiag = alpha_from_m_q(m, q);
-
-
-    // Computing the description length
+    // Community
     double H_q = std::log(n);
     double H_nb_G_q = log_binom(n - 1, q - 1);
     double H_b_G_nb = std::lgamma(n + 1); // log(n!)
@@ -1149,34 +1220,11 @@ StateBookkeepingType get_state_bookkeeping(StateType& state, ConstInfoType& cons
         H_b_G_nb -= std::lgamma(node_counts[r] + 1); // log(nb[r]!)
     }
     double H_M_G_q = log_binom(m + q*(q+1)/2 - 1, q*(q+1)/2 - 1);
-    // Alternative encoding, conditioned on m_in, the number of internal edges
-    double H_m_in = std::log(m);
-    double H_M_G_m_in_q = log_binom(m_in + q - 1, q - 1) + log_binom(m - m_in + q*(q-1)/2 - 1, q*(q-1)/2 - 1);
     double H_eta_G_M_nb = 0;
     for(int r = 0; r < q; r++){
         H_eta_G_M_nb += log_q_vals[edge_counts_sum[r]][node_counts[r]];
     }
-    // H_M_G_ms_m_in
-    // logBinom[mOut + q (q - 1)/2 - 1, q (q - 1)/2 - 1] + logBinom[mIn + q - 1, q - 1] - logBinom[2 m + q \[Alpha] - 1, q \[Alpha] - 1] + Total[logBinom[ms + \[Alpha] - 1, \[Alpha] - 1]]
-    double H_M_G_ms_m_in = log_binom(m - m_in + q * (q - 1) / 2 - 1, q * (q - 1) / 2 - 1) +
-                    log_binom(m_in + q - 1, q - 1) -
-                    log_binom(2 * m + q * M_alpha_diag - 1, q * M_alpha_diag - 1);
-
-    for (int mVal : edge_counts_sum) {
-        H_M_G_ms_m_in += log_binom(mVal + M_alpha_diag - 1,M_alpha_diag - 1);
-    }
-
-    // H_M_G_ms
-    // logBinom[m + q (q + 1)/2 - 1, q (q + 1)/2 - 1] - logBinom[2 m + q \[Alpha] - 1, q \[Alpha] - 1] + Sum[logBinom[ms[[i]] + \[Alpha] - 1, \[Alpha] - 1], {i, 1, q}]
-    double H_M_G_ms = log_binom(m + q * (q + 1) / 2 - 1, q * (q + 1) / 2 - 1) - log_binom(2 * m + q * M_alpha_nodiag - 1, q * M_alpha_nodiag - 1);
-
-    for (int r = 0; r < q; r++) {
-        H_M_G_ms += log_binom(edge_counts_sum[r] + M_alpha_nodiag - 1, M_alpha_nodiag - 1);
-    }    
-
-    // H_k
-    double H_k = compute_Hk(degree_list);
-
+    
     double H_k_G_eta = 0;
     for(int r = 0; r < q; r++){
         H_k_G_eta += std::lgamma(node_counts[r] + 1); // log(nb[r]!)
@@ -1184,161 +1232,45 @@ StateBookkeepingType get_state_bookkeeping(StateType& state, ConstInfoType& cons
             H_k_G_eta -= std::lgamma(count + 1); // log(eta[r][k]!)
         }
     }
-    double H_A_G_k_M_b_Poisson = 0; 
+    double H_Abar_G_M_b = 0; 
     for(int r = 0; r < q; r++){ // log Omega
-        H_A_G_k_M_b_Poisson += std::lgamma(edge_counts_sum[r] + 1); // log(M[r]!)
-        H_A_G_k_M_b_Poisson -= (edge_counts[r][r]/2*std::log(2) + std::lgamma(edge_counts[r][r]/2 + 1)); // log(M[r][r]!!) = log(2^(M[r][r]/2)M[r][r]!)
+        H_Abar_G_M_b += std::lgamma(edge_counts_sum[r] + 1); // log(M[r]!)
+        H_Abar_G_M_b -= (edge_counts[r][r]/2*std::log(2) + std::lgamma(edge_counts[r][r]/2 + 1)); // log(M[r][r]!!) = log(2^(M[r][r]/2)M[r][r]!)
         for(int s = r + 1; s < q; s++){
-            H_A_G_k_M_b_Poisson -= std::lgamma(edge_counts[r][s] + 1); // log(M[r][s]!)
+            H_Abar_G_M_b -= std::lgamma(edge_counts[r][s] + 1); // log(M[r][s]!)
         }
     }
     for(int i = 0; i < n; i++){ // log Xi
-        H_A_G_k_M_b_Poisson -= log_factorial(degree_list[i]); // log(k[i]!)
-        // H_A_G_k_M_b_Poisson += log_factorial2(A[i,i]); // Assume no self edges
+        H_Abar_G_M_b -= log_factorial(degree_list[i]); // log(k[i]!)
+        // H_Abar_G_M_b += log_factorial2(A[i,i]); // Assume no self edges
         for(auto& [j, Aij]: neighbors[i]){
             if(i < j){
-                H_A_G_k_M_b_Poisson += log_factorial(Aij); // log(2!)
+                H_Abar_G_M_b += log_factorial(Aij); 
             }
         }
     }
-    // H_A_G_M_k_b_Multigraph
-    /*
-    Sum[logBinom[M[[r, r]]/2 + nb[[r]] (nb[[r]] + 1)/2 - 1, nb[[r]] (nb[[r]] + 1)/2 - 1], {r, 1, q}] + 
-    Sum[Sum[logBinom[M[[r, s]] + nb[[r]] nb[[s]] - 1, nb[[r]] nb[[s]] - 1], {s, 1, r - 1}], {r, 1, q}] - 
-    Sum[logBinom[ms[[r]] + nb[[r]]*\[Alpha]s[[r]] - 1, nb[[r]]*\[Alpha]s[[r]] - 1], {r, 1, q}] + 
-    Sum[logBinom[k[[i]] + \[Alpha]s[[b[[i]]]] - 1, \[Alpha]s[[b[[i]]]] - 1], {i, 1, n}]
-    */
-    double H_A_G_M_k_b_Multigraph = 0;
-    for(int r = 0; r < q; r++){
-        H_A_G_M_k_b_Multigraph += log_binom(edge_counts[r][r]/2 + node_counts[r] * (node_counts[r] + 1)/2 - 1, node_counts[r] * (node_counts[r] + 1)/2 - 1);
-    }
-    for(int r = 0; r < q; r++){
-        for(int s = 0; s < r; s++){
-            H_A_G_M_k_b_Multigraph += log_binom(edge_counts[r][s] + node_counts[r] * node_counts[s] - 1, node_counts[r] * node_counts[s] - 1);
-        }
-    }
-    for(int r = 0; r < q; r++){
-        H_A_G_M_k_b_Multigraph -= log_binom(edge_counts_sum[r] + node_counts[r]*A_alphas[r] - 1, node_counts[r]*A_alphas[r] - 1);
-    }
-    for(int r = 0; r < q; r++){
-        for(auto& [k, count] : degree_counts_by_group[r]){
-            H_A_G_M_k_b_Multigraph += count*log_binom(k + A_alphas[r] - 1, A_alphas[r] - 1);
-        }
-    }
     double energy = 0;
-    // Choose the encoding used for the final network transmission
-    if(MULTIGRAPH_ENCODING){
-        energy += H_A_G_M_k_b_Multigraph;
-    }else{
-        energy += H_A_G_k_M_b_Poisson;
-    }
-    // Choose the encoding for M and k based on the transmission order
-    if(NEW_TRANSMISSION_ORDER){
-        // Decide whether to condition on the diagonal
-        if(CONDITION_ON_DIAGONAL){
-            energy += H_M_G_ms_m_in + H_m_in + H_k;
-        }else{
-            energy += H_M_G_ms + H_k;
-        }
-    }else{
-        // Decide whether to condition on the diagonal
-        if(CONDITION_ON_DIAGONAL){
-            energy += H_k_G_eta + H_eta_G_M_nb + H_M_G_m_in_q + H_m_in;
-        }else{
-            energy += H_k_G_eta + H_eta_G_M_nb + H_M_G_q;
-        }
-    }
-    // We use the same encoding for the labeling across the board
-    energy += H_b_G_nb + H_nb_G_q + H_q;
+    energy += H_A_G_Abar_s_nu + H_nu + H_s_G_c_b_sigmaI + H_c_G_sigmaC + H_sigmaC + H_sigmaI;
+    energy += H_Abar_G_M_b; // Network
+    energy += H_k_G_eta + H_eta_G_M_nb + H_M_G_q; // degrees and edge_count
+    energy += H_b_G_nb + H_nb_G_q + H_q; // labeling
 
-    StateBookkeepingType state_bookkeeping = std::make_tuple(q, node_counts, group_members, edge_counts, edge_counts_sum, m_in, degree_counts_by_group, degree_covs, 
-        A_alphas, M_alpha_diag, M_alpha_nodiag, H_A_G_k_M_b_Poisson, H_A_G_M_k_b_Multigraph, H_k, H_k_G_eta, H_eta_G_M_nb, H_M_G_ms_m_in, H_M_G_ms,
-        H_M_G_m_in_q, H_m_in, H_M_G_q, H_b_G_nb, H_nb_G_q, H_q, energy);
+    StateBookkeepingType state_bookkeeping = std::make_tuple(q, node_counts, group_members, edge_counts, edge_counts_sum, degree_counts_by_group, 
+    H_A_G_Abar_s_nu, H_nu, H_s_G_c_b_sigmaI, H_c_G_sigmaC, H_sigmaC, H_sigmaI,
+    H_Abar_G_M_b, H_k_G_eta, H_eta_G_M_nb, H_M_G_q, H_b_G_nb, H_nb_G_q, H_q, energy);
     return state_bookkeeping;
 }
 
-// Encoding the degree distribution (this may be done entirely independently and has no effect on the inferred partition)
-// For now we will just use the Dirichlet-Multinomial encoding and neglect the cost of the alpha parameter. 
-double compute_Hk(std::vector<int> degree_list){
-    double alpha_star_k = alpha_star_golden_section_vector(degree_list);
-    double H_k_G_alpha = compute_H_k_G_alpha(degree_list,alpha_star_k);
-    return H_k_G_alpha;
-}
-
-double compute_H_k_G_alpha(std::vector<int> degree_list, double alpha){
-    int m2 = 0;
-    for(int k : degree_list){
-        m2 += k;
-    }
-    int n = degree_list.size();
-    double Hk = log_binom(m2 + n*alpha - 1, n*alpha - 1);
-    for(int r = 0; r < n; r++){
-        Hk -= log_binom(degree_list[r] + alpha - 1, alpha - 1);
-    }
-    return Hk;
-}
-
-double alpha_star_golden_section_vector(std::vector<int> degree_list){
-    double min_alpha = 0.001;
-    double max_alpha = 1000;
-    double log_alpha_threshold = 0.01; // Error in alpha at which to stop iterating
-
-    const double GR = (std::sqrt(5) + 1)/2; // Golden Ratio
-
-    // Initial split
-    double curr_min_log_alpha = std::log(min_alpha);
-    double curr_max_log_alpha = std::log(max_alpha);
-    double curr_mid_low_log_alpha =  curr_max_log_alpha - (curr_max_log_alpha - curr_min_log_alpha) / GR;
-    double curr_mid_high_log_alpha = curr_min_log_alpha + (curr_max_log_alpha - curr_min_log_alpha) / GR;
-    double curr_min_log_alpha_H, curr_mid_low_log_alpha_H, curr_mid_high_log_alpha_H, curr_max_log_alpha_H;
-
-    // Evaluate on the initial split
-    // std::cout <<"Initial search log(alpha): "<< curr_min_log_alpha << " " << curr_mid_low_log_alpha << " " << curr_mid_high_log_alpha << " " << curr_max_log_alpha << std::endl;
-    curr_min_log_alpha_H = compute_H_k_G_alpha(degree_list, std::exp(curr_min_log_alpha));
-    curr_mid_low_log_alpha_H = compute_H_k_G_alpha(degree_list, std::exp(curr_mid_low_log_alpha));
-    curr_mid_high_log_alpha_H = compute_H_k_G_alpha(degree_list, std::exp(curr_mid_high_log_alpha));
-    curr_max_log_alpha_H = compute_H_k_G_alpha(degree_list, std::exp(curr_max_log_alpha));
-    // std::cout <<"Initial H(ngc|alpha): "<< curr_min_log_alpha_H << " " << curr_mid_low_log_alpha_H << " " << curr_mid_high_log_alpha_H << " " << curr_max_log_alpha_H << std::endl;
-
-    // Golden section iterations
-    while(curr_max_log_alpha - curr_min_log_alpha > log_alpha_threshold){
-        if(upperHalfMin(curr_min_log_alpha_H,curr_mid_low_log_alpha_H,curr_mid_high_log_alpha_H,curr_max_log_alpha_H)){
-            // Shift a -> b, b -> c, c -> c + (d - c) / gr
-            curr_min_log_alpha = curr_mid_low_log_alpha;
-            curr_mid_low_log_alpha = curr_mid_high_log_alpha;
-            curr_mid_high_log_alpha = curr_mid_high_log_alpha + (curr_max_log_alpha - curr_mid_high_log_alpha) / GR;
-
-            curr_min_log_alpha_H = curr_mid_low_log_alpha_H;
-            curr_mid_low_log_alpha_H = curr_mid_high_log_alpha_H;
-            curr_mid_high_log_alpha_H = compute_H_k_G_alpha(degree_list, std::exp(curr_mid_high_log_alpha));
-        }else{
-            // Shift d -> c, c -> b, b -> b - (b - a) / gr
-            curr_max_log_alpha = curr_mid_high_log_alpha;
-            curr_mid_high_log_alpha = curr_mid_low_log_alpha;
-            curr_mid_low_log_alpha = curr_mid_low_log_alpha - (curr_mid_low_log_alpha-curr_min_log_alpha) / GR;
-
-            curr_max_log_alpha_H = curr_mid_high_log_alpha_H;
-            curr_mid_high_log_alpha_H = curr_mid_low_log_alpha_H;
-            curr_mid_low_log_alpha_H = compute_H_k_G_alpha(degree_list, std::exp(curr_mid_low_log_alpha));
-        }
-        
-        // std::cout <<"log(alpha): "<< curr_min_log_alpha << " " << curr_mid_low_log_alpha << " " << curr_mid_high_log_alpha << " " << curr_max_log_alpha << std::endl;
-        // std::cout <<"H(ngc|alpha): "<< curr_min_log_alpha_H << " " << curr_mid_low_log_alpha_H << " " << curr_mid_high_log_alpha_H << " " << curr_max_log_alpha_H << std::endl;
-    }
-
-    return std::exp((curr_mid_low_log_alpha+curr_mid_high_log_alpha)/2);
-}
-
-// Return true if one of the third or fourth arguments is the minimum
-bool upperHalfMin(double a, double b, double c, double d) {
-    double minAB = (a < b) ? a : b;
-    double minCD = (c < d) ? c : d;
-    return minAB >= minCD;
-}
-
-
 double log_binom(double a, double b){
     return std::lgamma(a + 1) - std::lgamma(b + 1) - std::lgamma(a - b + 1);
+}
+
+// Overflow protected version of log(e^(sij/2) + 2 nu + e^(sji/2)) for evaluating H(A|Abar,s,nu)
+double log_denom(double score_diff, double nu){
+    // Symmetric in the score difference, so just take absolute value
+    score_diff = std::abs(score_diff);
+    // log(e^(ds/2) + 2 nu + e^(-ds/2)) = log(e^(ds/2)(1 + 2 nu e^(-ds/2) + e^(-ds))) = ds/2 + log(1 + 2 nu e^(-ds/2) + e^(-ds)))
+    return score_diff/2 + std::log(1 + 2*nu*std::exp(-score_diff/2) + std::exp(-score_diff));
 }
 
 double log_factorial(int n){
@@ -1352,41 +1284,6 @@ double log_factorial2(int n){
         exit(0);
     }
     return n/2*std::log(2) + std::lgamma(n/2 + 1);
-}
-
-double alpha_from_m_q(double m, double q){
-    // Mathematica: 
-    /*
-    (2 m (2 + 2 q + q^2) - (q + 1) (q + 2))/(
-    2 m (2 + q) + (q + 1) (q - 2))
-    */
-    double numerator = 2 * m * (2 + 2 * q + q * q) - (q + 1) * (q + 2);
-    double denominator = 2 * m * (2 + q) + (q + 1) * (q - 2);
-    
-    return numerator / denominator;
-}
-
-double alpha_from_m_m_in_q(double m, double m_in, double q){
-    // Mathematica: 
-    /*
-    (m (-2 + q) (1 + q) (4 mIn + q - q^2) + 2 m^2 q (2 + (-1 + q) q^2) - 
-   mIn ((-1 + q) q (6 + (-1 + q) q) + 
-      2 mIn (-4 + q (2 + (-1 + q) q))))/(q (2 m^2 (-2 + q) (1 + q) - 
-     m (1 + q) (-2 + 4 mIn (-2 + q) + q + q^2) + 
-     mIn ((-1 + q) q (6 + (-1 + q) q) + 
-        2 mIn (-4 + q (2 + (-1 + q) q)))))
-    */
-    double numerator = (m * (-2 + q) * (1 + q) * (4 * m_in + q - q * q) + 
-                       2 * m * m * q * (2 + (-1 + q) * q * q) - 
-                       m_in * ((-1 + q) * q * (6 + (-1 + q) * q) + 
-                               2 * m_in * (-4 + q * (2 + (-1 + q) * q))));
-    
-    double denominator = (q * (2 * m * m * (-2 + q) * (1 + q) - 
-                               m * (1 + q) * (-2 + 4 * m_in * (-2 + q) + q + q * q) + 
-                               m_in * ((-1 + q) * q * (6 + (-1 + q) * q) + 
-                                      2 * m_in * (-4 + q * (2 + (-1 + q) * q)))));
-    
-    return numerator / denominator;
 }
 
 // Parse an edgelist and community partition from a GML file.
@@ -1405,7 +1302,6 @@ std::pair<std::vector<std::pair<int, int>>, std::vector<int>> parseGML(const std
 
     int source = -1, target = -1;
     bool insideEdge = false; // Flag if the next tokens should be read to refer to a new edge
-    int currentEdgeIndex = 0;
     int currentNodeIndex = 0;
     int n = 0;
 
@@ -1460,29 +1356,28 @@ double log_sum_exp(double a, double b){
 // Write to file
 std::string state_csv_string(StateType& state, StateBookkeepingType& state_bookkeeping, ConstInfoType& const_info){
     // Unpack the tuples
-    auto& [partition // \vec{b}
-            ] = state;
+    auto& [partition, 
+        sigma_C, 
+        sigma_I,
+        community_status, 
+        total_status,
+        nu] = state;
 
     auto& [q, 
         node_counts, 
         group_members,
         edge_counts, 
         edge_counts_sum,
-        m_in,
         degree_counts_by_group, 
-        degree_covs, 
-        A_alphas,
-        M_alpha_diag,
-        M_alpha_nodiag,
-        H_A_G_k_M_b_Poisson, 
-        H_A_G_M_k_b_Multigraph,
-        H_k, 
+        H_A_G_Abar_s_nu,
+        H_nu,
+        H_s_G_c_b_sigmaI,
+        H_c_G_sigmaC,
+        H_sigmaC,
+        H_sigmaI,
+        H_Abar_G_M_b, 
         H_k_G_eta, 
         H_eta_G_M_nb,
-        H_M_G_ms_m_in,
-        H_M_G_ms,
-        H_M_G_m_in_q,
-        H_m_in, 
         H_M_G_q, 
         H_b_G_nb, 
         H_nb_G_q, 
@@ -1491,12 +1386,15 @@ std::string state_csv_string(StateType& state, StateBookkeepingType& state_bookk
 
     auto& [n,
         m,
+        wins, 
+        ties, 
+        losses,
         neighbors, // std::vector<std::vector<int>>
         degree_list // std::vector<int> , \vec{k}
         ] = const_info;
     
     // Header line:
-    // outfile <<"partition,sigma_C,sigma_I,community_status,total_status,nu,H_A_G_A_s_nu,H_nu,H_s_G_c_b_sigmaI,H_c_G_sigmaC,H_sigmaC,H_sigmaI,H_A_G_k_M_b_Poisson,H_k_G_eta,H_eta_G_M_nb,H_M_G_q,H_b_G_nb,H_nb_G_q,H_q,energy\n";
+    // outfile <<"partition,sigma_C,sigma_I,community_status,total_status,nu,H_A_G_Abar_s_nu,H_nu,H_s_G_c_b_sigmaI,H_c_G_sigmaC,H_sigmaC,H_sigmaI,H_Abar_G_M_b,H_k_G_eta,H_eta_G_M_nb,H_M_G_q,H_b_G_nb,H_nb_G_q,H_q,energy\n";
     std::string output_string = "";
     std::string partition_string = "\"["; // List to represent the partition
     for(int i = 0; i < n; i++){
@@ -1508,50 +1406,76 @@ std::string state_csv_string(StateType& state, StateBookkeepingType& state_bookk
         }
     }
     output_string += partition_string + ",";
-    output_string += std::to_string(H_A_G_k_M_b_Poisson) + ","; 
-    output_string += std::to_string(H_A_G_M_k_b_Multigraph) + ","; 
-    output_string += std::to_string(H_k) + ","; 
+    output_string += std::to_string(sigma_C) + ",";
+    output_string += std::to_string(sigma_I) + ",";
+    std::string community_status_string = "\"["; // List to represent community_status
+    for(int r = 0; r < q; r++){
+        community_status_string += std::to_string(community_status[r]);
+        if(r != q - 1){
+            community_status_string += ",";
+        }else{
+            community_status_string += "]\"";
+        }
+    }
+    output_string += community_status_string + ",";
+    std::string total_status_string = "\"["; // List to represent total_status
+    for(int i = 0; i < n; i++){
+        total_status_string += std::to_string(total_status[i]);
+        if(i != n - 1){
+            total_status_string += ",";
+        }else{
+            total_status_string += "]\"";
+        }
+    }
+    output_string += total_status_string + ",";
+    output_string += std::to_string(nu) + ","; 
+    output_string += std::to_string(H_A_G_Abar_s_nu) + ","; 
+    output_string += std::to_string(H_nu) + ","; 
+    output_string += std::to_string(H_s_G_c_b_sigmaI) + ","; 
+    output_string += std::to_string(H_c_G_sigmaC) + ","; 
+    output_string += std::to_string(H_sigmaC) + ","; 
+    output_string += std::to_string(H_sigmaI) + ","; 
+    output_string += std::to_string(H_Abar_G_M_b) + ","; 
     output_string += std::to_string(H_k_G_eta) + ","; 
     output_string += std::to_string(H_eta_G_M_nb) + ","; 
-    output_string += std::to_string(H_M_G_ms_m_in) + ","; 
-    output_string += std::to_string(H_M_G_ms) + ","; 
-    output_string += std::to_string(H_M_G_m_in_q) + ","; 
-    output_string += std::to_string(H_m_in) + ","; 
     output_string += std::to_string(H_M_G_q) + ","; 
     output_string += std::to_string(H_b_G_nb) + ","; 
     output_string += std::to_string(H_nb_G_q) + ","; 
     output_string += std::to_string(H_q) + ","; 
     output_string += std::to_string(energy); // No comma at the end 
+    output_string += "\n";
     return output_string;
 }
 
-// // Helper functions
-// void print_all_interactions(AllInteractionsType& all_interactions){
-//     auto& [wins,
-//         ties,
-//         losses,
-//         undirected_interactions] = all_interactions;
-//     int n = wins.size();
-//     std::cout << "all_interactions:\n";
-//     for(int i = 0; i < n; i++){
-//         std::cout << "node " << i << " - wins: ";
-//         for(int j : wins[i]){
-//             std::cout << j << " ";
-//         }
-//         std::cout << "- ties: ";
-//         for(int j : ties[i]){
-//             std::cout << j << " ";
-//         }
-//         std::cout << "- losses: ";
-//         for(int j : losses[i]){
-//             std::cout << j << " ";
-//         }
-//         std::cout << "\n";
-//     }
-// }
+// Printing functions (useful for debugging)
+void print(ConstInfoType& const_info){
+    auto& [n,
+        m,
+        wins, 
+        ties, 
+        losses,
+        neighbors, // std::vector<std::vector<int>>
+        degree_list // std::vector<int> , \vec{k}
+        ] = const_info;
+    std::cout << "n: " << n << ", m: " << m << "\n";
+    std::cout << "neighbors:\n";
+    for(int i = 0; i < n; i++){
+        std::cout << "Node "<<i<<": ";
+        for(auto& [j, Aij]: neighbors[i]){
+            std::cout << j << " ";
+        }
+        std::cout << "\n";
+    }
+    std::cout << "degree_list: ";
+    print(degree_list);
+}
 void print(StateType& state){
-    auto& [partition // \vec{b}
-            ] = state;
+    auto& [partition, 
+        sigma_C, 
+        sigma_I,
+        community_status, 
+        total_status,
+        nu] = state;
     std::cout << "partition: ";
     print(partition);
 }
@@ -1561,32 +1485,27 @@ void print(StateBookkeepingType& state_bookkeeping){
         group_members,
         edge_counts, 
         edge_counts_sum,
-        m_in,
         degree_counts_by_group, 
-        degree_covs, 
-        A_alphas,
-        M_alpha_diag,
-        M_alpha_nodiag,
-        H_A_G_k_M_b_Poisson, 
-        H_A_G_M_k_b_Multigraph,
-        H_k, 
+        H_A_G_Abar_s_nu,
+        H_nu,
+        H_s_G_c_b_sigmaI,
+        H_c_G_sigmaC,
+        H_sigmaC,
+        H_sigmaI,
+        H_Abar_G_M_b, 
         H_k_G_eta, 
         H_eta_G_M_nb,
-        H_M_G_ms_m_in,
-        H_M_G_ms,
-        H_M_G_m_in_q,
-        H_m_in, 
         H_M_G_q, 
         H_b_G_nb, 
         H_nb_G_q, 
         H_q, 
         energy] = state_bookkeeping;
-    std::cout << "q: " << q << ", m_in: " << m_in << ", M_alpha_diag: " << M_alpha_diag << ", M_alpha_nodiag: " << M_alpha_nodiag << ", H_A_G_k_M_b_Poisson: " << H_A_G_k_M_b_Poisson << ", H_A_G_M_k_b_Multigraph: " << H_A_G_M_k_b_Multigraph << ", H_k: " << H_k << ", H_k_G_eta: " << H_k_G_eta << ", H_eta_G_M_nb: " << H_eta_G_M_nb << ", H_M_G_ms_m_in: " << H_M_G_ms_m_in << ", H_M_G_ms: " << H_M_G_ms << ", H_M_G_m_in_q: " << H_M_G_m_in_q << ", H_m_in: " << H_m_in << ", H_M_G_q: " << H_M_G_q << ", H_b_G_nb: " << H_b_G_nb 
-    << ", H_nb_G_q: " << H_nb_G_q << ", H_q: " << H_q << ", energy: " << energy << "\n";
-    std::cout << "degree_covs: ";
-    print(degree_covs);
-    std::cout << "A_alphas: ";
-    print(A_alphas);
+    
+    std::cout << "q: " << q << ", H_A_G_Abar_s_nu: " << H_A_G_Abar_s_nu << ", H_nu: " << H_nu << ", H_s_G_c_b_sigmaI: " << H_s_G_c_b_sigmaI << 
+    ", H_c_G_sigmaC: " << H_c_G_sigmaC << ", H_sigmaC: " << H_sigmaC << ", H_sigmaI: " << H_sigmaI << 
+    ", H_Abar_G_M_b: " << H_Abar_G_M_b << ", H_k_G_eta: " << H_k_G_eta << ", H_eta_G_M_nb: " << H_eta_G_M_nb << ", H_M_G_q: " << H_M_G_q << 
+    ", H_b_G_nb: " << H_b_G_nb << ", H_nb_G_q: " << H_nb_G_q << ", H_q: " << H_q << ", energy: " << energy << "\n";
+
     std::cout << "node_counts: ";
     print(node_counts);
     std::cout << "group_members:\n";
