@@ -120,6 +120,7 @@ double log_factorial2(int n);
 std::string state_csv_string(StateType& state, StateBookkeepingType& state_bookkeeping, ConstInfoType& const_info);
 
 // Printing quantities (for debugging)
+void print(ConstInfoType& const_info);
 void print(StateBookkeepingType& state_bookkeeping);
 void print(StateType& state);
 void print(std::vector<std::vector<int>> table);
@@ -169,8 +170,6 @@ int main(int argc, char *argv[]) {
 
     // From the edgelist, produce the background information constant across all of the chains:
     int n = partition_init.size();
-    int m = edgelist.size();
-    std::cout << "Successfully parsed the GML file. n = "<<n<<", m = "<<m<<".\n";
     std::vector<std::unordered_map<int,int>> neighbors; 
     for(int i = 0; i < n; i++){
         std::unordered_map<int,int> neighbors_i;
@@ -190,14 +189,14 @@ int main(int argc, char *argv[]) {
             // If i is not already in the list of j's neighbors:
             if(neighbors[j].find(i) == neighbors[j].end()){
                 neighbors[j][i] = 1;
-            }else{ // If already present increment the multiplicity
-                neighbors[j][i] += 1;
+            }else{ // No multiplicity increment for undirected edges
+                // neighbors[j][i] += 1;
             }
             // If j is not already in the list of i's neighbors:
             if(neighbors[i].find(j) == neighbors[i].end()){
                 neighbors[i][j] = 1;
-            }else{ // If already present increment the multiplicity
-                neighbors[i][j] += 1;
+            }else{ // No multiplicity increment for undirected edges
+                // neighbors[i][j] += 1;
             }
         }
         // To only allow simple graphs:
@@ -212,15 +211,20 @@ int main(int argc, char *argv[]) {
         //     exit(0);
         // }
     }
-    // Loop through to count degrees
+    // Loop through to count degrees and the total edges
+    int m = 0;
     for(int i = 0; i < n; i++){
         degree_list.push_back(0);
         for(auto& [j, Aij] : neighbors[i]){
             degree_list[i] += Aij;
+            m += 1;
         }
     }
+    m /= 2; // Edges had been double counted
+    std::cout << "Successfully parsed the GML file. n = "<<n<<", m = "<<m<<".\n";
 
     ConstInfoType const_info = std::make_tuple(n, m, neighbors, degree_list);
+    print(const_info);
 
     // Precompute the values of q(m,n) up to the total number of interactions 
     /* Boundary conditions from Xiaoran:
@@ -928,7 +932,6 @@ std::pair<std::vector<std::pair<int, int>>, std::vector<int>> parseGML(const std
 
     int source = -1, target = -1;
     bool insideEdge = false; // Flag if the next tokens should be read to refer to a new edge
-    int currentEdgeIndex = 0;
     int currentNodeIndex = 0;
     int n = 0;
 
@@ -1032,6 +1035,24 @@ std::string state_csv_string(StateType& state, StateBookkeepingType& state_bookk
 }
 
 // Printing functions (useful for debugging)
+void print(ConstInfoType& const_info){
+    auto& [n,
+        m,
+        neighbors, // std::vector<std::vector<int>>
+        degree_list // std::vector<int> , \vec{k}
+        ] = const_info;
+    std::cout << "n: " << n << ", m: " << m << "\n";
+    std::cout << "neighbors:\n";
+    for(int i = 0; i < n; i++){
+        std::cout << "Node "<<i<<": ";
+        for(auto& [j, Aij]: neighbors[i]){
+            std::cout << j << " ";
+        }
+        std::cout << "\n";
+    }
+    std::cout << "degree_list: ";
+    print(degree_list);
+}
 void print(StateType& state){
     auto& [partition // \vec{b}
             ] = state;
