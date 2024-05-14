@@ -13,6 +13,8 @@ from RMI import compute_RMI # Compute the reduced mutual information
 
 # Custom converter function to parse string representation of lists into lists 
 def parse_list(s): 
+    if s == "":
+        return []
     return ast.literal_eval(s)  # Parse the string to a list using ast.literal_eval
 
 def get_representative_partition(partitions, number_of_subsamples=30,reduction='DM'):
@@ -128,6 +130,7 @@ for samples_folder_i, samples_folder in enumerate(samples_folders):
                 print(f"Processing {filename}")
 
                 try:
+                # if True:
 
                     df = pd.read_csv(f"{samples_folder}/{model_type}/{filename}", converters={"partition": parse_list, "community_status": parse_list, "total_status": parse_list}, on_bad_lines = 'warn') # Some of the written sample lines appear to get messed up,
                     print(f"Read {len(df)} samples")

@@ -36,6 +36,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 import re
+import statsmodels.api as sm
 
 model_type = 'SBM-BT'
 
@@ -168,38 +169,86 @@ for filename in os.listdir(gml_files_folder):
             # Plot individual "pop-out" figure for this school
 
 plt.clf()
-plt.scatter(ns,sigma_C_means)
+plt.scatter(ns,sigma_C_means, zorder=2, label='High schools')
+plt.errorbar(ns,sigma_C_means, yerr=sigma_C_stds, ecolor='lightgray', fmt='', ls='none', zorder=1)
+# Perform weighted least squares
+x = ns
+y = sigma_C_means
+weights = np.array(sigma_C_stds)
+X = sm.add_constant(x)  # Add constant term for the intercept
+model = sm.WLS(y, X, weights=1/weights)  # Create WLS model instance
+results = model.fit()  # Fit the model
+print(results.pvalues)
+plt.plot(x, results.fittedvalues, color='red', label='Fitted Line')
+plt.legend()
+plt.xlabel(r'Size $n$')
+plt.ylabel(r'Between community spread $\sigma_C$')
 plt.savefig(f"{figures_folder}/n_vs_sigma_C.png")
 
 plt.clf()
-plt.scatter(ns,sigma_I_means)
+plt.scatter(ns,sigma_I_means, zorder=2, label='High schools')
+plt.errorbar(ns,sigma_I_means, yerr=sigma_I_stds, ecolor='lightgray', fmt='', ls='none', zorder=1)
+# Perform weighted least squares
+x = ns
+y = sigma_I_means
+weights = np.array(sigma_I_stds)
+X = sm.add_constant(x)  # Add constant term for the intercept
+model = sm.WLS(y, X, weights=1/weights)  # Create WLS model instance
+results = model.fit()  # Fit the model
+print(results.pvalues)
+plt.plot(x, results.fittedvalues, color='red', label='Fitted Line')
+plt.legend()
+plt.xlabel(r'Size $n$')
+plt.ylabel(r'Within community spread $\sigma_I$')
 plt.savefig(f"{figures_folder}/n_vs_sigma_I.png")
 
 plt.clf()
-plt.scatter(ns,sigma_T_means)
+plt.scatter(ns,sigma_T_means, zorder=2, label='High schools')
+plt.errorbar(ns,sigma_T_means, yerr=sigma_T_stds, ecolor='lightgray', fmt='', ls='none', zorder=1)
+# Perform weighted least squares
+x = ns
+y = sigma_T_means
+weights = np.array(sigma_T_stds)
+X = sm.add_constant(x)  # Add constant term for the intercept
+model = sm.WLS(y, X, weights=1/weights)  # Create WLS model instance
+results = model.fit()  # Fit the model
+print(results.pvalues)
+plt.plot(x, results.fittedvalues, color='red', label='Fitted Line')
+plt.legend()
+plt.xlabel(r'Size $n$')
+plt.ylabel(r'Total spread $\sigma_T$')
 plt.savefig(f"{figures_folder}/n_vs_sigma_T.png")
 
 # Same thing with n on a log scale
 
 plt.clf()
 plt.xscale('log')
-plt.scatter(ns,sigma_C_means)
+plt.scatter(ns,sigma_C_means, zorder=2)
+plt.errorbar(ns,sigma_C_means, yerr=sigma_C_stds, ecolor='lightgray', fmt='', ls='none', zorder=1, label='High schools')
+plt.xlabel(r'Size $n$')
+plt.ylabel(r'Between community stratification $\sigma_C$')
 plt.savefig(f"{figures_folder}/n_vs_sigma_C_log.png")
 
 plt.clf()
 plt.xscale('log')
-plt.scatter(ns,sigma_I_means)
+plt.scatter(ns,sigma_I_means, zorder=2)
+plt.errorbar(ns,sigma_I_means, yerr=sigma_I_stds, ecolor='lightgray', fmt='', ls='none', zorder=1, label='High schools')
+plt.xlabel(r'Size $n$')
+plt.ylabel(r'Within community stratification $\sigma_I$')
 plt.savefig(f"{figures_folder}/n_vs_sigma_I_log.png")
 
 plt.clf()
 plt.xscale('log')
 plt.scatter(ns,sigma_T_means)
+plt.errorbar(ns,sigma_T_means, yerr=sigma_T_stds, ecolor='lightgray', fmt='', ls='none', zorder=1, label='High schools')
+plt.xlabel(r'Size $n$')
+plt.ylabel(r'Total stratification $\sigma_T$')
 plt.savefig(f"{figures_folder}/n_vs_sigma_T_log.png")
 
 
 # Array of values
 max_sigma_I = 6
-max_sigma_C = 4
+max_sigma_C = 6
 all_sigma_Is = np.arange(0,max_sigma_I,0.1)
 all_sigma_Cs = np.arange(0,max_sigma_C,0.1)
 probs = np.zeros((len(all_sigma_Is),len(all_sigma_Cs)))
@@ -214,6 +263,8 @@ fig = plt.figure(figsize=(6,5))
 ax = fig.add_subplot(111)
 ax.set_xlim((0,max_sigma_I))
 ax.set_ylim((0,max_sigma_C))
+# Set aspect ratio 1
+ax.set_aspect('equal', adjustable='box')
 
 contour_levels = np.arange(1,10,1)
 contour = ax.contour(all_sigma_Is, all_sigma_Cs, probs.T, levels=contour_levels, colors='gray',linestyles='dashed')
@@ -229,9 +280,9 @@ for i, txt in enumerate(range(len(sigma_I_means))):
     ax.annotate(school_nums[txt], (sigma_I_means[i], sigma_C_means[i]))
 
 # Set labels and title
-plt.legend()
-ax.set_xlabel(r"$\sigma_I$ (spread of individuals)")
-ax.set_ylabel(r"$\sigma_C$ (spread of communities)")
+# plt.legend()
+ax.set_xlabel(r"Within community stratification $\sigma_I$")
+ax.set_ylabel(r"Between community stratification $\sigma_C$")
 ax.set_title(f"Spreads of individual and community statuses")
 plt.tight_layout(pad = 2)
 plt.savefig(f"{figures_folder}/sigma_I_vs_sigma_C_key.png")   
@@ -244,30 +295,30 @@ fig = plt.figure(figsize=(6,5))
 ax = fig.add_subplot(111)
 ax.set_xlim((0,max_sigma_I))
 ax.set_ylim((0,max_sigma_C))
+# Set aspect ratio 1
+ax.set_aspect('equal', adjustable='box')
 
 contour_levels = np.arange(1,10,1)
-contour = ax.contour(all_sigma_Is, all_sigma_Cs, probs.T, levels=contour_levels, colors='gray',linestyles='dashed')
+contour = ax.contour(all_sigma_Is, all_sigma_Cs, probs.T, levels=contour_levels, colors='gray',linestyles='dashed', zorder = 1)
 
 # Get the default matplotlib colors
 colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 sizes = np.sqrt(np.array(ns))
 
-ax.plot(all_sigma_Cs,all_sigma_Cs,color='gray') # x = y
-ax.errorbar(sigma_I_means,sigma_C_means, xerr=sigma_I_stds, yerr=sigma_C_stds, ecolor='lightgray', fmt='', ls='none', zorder=1, label='High schools')
+ax.plot(all_sigma_Cs,all_sigma_Cs,color='gray', zorder = 1) # x = y
+# ax.errorbar(sigma_I_means,sigma_C_means, xerr=sigma_I_stds, yerr=sigma_C_stds, ecolor='lightgray', fmt='', ls='none', zorder=1, label='High schools')
 # Color the points by the size
-ax.scatter(sigma_I_means,sigma_C_means,s=sizes, color=colors[0])
+scatter_plot = ax.scatter(sigma_I_means,sigma_C_means, s=sizes,c=ns, cmap='viridis', zorder=2)
+# Add colorbar
+cbar = plt.colorbar(scatter_plot)
+cbar.set_label(r'Size $n$')
 
-# ax.errorbar(village_params_df['sigma_I_avg'],village_params_df['sigma_C_avg'], xerr=village_params_df['sigma_I_std'], yerr=village_params_df['sigma_C_std'], fmt='bo', ecolor='lightblue', zorder=1, label='Indian villages')
-
-
-for i, txt in enumerate(range(len(sigma_I_means))):
-    ax.annotate(school_nums[txt], (sigma_I_means[i], sigma_C_means[i]))
 
 # Set labels and title
-plt.legend()
-ax.set_xlabel(r"$\sigma_I$ (spread of individuals)")
-ax.set_ylabel(r"$\sigma_C$ (spread of communities)")
+# plt.legend()
+ax.set_xlabel(r"Within community stratification $\sigma_I$")
+ax.set_ylabel(r"Between community stratification $\sigma_C$")
 ax.set_title(f"Spreads of individual and community statuses")
 plt.tight_layout(pad = 2)
 plt.savefig(f"{figures_folder}/sigma_I_vs_sigma_C.png")    

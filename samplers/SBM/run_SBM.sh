@@ -14,6 +14,6 @@
 #SBATCH --array=1-84
 
 /bin/hostname 
-./SBM -i ../../data/gml_files/AddHealth/highschool_$SLURM_ARRAY_TASK_ID.gml -o ../../data/samples/AddHealth/SBM/highschool_$SLURM_ARRAY_TASK_ID.csv 
+./SBM.exe -i ../../data/gml_files/AddHealth/highschool_$SLURM_ARRAY_TASK_ID.gml -o ../../data/samples/AddHealth/SBM/highschool_$SLURM_ARRAY_TASK_ID.csv 
 
 # ./SBM -i ../../data/gml_files/misc/test.gml -o ../../data/samples/misc/SBM/test.csv

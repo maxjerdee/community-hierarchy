@@ -6,10 +6,10 @@
  */
 
 // After making the file (run make in the directory), the executable may be run for example as:
-// ./SBM-BT -i ../../data/gml_files/AddHealth/highschool_1.gml -o ../../data/samples/AddHealth/SBM-BT/highschool_1.csv
-// ./SBM-BT -i ../../data/gml_files/AddHealth/highschool_27.gml -o ../../data/samples/AddHealth/SBM-BT/highschool_27.csv
-// ./SBM-BT -i ../../data/gml_files/misc/test.gml -o ../../data/samples/misc/SBM-BT/test.csv
-// ./SBM-BT -i ../../data/gml_files/AddHealth/highschool_27.gml -o out.csv
+// ./SBM-BT.exe -i ../../data/gml_files/AddHealth/highschool_1.gml -o ../../data/samples/AddHealth/SBM-BT/highschool_1.csv
+// ./SBM-BT.exe -i ../../data/gml_files/AddHealth/highschool_49.gml -o out.csv
+// ./SBM-BT.exe -i ../../data/gml_files/misc/test.gml -o ../../data/samples/misc/SBM-BT/test.csv
+// ./SBM-BT.exe -i ../../data/gml_files/villages/anyinteractions1.gml -o out.csv
 
 #include <getopt.h>
 #include <math.h>
@@ -59,8 +59,8 @@ const double NU_TILDE_STEP_SIZE = 0.1;
 const double TOTAL_STATUS_TILDE_STEP_SIZE = 0.5;
 const double COMMUNITY_STATUS_TILDE_STEP_SIZE = 0.25;
 
-const double SIGMA_KICK = 0.1; // There is a logarithmic singularity when the sigma -> 0 which it is pretty easy for the Monte Carlo to get stuck in. 
-// If this threshold is above 0, apply the constraint that sigma_C and sigma_I must be above this threshold.
+const double SIGMA_MIN = 0.1; // There is a logarithmic singularity when the sigma -> 0 which it is pretty easy for the Monte Carlo to get stuck in. 
+// Apply the constraint that sigma_C and sigma_I must be above this threshold. (Really should be 0)
 // Note that this changes the form of the hyperprior on the sigma
 
 std::vector<std::vector<double>> log_q_vals; // log q(m,n) values, to be precomputed
@@ -264,7 +264,7 @@ int main(int argc, char *argv[]) {
         int i = edge.first;
         int j = edge.second;
         // Check that i and j did not reciprocate
-        if(ties[i].find(j) == ties[i].end()) {
+        if(i != j && ties[i].find(j) == ties[i].end()) {
             // This edge indicates that i has an reciprocated friendship with j. A win for j, a loss for i. 
             losses[i][j] = 1;
             wins[j][i] = 1;
@@ -283,7 +283,7 @@ int main(int argc, char *argv[]) {
     std::cout << "Successfully parsed the GML file. n = "<<n<<", m = "<<m<<".\n";
 
     ConstInfoType const_info = std::make_tuple(n, m, wins, ties, losses, neighbors, degree_list);
-    print(const_info);
+    // print(const_info);
 
     // Precompute the values of q(m,n) up to the total number of interactions 
     /* Boundary conditions from Xiaoran:
@@ -370,7 +370,10 @@ int main(int argc, char *argv[]) {
                 auto [var_name, var_index, new_val, old_val, delta_q] = generate_proposal(states[state_i], state_bookkeepings[state_i], rng);
                 double deltaH = implement_proposal(var_name, var_index, new_val, old_val, delta_q, states[state_i], state_bookkeepings[state_i], const_info, rng);
                 // check_state_bookkeeping(states[state_i],state_bookkeepings[state_i], const_info); // Check bookkeeping after each move
-                
+                if((var_name=="sigma_C" || var_name=="sigma_I") && (new_val < SIGMA_MIN)){ // Apply the constraint that sigma_C and sigma_I must be above SIGMA_MIN (this should always be the case anyway)
+                    deltaH = 10000; // Prohibitively high potential barrier
+                    std::cout << "Warning: artifical energy barrier\n";
+                }
                 // std::cout << deltaH << " " << "\n";
                 // Accept/reject
                 double beta = all_betas[beta_is[state_i]];
@@ -578,19 +581,23 @@ double implement_proposal(std::string var_name, int var_index, double new_val, d
         H_s_G_c_b_sigmaI_new -= 0.5*std::pow((old_val-community_status[partition[i]])/sigma_I,2) + std::log(sigma_I) + 0.5*std::log(2*M_PI);
         H_s_G_c_b_sigmaI_new += 0.5*std::pow((total_status[i]-community_status[partition[i]])/sigma_I,2) + std::log(sigma_I) + 0.5*std::log(2*M_PI);
         double H_A_G_Abar_s_nu_new = H_A_G_Abar_s_nu;
+
         for(auto& [j, Aij] : wins[i]){
+            // std::cout <<"wins: " << j << " " << Aij << "\n";
             double old_score_diff = old_val - total_status[j];
             double score_diff = total_status[i] - total_status[j];
             H_A_G_Abar_s_nu_new -= Aij*(log_denom(old_score_diff,nu) - old_score_diff/2); // -log P(i beat j)
             H_A_G_Abar_s_nu_new += Aij*(log_denom(score_diff,nu) - score_diff/2); // -log P(i beat j)
         }
         for(auto& [j, Aij] : ties[i]){
+            // std::cout <<"ties: " << j << " " << Aij << "\n";
             double old_score_diff = old_val - total_status[j];
             double score_diff = total_status[i] - total_status[j];
             H_A_G_Abar_s_nu_new -= Aij*(log_denom(old_score_diff,nu) - std::log(2*nu)); // -log P(i ties j)
             H_A_G_Abar_s_nu_new += Aij*(log_denom(score_diff,nu) - std::log(2*nu)); // -log P(i ties j)
         }
         for(auto& [j, Aij] : losses[i]){
+            // std::cout <<"losses: " << j << " " << Aij << "\n";
             double old_score_diff = total_status[j] - old_val; // Flip the score difference
             double score_diff =  total_status[j] - total_status[i];
             H_A_G_Abar_s_nu_new -= Aij*(log_denom(old_score_diff,nu) - old_score_diff/2); // -log P(j beat i)
@@ -1064,8 +1071,9 @@ std::tuple<std::string, int, double, double, int> generate_proposal(StateType& s
         var_index = 0;
         old_val = sigma_C;
         new_val = old_val + SIGMA_C_TILDE_STEP_SIZE*z; // Apply the change
-        if(new_val < SIGMA_KICK){ // sigma_C can't go below SIGMA_KICK
-            new_val = SIGMA_KICK + (SIGMA_KICK - new_val); // Reflective boundary condition
+        if(new_val < SIGMA_MIN){ // sigma_C can't go below SIGMA_MIN
+            std::cout << "Reflected sigma_C < SIGMA_MIN\n";
+            new_val = SIGMA_MIN + (SIGMA_MIN - new_val); // Reflective boundary condition
         }
         return std::make_tuple(var_name, var_index, new_val, old_val, 0);
     }else{
@@ -1076,8 +1084,9 @@ std::tuple<std::string, int, double, double, int> generate_proposal(StateType& s
         var_index = 0;
         old_val = sigma_I;
         new_val = old_val + SIGMA_I_TILDE_STEP_SIZE*z; // Apply the change
-        if(new_val < SIGMA_KICK){ // sigma_I can't go below SIGMA_KICK
-            new_val = SIGMA_KICK + (SIGMA_KICK - new_val); // Reflective boundary condition
+        if(new_val < SIGMA_MIN){ // sigma_I can't go below SIGMA_MIN
+            std::cout << "Reflected sigma_I < SIGMA_MIN\n";
+            new_val = SIGMA_MIN + (SIGMA_MIN - new_val); // Reflective boundary condition
         }
         return std::make_tuple(var_name, var_index, new_val, old_val, 0);
     }else{
