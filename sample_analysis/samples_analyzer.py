@@ -74,9 +74,9 @@ model_type = 'SBM-BT'
 summary_filename = f"samples_summary_{model_type}.csv"
 
 summary_df = pd.DataFrame(columns=['basename','sigma_C_mean','sigma_C_std','sigma_I_mean','sigma_I_std','sigma_T_mean','sigma_T_std',
-'nu_mean','nu_std','rep_partition','q_counts','total_status_mean','total_status_std'])
+'sigma_T_mean','sigma_T_std','nu_mean','nu_std','rep_partition','q_counts','total_status_mean','total_status_std'])
 
-reset = False
+reset = True
 
 if reset:
     basenames = []
@@ -85,8 +85,12 @@ if reset:
     sigma_C_stds = []
     sigma_I_means = []
     sigma_I_stds = []
+
     sigma_T_means = []
     sigma_T_stds = []
+    comm_var_fraction_means = []
+    comm_var_fraction_stds = []
+
     nu_means = []
     nu_stds = []
 
@@ -104,8 +108,12 @@ else: # Load previously computed bits
     sigma_C_stds = list(df_in_dict['sigma_C_std'])
     sigma_I_means = list(df_in_dict['sigma_I_mean'])
     sigma_I_stds = list(df_in_dict['sigma_I_std'])
+
     sigma_T_means = list(df_in_dict['sigma_T_mean'])
     sigma_T_stds = list(df_in_dict['sigma_T_std'])
+    comm_var_fraction_means = list(df_in_dict['comm_var_fraction_mean'])
+    comm_var_fraction_stds = list(df_in_dict['comm_var_fraction_std'])
+
     nu_means = list(df_in_dict['nu_mean'])
     nu_stds = list(df_in_dict['nu_std'])
 
@@ -144,10 +152,13 @@ for samples_folder_i, samples_folder in enumerate(samples_folders):
                     sigma_I_means.append(np.mean(df['sigma_I']))
                     sigma_I_stds.append(np.std(df['sigma_I']))
 
-                    # # Transformed parameter
+                    # # Transformed parameters
                     sigma_Ts = np.sqrt(df['sigma_C']**2 + df['sigma_I']**2)
                     sigma_T_means.append(np.mean(sigma_Ts))
                     sigma_T_stds.append(np.std(sigma_Ts))
+                    comm_var_fractions = df['sigma_C']**2/(df['sigma_C']**2 + df['sigma_I']**2)
+                    comm_var_fraction_means.append(np.mean(comm_var_fractions))
+                    comm_var_fraction_stds.append(np.std(comm_var_fractions))
 
                     nu_means.append(np.mean(df['nu']))
                     nu_stds.append(np.std(df['nu']))
@@ -190,7 +201,7 @@ for samples_folder_i, samples_folder in enumerate(samples_folders):
                     rep_partitions.append(str(rep_partition.tolist()))
 
                     df_out_dict = {'basename':basenames,'sigma_C_mean':sigma_C_means,'sigma_C_std':sigma_C_stds,'sigma_I_mean':sigma_I_means,'sigma_I_std':sigma_I_stds,'sigma_T_mean':sigma_T_means,'sigma_T_std':sigma_T_stds,\
-                    'nu_mean':nu_means,'nu_std':nu_stds,'rep_partition':rep_partitions,'q_counts':q_counts_all,'total_status_mean':total_status_means,'total_status_std':total_status_stds}
+                    'comm_var_fraction_mean':comm_var_fraction_means,'comm_var_fraction_std':comm_var_fraction_stds,'nu_mean':nu_means,'nu_std':nu_stds,'rep_partition':rep_partitions,'q_counts':q_counts_all,'total_status_mean':total_status_means,'total_status_std':total_status_stds}
 
                     # print(df_out_dict)
                     # for k,v in df_out_dict.items():

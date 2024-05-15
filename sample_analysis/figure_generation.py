@@ -40,27 +40,43 @@ import statsmodels.api as sm
 
 model_type = 'SBM-BT'
 
+# Select which data set to process
+
 data_set_name = 'highschool'
+data_label = 'High schools'
+figures_folder = f'../data/figures/AddHealth/{model_type}'
+gml_files_folder = f"../data/gml_files/AddHealth"
+
+# data_set_name = 'anyinteractions'
+# data_label = 'Villages'
+# figures_folder = f'../data/figures/villages/{model_type}'
+# gml_files_folder = f"../data/gml_files/villages"
 
 summary_filename = f"samples_summary_{model_type}.csv"
 
-figures_folder = f'../data/figures/AddHealth/{model_type}'
+
+sigma_I_label = r'Individual status depth $\sigma_I$'
+sigma_C_label = r'Community status depth $\sigma_C$'
+sigma_T_label = r'Total status depth $\sigma_T$'
+comm_var_fraction_label = r'Community depth fraction $F_C = \frac{\sigma_C^2}{\sigma_T^2}$'
 
 # Load the summary information
 summary_df = pd.read_csv(summary_filename)
 print(summary_df)
 
-gml_files_folder = f"../data/gml_files/AddHealth"
 
 rep_partitions = []
 ns = []
 qs = []
+q_stds = []
 sigma_C_means = []
 sigma_I_means = []
 sigma_T_means = []
+comm_var_fraction_means = []
 sigma_C_stds = []
 sigma_I_stds = []
 sigma_T_stds = []
+comm_var_fraction_stds = []
 percent_whites = []
 percent_blacks = []
 percent_hispanics = []
@@ -85,21 +101,22 @@ for filename in os.listdir(gml_files_folder):
         # Get all node attributes
         node_attributes = G.nodes(data=True)
 
-        races = []
-        sexes = []
-        grades = []
-        # Print node attributes
-        for node, attributes in node_attributes:
-            # Write the original independent score here using labels and data read
-            # print(f"Node {node}:")
-            for key, value in attributes.items():
-                # print(f"  {key}: {value}")
-                if key == 'race':
-                    races.append(value)
-                if key == 'sex':
-                    sexes.append(value)
-                if key == 'grade':
-                    grades.append(value)
+        if data_set_name == 'highschool':
+            races = []
+            sexes = []
+            grades = []
+            # Print node attributes
+            for node, attributes in node_attributes:
+                # Write the original independent score here using labels and data read
+                # print(f"Node {node}:")
+                for key, value in attributes.items():
+                    # print(f"  {key}: {value}")
+                    if key == 'race':
+                        races.append(value)
+                    if key == 'sex':
+                        sexes.append(value)
+                    if key == 'grade':
+                        grades.append(value)
 
         row = summary_df[summary_df['basename']==basename]
         if len(row) > 0:
@@ -112,6 +129,11 @@ for filename in os.listdir(gml_files_folder):
             n = len(rep_partition)
             q = len(np.unique(rep_partition))
 
+            # Read numpy array from string
+            q_counts = row['q_counts'].values[0]
+            q_counts = np.fromstring(q_counts[1:-1], dtype=int, sep=',')
+            print(q_counts)
+
             
             school_num = int(re.findall('[0-9]+',filename)[0])
 
@@ -122,9 +144,11 @@ for filename in os.listdir(gml_files_folder):
             sigma_C_means.append(row['sigma_C_mean'].values[0])
             sigma_I_means.append(row['sigma_I_mean'].values[0])
             sigma_T_means.append(row['sigma_T_mean'].values[0])
+            comm_var_fraction_means.append(row['comm_var_fraction_mean'].values[0])
             sigma_C_stds.append(row['sigma_C_std'].values[0])
             sigma_I_stds.append(row['sigma_I_std'].values[0])
             sigma_T_stds.append(row['sigma_T_std'].values[0])
+            comm_var_fraction_stds.append(row['comm_var_fraction_std'].values[0])
 
             total_status_mean = row['total_status_mean'].values[0]
             rep_partition = np.fromstring(rep_partition[1:-1], dtype=float, sep=',')
@@ -139,116 +163,147 @@ for filename in os.listdir(gml_files_folder):
             #     group_statuses[i] /= group_counts[i]
 
             # print(group_statuses)
+            if data_set_name == 'highschool':
+                # Get the breakdown by race
+                total_race_identified = 0
+                race_count_dict = {}
+                for race in races_all:
+                    race_count_dict[race] = 0
+                for race in races:
+                    if race in races_all:
+                        race_count_dict[race] += 1
+                        total_race_identified += 1
 
-            # Get the breakdown by race
-            total_race_identified = 0
-            race_count_dict = {}
-            for race in races_all:
-                race_count_dict[race] = 0
-            for race in races:
-                if race in races_all:
-                    race_count_dict[race] += 1
-                    total_race_identified += 1
+                percent_white = race_count_dict['white']/total_race_identified
+                percent_black = race_count_dict['black']/total_race_identified
+                percent_hispanic = race_count_dict['hispanic']/total_race_identified
 
-            percent_white = race_count_dict['white']/total_race_identified
-            percent_black = race_count_dict['black']/total_race_identified
-            percent_hispanic = race_count_dict['hispanic']/total_race_identified
+                H_race = 0
+                for k,v in race_count_dict.items():
+                    if v > 0:
+                        H_race -= v/total_race_identified*np.log(v/total_race_identified)
 
-            H_race = 0
-            for k,v in race_count_dict.items():
-                if v > 0:
-                    H_race -= v/total_race_identified*np.log(v/total_race_identified)
-
-            H_races.append(H_race)
-            percent_whites.append(percent_white)
-            percent_blacks.append(percent_black)
-            percent_hispanics.append(percent_hispanic)
+                H_races.append(H_race)
+                percent_whites.append(percent_white)
+                percent_blacks.append(percent_black)
+                percent_hispanics.append(percent_hispanic)
 
             # Compute the 
 
             # Plot individual "pop-out" figure for this school
 
-plt.clf()
-plt.scatter(ns,sigma_C_means, zorder=2, label='High schools')
-plt.errorbar(ns,sigma_C_means, yerr=sigma_C_stds, ecolor='lightgray', fmt='', ls='none', zorder=1)
-# Perform weighted least squares
-x = ns
-y = sigma_C_means
-weights = np.array(sigma_C_stds)
-X = sm.add_constant(x)  # Add constant term for the intercept
-model = sm.WLS(y, X, weights=1/weights)  # Create WLS model instance
-results = model.fit()  # Fit the model
-print(results.pvalues)
-plt.plot(x, results.fittedvalues, color='red', label='Fitted Line')
-plt.legend()
-plt.xlabel(r'Size $n$')
-plt.ylabel(r'Between community spread $\sigma_C$')
-plt.savefig(f"{figures_folder}/n_vs_sigma_C.png")
+def scatter_plot_with_y_errors(xs,ys,yerrs,data_label,plot_title,x_label,y_label,filename):
+    plt.clf()
+    plt.scatter(xs,ys, zorder=2, label=data_label)
+    plt.errorbar(xs,ys, yerr=yerrs, ecolor='lightgray', fmt='', ls='none', zorder=1)
+    # Perform weighted least squares
+    weights = 1/np.array(yerrs)
+    Xs = sm.add_constant(xs)  # Add constant term for the intercept
+    model = sm.WLS(ys, Xs, weights=weights)  # Create WLS model instance
+    results = model.fit()  # Fit the model
+    plt.plot(xs, results.fittedvalues, color='red', label='Fitted Line',zorder=0)
+    # Label figure with the p value
+    p_value = results.pvalues[1]
+    plt.title(f"{plot_title}, p = {p_value:.3f}")
 
-plt.clf()
-plt.scatter(ns,sigma_I_means, zorder=2, label='High schools')
-plt.errorbar(ns,sigma_I_means, yerr=sigma_I_stds, ecolor='lightgray', fmt='', ls='none', zorder=1)
-# Perform weighted least squares
-x = ns
-y = sigma_I_means
-weights = np.array(sigma_I_stds)
-X = sm.add_constant(x)  # Add constant term for the intercept
-model = sm.WLS(y, X, weights=1/weights)  # Create WLS model instance
-results = model.fit()  # Fit the model
-print(results.pvalues)
-plt.plot(x, results.fittedvalues, color='red', label='Fitted Line')
-plt.legend()
-plt.xlabel(r'Size $n$')
-plt.ylabel(r'Within community spread $\sigma_I$')
-plt.savefig(f"{figures_folder}/n_vs_sigma_I.png")
+    plt.legend()
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.savefig(f"{figures_folder}/{filename}")
 
-plt.clf()
-plt.scatter(ns,sigma_T_means, zorder=2, label='High schools')
-plt.errorbar(ns,sigma_T_means, yerr=sigma_T_stds, ecolor='lightgray', fmt='', ls='none', zorder=1)
-# Perform weighted least squares
-x = ns
-y = sigma_T_means
-weights = np.array(sigma_T_stds)
-X = sm.add_constant(x)  # Add constant term for the intercept
-model = sm.WLS(y, X, weights=1/weights)  # Create WLS model instance
-results = model.fit()  # Fit the model
-print(results.pvalues)
-plt.plot(x, results.fittedvalues, color='red', label='Fitted Line')
-plt.legend()
-plt.xlabel(r'Size $n$')
-plt.ylabel(r'Total spread $\sigma_T$')
-plt.savefig(f"{figures_folder}/n_vs_sigma_T.png")
+def scatter_plot_with_y_errors_size(xs,ys,yerrs,data_label,plot_title,x_label,y_label,sizes,filename):
+    plt.clf()
+    scatter_plot = ax.scatter(sigma_I_means,sigma_C_means, s=sizes,c=ns, cmap='viridis', zorder=2, label=data_label)
+    # Add colorbar
+    cbar = plt.colorbar(scatter_plot)
+    cbar.set_label(r'Size $n$')
+    plt.errorbar(xs,ys, yerr=yerrs, ecolor='lightgray', fmt='', ls='none', zorder=1)
+    # Perform weighted least squares
+    weights = 1/np.array(yerrs)
+    Xs = sm.add_constant(xs)  # Add constant term for the intercept
+    model = sm.WLS(ys, Xs, weights=weights)  # Create WLS model instance
+    results = model.fit()  # Fit the model
+    plt.plot(xs, results.fittedvalues, color='red', label='Fitted Line',zorder=0)
+    # Label figure with the p value
+    p_value = results.pvalues[1]
+    plt.title(f"{plot_title}, p = {p_value:.3f}")
 
-# Same thing with n on a log scale
+    plt.legend()
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.savefig(f"{figures_folder}/{filename}")
 
-plt.clf()
-plt.xscale('log')
-plt.scatter(ns,sigma_C_means, zorder=2)
-plt.errorbar(ns,sigma_C_means, yerr=sigma_C_stds, ecolor='lightgray', fmt='', ls='none', zorder=1, label='High schools')
-plt.xlabel(r'Size $n$')
-plt.ylabel(r'Between community stratification $\sigma_C$')
-plt.savefig(f"{figures_folder}/n_vs_sigma_C_log.png")
+def scatter_plot_log_x_scale_with_y_errors(xs,ys,yerrs,data_label,plot_title,x_label,y_label,filename):
+    plt.clf()
+    plt.scatter(xs,ys, zorder=2, label=data_label)
+    plt.errorbar(xs,ys, yerr=yerrs, ecolor='lightgray', fmt='', ls='none', zorder=1)
+    # Perform weighted least squares
+    log_xs = np.log(xs)
+    weights = 1/np.array(yerrs)
+    Xs = sm.add_constant(log_xs)  # Add constant term for the intercept
+    model = sm.WLS(ys, Xs, weights=weights)  # Create WLS model instance
+    results = model.fit()  # Fit the model
+    plt.plot(np.exp(log_xs), results.fittedvalues, color='red', label='Fitted Line',zorder=0)
+    plt.xscale('log')
+    # plt.xlim((0.8*min(xs),1.3*max(xs)))
+    # Label figure with the p value
+    p_value = results.pvalues[1]
+    plt.title(f"{plot_title}, p = {p_value:.3f}")
 
-plt.clf()
-plt.xscale('log')
-plt.scatter(ns,sigma_I_means, zorder=2)
-plt.errorbar(ns,sigma_I_means, yerr=sigma_I_stds, ecolor='lightgray', fmt='', ls='none', zorder=1, label='High schools')
-plt.xlabel(r'Size $n$')
-plt.ylabel(r'Within community stratification $\sigma_I$')
-plt.savefig(f"{figures_folder}/n_vs_sigma_I_log.png")
+    plt.legend()
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.savefig(f"{figures_folder}/{filename}")
 
-plt.clf()
-plt.xscale('log')
-plt.scatter(ns,sigma_T_means)
-plt.errorbar(ns,sigma_T_means, yerr=sigma_T_stds, ecolor='lightgray', fmt='', ls='none', zorder=1, label='High schools')
-plt.xlabel(r'Size $n$')
-plt.ylabel(r'Total stratification $\sigma_T$')
-plt.savefig(f"{figures_folder}/n_vs_sigma_T_log.png")
+def scatter_plot(xs,ys,data_label,plot_title,x_label,y_label,filename):
+    plt.clf()
+    plt.scatter(xs,ys, zorder=2, label=data_label)
+    # Perform unweighted least squares
+    weights = np.ones(len(xs))
+    Xs = sm.add_constant(xs)  # Add constant term for the intercept
+    model = sm.WLS(ys, Xs, weights=weights)  # Create WLS model instance
+    results = model.fit()  # Fit the model
+    plt.plot(xs, results.fittedvalues, color='red', label='Fitted Line',zorder=0)
+    # Label figure with the p value
+    p_value = results.pvalues[1]
+    plt.title(f"{plot_title}, p = {p_value:.3f}")
 
+    plt.legend()
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.savefig(f"{figures_folder}/{filename}")
+
+# Errors, no log scale
+scatter_plot_with_y_errors(ns,sigma_C_means,sigma_C_stds,data_label,f"Size vs. community status depth in {data_label.lower()}",r'Size $n$',sigma_C_label,'n_vs_sigma_C.png')
+scatter_plot_with_y_errors(ns,sigma_I_means,sigma_I_stds,data_label,f"Size vs. individual status depth in {data_label.lower()}",r'Size $n$',sigma_I_label,'n_vs_sigma_I.png')
+scatter_plot_with_y_errors(ns,sigma_T_means,sigma_T_stds,data_label,f"Size vs. total status depth in {data_label.lower()}",r'Size $n$',sigma_T_label,'n_vs_sigma_T.png')
+scatter_plot_with_y_errors(ns,comm_var_fraction_means,comm_var_fraction_stds,data_label,f"Size vs. community depth fraction in {data_label.lower()}",r'Size $n$',comm_var_fraction_label,'n_vs_comm_var_fraction.png')
+
+# Errors, log scale
+scatter_plot_log_x_scale_with_y_errors(ns,sigma_C_means,sigma_C_stds,data_label,f"Size vs. community status depth in {data_label.lower()}",r'Size $n$',sigma_C_label,'n_vs_sigma_C_log.png')
+scatter_plot_log_x_scale_with_y_errors(ns,sigma_I_means,sigma_I_stds,data_label,f"Size vs. individual status depth in {data_label.lower()}",r'Size $n$',sigma_I_label,'n_vs_sigma_I_log.png')
+scatter_plot_log_x_scale_with_y_errors(ns,sigma_T_means,sigma_T_stds,data_label,f"Size vs. total status depth in {data_label.lower()}",r'Size $n$',sigma_T_label,'n_vs_sigma_T_log.png')
+scatter_plot_log_x_scale_with_y_errors(ns,comm_var_fraction_means,comm_var_fraction_stds,data_label,f"Size vs. community depth fraction in {data_label.lower()}",r'Size $n$',comm_var_fraction_label,'n_vs_comm_var_fraction_log.png')
+
+# No errors, no log scale
+scatter_plot(ns,qs,data_label,f"{data_label} size vs. q",r'Size $n$',r'Number of communities $q$','n_vs_q.png')
+if data_set_name == 'highschool': # Only the high schools have the racial data we are familiar with
+    scatter_plot_with_y_errors(H_races,sigma_T_means,sigma_T_stds,data_label,rf"{data_label} diversity vs. total status depth",r'Diversity $H_{race}$',sigma_T_label,'sigma_T_vs_H_race.png')
+    scatter_plot_with_y_errors(percent_whites,sigma_T_means,sigma_T_stds,data_label,rf"{data_label} percent white vs. total status depth",r'Percent white',sigma_T_label,'sigma_T_vs_percent_white.png')
+
+# Contour plots of all of the schools
 
 # Array of values
-max_sigma_I = 6
-max_sigma_C = 6
+if data_set_name == 'highschool':
+    fig_width = 6
+    fig_height = 4.5
+    max_sigma_I = 5.5
+    max_sigma_C = 4.7
+if data_set_name == 'anyinteractions':
+    fig_width = 6
+    fig_height = 4.5
+    max_sigma_I = 2.5
+    max_sigma_C = 2.5
 all_sigma_Is = np.arange(0,max_sigma_I,0.1)
 all_sigma_Cs = np.arange(0,max_sigma_C,0.1)
 probs = np.zeros((len(all_sigma_Is),len(all_sigma_Cs)))
@@ -258,8 +313,7 @@ for sigma_I_i in range(len(all_sigma_Is)):
 
 # Key to find the individual plots:
 plt.clf()
-fig = plt.figure(figsize=(6,5))
-# fig = plt.figure(figsize=(6,4))
+fig = plt.figure(figsize=(fig_width,fig_height))
 ax = fig.add_subplot(111)
 ax.set_xlim((0,max_sigma_I))
 ax.set_ylim((0,max_sigma_C))
@@ -281,16 +335,16 @@ for i, txt in enumerate(range(len(sigma_I_means))):
 
 # Set labels and title
 # plt.legend()
-ax.set_xlabel(r"Within community stratification $\sigma_I$")
-ax.set_ylabel(r"Between community stratification $\sigma_C$")
-ax.set_title(f"Spreads of individual and community statuses")
+ax.set_xlabel(sigma_I_label)
+ax.set_ylabel(sigma_C_label)
+ax.set_title(f"Individual and community status depths in {data_label.lower()}")
 plt.tight_layout(pad = 2)
 plt.savefig(f"{figures_folder}/sigma_I_vs_sigma_C_key.png")   
 
 
 # Plotting the schools by size:
 plt.clf()
-fig = plt.figure(figsize=(6,5))
+fig = plt.figure(figsize=(fig_width,fig_height))
 # fig = plt.figure(figsize=(6,4))
 ax = fig.add_subplot(111)
 ax.set_xlim((0,max_sigma_I))
@@ -307,7 +361,6 @@ colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 sizes = np.sqrt(np.array(ns))
 
 ax.plot(all_sigma_Cs,all_sigma_Cs,color='gray', zorder = 1) # x = y
-# ax.errorbar(sigma_I_means,sigma_C_means, xerr=sigma_I_stds, yerr=sigma_C_stds, ecolor='lightgray', fmt='', ls='none', zorder=1, label='High schools')
 # Color the points by the size
 scatter_plot = ax.scatter(sigma_I_means,sigma_C_means, s=sizes,c=ns, cmap='viridis', zorder=2)
 # Add colorbar
@@ -317,9 +370,9 @@ cbar.set_label(r'Size $n$')
 
 # Set labels and title
 # plt.legend()
-ax.set_xlabel(r"Within community stratification $\sigma_I$")
-ax.set_ylabel(r"Between community stratification $\sigma_C$")
-ax.set_title(f"Spreads of individual and community statuses")
+ax.set_xlabel(sigma_I_label)
+ax.set_ylabel(sigma_C_label)
+ax.set_title(f"Individual and community status depths in {data_label.lower()}")
 plt.tight_layout(pad = 2)
 plt.savefig(f"{figures_folder}/sigma_I_vs_sigma_C.png")    
 
