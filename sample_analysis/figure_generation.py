@@ -81,7 +81,7 @@ def scatter_plot_with_y_errors(xs,ys,yerrs,data_label,plot_title,x_label,y_label
     plt.savefig(f"{figures_folder}/{basename}.png")
     plt.savefig(f"{figures_folder}/{basename}.pdf")
 
-def scatter_plot_with_y_errors_size(xs,ys,yerrs,data_label,plot_title,x_label,y_label,sizes,filename):
+def scatter_plot_with_y_errors_size(xs,ys,yerrs,data_label,plot_title,x_label,y_label,sizes,basename):
     plt.clf()
     s_plot = ax.scatter(sigma_I_means,sigma_C_means, s=sizes,c=ns, cmap='viridis', zorder=2, label=data_label)
     # Add colorbar
@@ -103,8 +103,9 @@ def scatter_plot_with_y_errors_size(xs,ys,yerrs,data_label,plot_title,x_label,y_
     plt.ylabel(y_label)
     plt.savefig(f"{figures_folder}/{basename}.png")
     plt.savefig(f"{figures_folder}/{basename}.pdf")
+    plt.savefig(f"{figures_folder}/{basename}.svg")
 
-def scatter_plot_log_x_scale_with_y_errors(xs,ys,yerrs,data_label,plot_title,x_label,y_label,filename):
+def scatter_plot_log_x_scale_with_y_errors(xs,ys,yerrs,data_label,plot_title,x_label,y_label,basename):
     plt.clf()
     plt.scatter(xs,ys, zorder=2, label=data_label)
     plt.errorbar(xs,ys, yerr=yerrs, ecolor='lightgray', fmt='', ls='none', zorder=1)
@@ -126,8 +127,9 @@ def scatter_plot_log_x_scale_with_y_errors(xs,ys,yerrs,data_label,plot_title,x_l
     plt.ylabel(y_label)
     plt.savefig(f"{figures_folder}/{basename}.png")
     plt.savefig(f"{figures_folder}/{basename}.pdf")
+    plt.savefig(f"{figures_folder}/{basename}.svg")
 
-def scatter_plot(xs,ys,data_label,plot_title,x_label,y_label,filename):
+def scatter_plot(xs,ys,data_label,plot_title,x_label,y_label,basename):
     plt.clf()
     plt.scatter(xs,ys, zorder=2, label=data_label)
     # Perform unweighted least squares
@@ -145,6 +147,7 @@ def scatter_plot(xs,ys,data_label,plot_title,x_label,y_label,filename):
     plt.ylabel(y_label)
     plt.savefig(f"{figures_folder}/{basename}.png")
     plt.savefig(f"{figures_folder}/{basename}.pdf")
+    plt.savefig(f"{figures_folder}/{basename}.svg")
 
 def draw_contour_background(max_sigma_I,max_sigma_C,fig_width,fig_height):
     # Grid on which to evaluate the sigma_T values
@@ -363,6 +366,9 @@ for data_set_name in data_set_names:
                 for line_position in community_statuses:
                     ax.axvline(x=line_position, color='gray', linestyle='--', linewidth=0.8)
 
+                # Draw a gray solid line at x = y
+                ax.plot([min_community_status,max_community_status],[min_community_status,max_community_status], color='gray', linewidth=0.8, zorder=-1)
+
                 ax.scatter(xs,ys, c=colors,zorder=2, alpha = 0.5)
                 ax.set_xlabel("Community status")
                 ax.set_ylabel("Total status")
@@ -370,6 +376,8 @@ for data_set_name in data_set_names:
 
                 plt.tight_layout(pad = 2)
                 plt.savefig(f"{figures_folder}/individuals/{basename}.png")
+                plt.savefig(f"{figures_folder}/individuals/{basename}.pdf")
+                plt.savefig(f"{figures_folder}/individuals/{basename}.svg")
 
                 # Create plot with box and whisket plots to represent each community
                 plt.clf()
@@ -404,6 +412,9 @@ for data_set_name in data_set_names:
                 ax.set_xticks([-4,-3,-2,-1,0,1,2,3,4])
                 ax.set_xticklabels([-4,-3,-2,-1,0,1,2,3,4])
 
+                # Draw a gray dashed line at x = y
+                ax.plot([min_community_status,max_community_status],[min_community_status,max_community_status], color='gray', linestyle='--', linewidth=0.8, zorder=-1)
+
                 # ax.scatter(xs,ys, c=colors,zorder=2, alpha = 0.5)
                 ax.set_xlabel("Community status")
                 ax.set_ylabel("Total status")
@@ -412,6 +423,7 @@ for data_set_name in data_set_names:
                 plt.tight_layout(pad = 2)
                 plt.savefig(f"{figures_folder}/individuals/{basename}_box_whisker.png")
                 plt.savefig(f"{figures_folder}/individuals/{basename}_box_whisker.pdf")
+                plt.savefig(f"{figures_folder}/individuals/{basename}_box_whisker.svg")
 
 
     # Record the relevant data set values for the summary across data sets
@@ -430,6 +442,7 @@ for data_set_name in data_set_names:
     if data_set_name == 'highschool': # Only the high schools have the racial data we are familiar with
         scatter_plot_with_y_errors(H_races,sigma_T_means,sigma_T_stds,data_label,f"Racial diversity vs. total status depth in {data_label.lower()}",r'Diversity $H_{race}$',sigma_T_label,'sigma_T_vs_H_race')
         scatter_plot_with_y_errors(percent_whites,sigma_T_means,sigma_T_stds,data_label,f"Percent white students vs. total status depth in {data_label.lower()}",r'Percent white students',sigma_T_label,'sigma_T_vs_percent_white')
+        scatter_plot_with_y_errors(percent_blacks,sigma_T_means,sigma_T_stds,data_label,f"Percent black students vs. total status depth in {data_label.lower()}",r'Percent black students',sigma_T_label,'sigma_T_vs_percent_black')
 
     # Errors, log scale
     scatter_plot_log_x_scale_with_y_errors(ns,sigma_C_means,sigma_C_stds,data_label,f"Size vs. community status depth in {data_label.lower()}",r'Size $n$',sigma_C_label,'n_vs_sigma_C_log')
@@ -471,6 +484,7 @@ for data_set_name in data_set_names:
     plt.tight_layout(pad = 2)
     plt.savefig(f"{figures_folder}/sigma_I_vs_sigma_C_key.png")   
     plt.savefig(f"{figures_folder}/sigma_I_vs_sigma_C_key.pdf")   
+    plt.savefig(f"{figures_folder}/sigma_I_vs_sigma_C_key.svg")   
 
 
     # Plotting the schools by size:
@@ -493,7 +507,8 @@ for data_set_name in data_set_names:
     ax.set_title(f"Individual and community status depths in {data_label.lower()}")
     plt.tight_layout(pad = 2)
     plt.savefig(f"{figures_folder}/sigma_I_vs_sigma_C.png")    
-    plt.savefig(f"{figures_folder}/sigma_I_vs_sigma_C.pdf")    
+    plt.savefig(f"{figures_folder}/sigma_I_vs_sigma_C.pdf")     
+    plt.savefig(f"{figures_folder}/sigma_I_vs_sigma_C.svg")    
 
 
     
@@ -520,7 +535,8 @@ ax.set_ylabel(sigma_C_label)
 ax.set_title(f"Individual and community status depths")
 plt.tight_layout(pad = 2)
 plt.savefig(f"{summary_figures_folder}/sigma_I_vs_sigma_C_size.png")   
-plt.savefig(f"{summary_figures_folder}/sigma_I_vs_sigma_C_size.pdf")   
+plt.savefig(f"{summary_figures_folder}/sigma_I_vs_sigma_C_size.pdf")  
+plt.savefig(f"{summary_figures_folder}/sigma_I_vs_sigma_C_size.svg")    
 
     
 # Summary plot of the sigma distributions for all data sets, no size present
@@ -538,5 +554,6 @@ ax.set_title(f"Individual and community status depths")
 plt.tight_layout(pad = 2)
 plt.savefig(f"{summary_figures_folder}/sigma_I_vs_sigma_C.png")  
 plt.savefig(f"{summary_figures_folder}/sigma_I_vs_sigma_C.pdf")  
+plt.savefig(f"{summary_figures_folder}/sigma_I_vs_sigma_C.svg")  
 
 
