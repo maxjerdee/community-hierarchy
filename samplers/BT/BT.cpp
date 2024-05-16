@@ -8,7 +8,7 @@
 // After making the file (run make in the directory), the executable may be run for example as:
 // ./BT.exe -i ../../data/gml_files/AddHealth/highschool_1.gml -o ../../data/samples/AddHealth/SBM-BT/highschool_1.csv
 // ./BT.exe -i ../../data/gml_files/AddHealth/highschool_49.gml -o out.csv
-// ./BT.exe -i ../../data/gml_files/misc/test.gml -o ../../data/samples/misc/SBM-BT/test.csv
+// ./BT.exe -i ../../data/gml_files/misc/test.gml -o ../../data/samples/misc/BT/test.csv
 // ./BT.exe -i ../../data/gml_files/villages/anyinteractions1.gml -o out.csv
 
 #include <getopt.h>
@@ -120,7 +120,7 @@ double log_binom(double a, double b);
 // Overflow protected version of log(e^(sij/2) + 2 nu + e^(sji/2)) for evaluating H(A|Abar,s,nu)
 double log_denom(double score_diff, double nu);
 
-// Overflow protected version of log(e^a + e^b) for precomputing log_q_vals
+// Overflow protected version of log(e^a + e^b)
 double log_sum_exp(double a, double b);
 
 double log_factorial(int n);
@@ -257,56 +257,6 @@ int main(int argc, char *argv[]) {
 
     ConstInfoType const_info = std::make_tuple(n, m, wins, ties, losses, neighbors, degree_list);
     // print(const_info);
-
-    // Precompute the values of q(m,n) up to the total number of interactions 
-    /* Boundary conditions from Xiaoran:
-    # n >= 0 and m >= 0:
-    if m > 0 and n == 0:
-        return 0
-    if m == 0 and n == 0:
-        return 1
-    if n == 1 and m > 0:
-        return 1
-    
-    # m < 0 or n < 0
-    if m < 0 or n < 0:
-        return 0
-    */
-   std::cout << edgelist.size() << "\n";
-    int max_m = 2*edgelist.size();
-    std::cout << "Precomputing values of log q(m,n) up to m = " << max_m << "\n";
-    for(int q_m = 0; q_m <= max_m; q_m++){
-        std::vector<double> log_q_vals_r;
-        for(int q_n = 0; q_n <= max_m; q_n++){
-            if(q_n == 0){
-                if(q_m == 0){
-                    log_q_vals_r.push_back(0); // q = 1 for n = 0, m = 0
-                }else{
-                    log_q_vals_r.push_back(-INFINITY); // q = 0 for n = 0, m > 0
-                }
-            }else{
-                log_q_vals_r.push_back(-INFINITY); // q = 0 initialization for n >= 1
-            }
-        }
-        log_q_vals.push_back(log_q_vals_r);
-    }
-    // Perform recursion
-    for(int q_n = 1; q_n <= max_m; q_n++){
-        for(int q_m = 0; q_m <= max_m; q_m++){
-            if(q_m >= q_n){
-                // q(m,n) = q(m,n - 1) + q(m - n, n)
-                log_q_vals[q_m][q_n] = log_sum_exp(log_q_vals[q_m][q_n - 1],log_q_vals[q_m - q_n][q_n]);
-            }else{
-                // If m < n, the restriction on the number of parts is irrelevant. 
-                log_q_vals[q_m][q_n] = log_q_vals[q_m][q_n - 1];
-            }
-        }
-    }
-    
-    // Checks
-    // std::cout << "q(2,2) = " << std::exp(log_q_vals[2][2]) << "\n"; // 2
-    // std::cout << "q(10,7) = " << std::exp(log_q_vals[10][7]) << "\n"; // 38
-    std::cout << "Precomputation of q(m,n) values finished.\n";
 
     // Create the states
     std::vector<double> all_betas; // All of the betas available in order
@@ -864,7 +814,6 @@ std::string state_csv_string(StateType& state, StateBookkeepingType& state_bookk
     output_string += std::to_string(H_s_G_sigmaT) + ","; 
     output_string += std::to_string(H_sigmaT) + ","; 
     output_string += std::to_string(energy); // No comma at the end 
-    output_string += "\n";
     return output_string;
 }
 
@@ -918,8 +867,7 @@ void print(StateType& state){
     auto& [sigma_T,
         total_status,
         nu] = state;
-    std::cout << "partition: ";
-    print(partition);
+    std::cout << "nu: " << nu << ", sigma_T: " << sigma_T; 
 }
 void print(StateBookkeepingType& state_bookkeeping){
     
