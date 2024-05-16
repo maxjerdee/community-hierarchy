@@ -7,6 +7,7 @@ from os import listdir
 import ast
 import pandas as pd
 import numpy as np
+import networkx as nx
 
 # Local imports
 from RMI import compute_RMI # Compute the reduced mutual information
@@ -78,8 +79,8 @@ summary_filename = f"samples_summary_{model_type}.csv"
 summary_df = pd.DataFrame(columns=['basename','sigma_C_mean','sigma_C_std','sigma_I_mean','sigma_I_std','sigma_T_mean','sigma_T_std',
 'sigma_T_mean','sigma_T_std','nu_mean','nu_std','rep_partition','q_counts','total_status_mean','total_status_std'])
 
-reset = True
-# reset = False
+# reset = True
+reset = False
 
 if reset:
     basenames = []
@@ -211,15 +212,15 @@ for samples_folder_i, samples_folder in enumerate(samples_folders):
                     # Get a list of the nodes
                     node_list = list(G.nodes)
                     # Only compute the modularity over a subsampled set of partitions (python too slow to do all of them)
-                    subsample_indices = np.linspace(0,num_samples-1,number_of_modularity_subsamples)
+                    subsample_indices = np.linspace(0,len(partitions)-1,number_of_modularity_subsamples)
                     subsample_indices = np.round(subsample_indices).astype(int)
 
                     modularities = []
                     for partition_i in subsample_indices:
                         communities = []
-                        for r in range(q):
+                        for r in range(q_max):
                             communities.append([])
-                        for i, r in enumerate(rep_partition):
+                        for i, r in enumerate(partitions[partition_i]):
                             communities[r].append(node_list[i])
 
                         modularity = nx.community.modularity(G,communities)
@@ -230,7 +231,7 @@ for samples_folder_i, samples_folder in enumerate(samples_folders):
                     modularity_mean = np.mean(modularities)
                     modularity_std = np.std(modularities)
 
-                    print(modularities,modularity_mean,modularity_std)
+                    # print(modularities,modularity_mean,modularity_std)
 
                     modularity_means.append(modularity_mean)
                     modularity_stds.append(modularity_std)
@@ -241,7 +242,7 @@ for samples_folder_i, samples_folder in enumerate(samples_folders):
                     rep_partitions.append(str(rep_partition.tolist()))
 
                     df_out_dict = {'basename':basenames,'sigma_C_mean':sigma_C_means,'sigma_C_std':sigma_C_stds,'sigma_I_mean':sigma_I_means,'sigma_I_std':sigma_I_stds,'sigma_T_mean':sigma_T_means,'sigma_T_std':sigma_T_stds,\
-                    'comm_var_fraction_mean':comm_var_fraction_means,'comm_var_fraction_std':comm_var_fraction_stds,'nu_mean':nu_means,'nu_std':nu_stds,'rep_partition':rep_partitions,'q_counts':q_counts_all,'total_status_mean':total_status_means,'total_status_std':total_status_stds}
+                    'comm_var_fraction_mean':comm_var_fraction_means,'comm_var_fraction_std':comm_var_fraction_stds,'nu_mean':nu_means,'nu_std':nu_stds,'modularity_mean':modularity_means,'modularity_std':modularity_stds,'rep_partition':rep_partitions,'q_counts':q_counts_all,'total_status_mean':total_status_means,'total_status_std':total_status_stds}
 
                     # print(df_out_dict)
                     # for k,v in df_out_dict.items():

@@ -1,2999 +1,6287 @@
 graph [
   directed 1
-  multigraph 1
   node [
     id 0
     label "800301"
+    village_num 8
+    household_num 3
+    individual_num 1
+    age 35
+    gender 1
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 1
+    education 7
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 32
+    work_private_public 2
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 0
   ]
   node [
     id 1
-    label "804301"
-    community 0
-  ]
-  node [
-    id 2
-    label "800802"
-    community 0
-  ]
-  node [
-    id 3
-    label "800801"
-    community 0
-  ]
-  node [
-    id 4
-    label "804303"
-    community 0
-  ]
-  node [
-    id 5
-    label "807401"
-    community 1
-  ]
-  node [
-    id 6
     label "800302"
+    village_num 8
+    household_num 3
+    individual_num 2
+    age 23
+    gender 2
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 1
+    education 10
+    village_native 2
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 2
   ]
   node [
-    id 7
+    id 2
     label "800402"
+    village_num 8
+    household_num 4
+    individual_num 2
+    age 45
+    gender 2
+    local_leader_noms 0
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 1
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 1
+    education 4
+    village_native 1
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 3
+  ]
+  node [
+    id 3
+    label "800601"
+    village_num 8
+    household_num 6
+    individual_num 1
+    age 26
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 2
+    HH_electricity 1
+    HH_latrine 3
+    education 16
+    village_native 1
+    caste -999
+    subcaste 22
+    work 1
+    occupation 1
+    work_private_public 2
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 4
+  ]
+  node [
+    id 4
+    label "800602"
+    village_num 8
+    household_num 6
+    individual_num 2
+    age 18
+    gender 2
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 2
+    HH_electricity 1
+    HH_latrine 3
+    education 7
+    village_native 2
+    caste 3
+    subcaste 22
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 4
+  ]
+  node [
+    id 5
+    label "800603"
+    village_num 8
+    household_num 6
+    individual_num 3
+    age 45
+    gender 2
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 2
+    HH_electricity 1
+    HH_latrine 3
+    education 16
+    village_native 1
+    caste 3
+    subcaste 22
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 4
+  ]
+  node [
+    id 6
+    label "800801"
+    village_num 8
+    household_num 8
+    individual_num 1
+    age 50
+    gender 1
+    local_leader_noms 3
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 1
+    HH_num_beds 0
+    HH_electricity 2
+    HH_latrine 3
+    education 16
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 2
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 0
+  ]
+  node [
+    id 7
+    label "800802"
+    village_num 8
+    household_num 8
+    individual_num 2
+    age 40
+    gender 2
+    local_leader_noms 2
+    is_village_elder 2
+    is_shgp_leader 1
+    is_gp_leader 2
+    is_temple_pujari 2
+    is_doctor 2
+    is_school_headmaster 2
+    is_anganwadi_teacher 2
+    is_shop_owner 2
+    is_other_community_leader 2
+    is_other_organization_leader 2
+    attribute_survey 1
+    HH_num_rooms 1
+    HH_num_beds 0
+    HH_electricity 2
+    HH_latrine 3
+    education 16
+    village_native 2
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 0
   ]
   node [
     id 8
     label "801101"
+    village_num 8
+    household_num 11
+    individual_num 1
+    age 56
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 3
+    HH_num_beds 2
+    HH_electricity 1
+    HH_latrine 1
+    education 8
+    village_native 1
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 4
   ]
   node [
     id 9
-    label "800601"
+    label "801102"
+    village_num 8
+    household_num 11
+    individual_num 2
+    age 48
+    gender 2
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 3
+    HH_num_beds 2
+    HH_electricity 1
+    HH_latrine 1
+    education 4
+    village_native 2
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 4
   ]
   node [
     id 10
-    label "800602"
-    community 4
-  ]
-  node [
-    id 11
-    label "800603"
-    community 4
-  ]
-  node [
-    id 12
-    label "801102"
-    community 4
-  ]
-  node [
-    id 13
-    label "802501"
-    community 4
-  ]
-  node [
-    id 14
-    label "802517"
+    label "801201"
+    village_num 8
+    household_num 12
+    individual_num 1
+    age 45
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 3
+    education 7
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 3
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 2
   ]
   node [
+    id 11
+    label "801202"
+    village_num 8
+    household_num 12
+    individual_num 2
+    age 30
+    gender 2
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 3
+    education 5
+    village_native 2
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 2
+  ]
+  node [
+    id 12
+    label "801203"
+    village_num 8
+    household_num 12
+    individual_num 3
+    age 18
+    gender 2
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 3
+    education 12
+    village_native 1
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 2
+  ]
+  node [
+    id 13
+    label "801301"
+    village_num 8
+    household_num 13
+    individual_num 1
+    age 70
+    gender 2
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 4
+    HH_num_beds 4
+    HH_electricity 1
+    HH_latrine 1
+    education 16
+    village_native 2
+    caste 4
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 3
+  ]
+  node [
+    id 14
+    label "801302"
+    village_num 8
+    household_num 13
+    individual_num 2
+    age 35
+    gender 1
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 4
+    HH_num_beds 4
+    HH_electricity 1
+    HH_latrine 1
+    education 10
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 13
+    work_private_public 2
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 3
+  ]
+  node [
     id 15
-    label "802502"
-    community 4
+    label "801303"
+    village_num 8
+    household_num 13
+    individual_num 3
+    age 28
+    gender 2
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 4
+    HH_num_beds 4
+    HH_electricity 1
+    HH_latrine 1
+    education 14
+    village_native 2
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 3
   ]
   node [
     id 16
-    label "801301"
+    label "801305"
+    village_num 8
+    household_num 13
+    individual_num 5
+    age 25
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 4
+    HH_num_beds 4
+    HH_electricity 1
+    HH_latrine 1
+    education 12
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 13
+    work_private_public 2
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 3
   ]
   node [
     id 17
-    label "801402"
+    label "801306"
+    village_num 8
+    household_num 13
+    individual_num 6
+    age 20
+    gender 2
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 4
+    HH_num_beds 4
+    HH_electricity 1
+    HH_latrine 1
+    education 11
+    village_native 2
+    caste 4
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 3
   ]
   node [
     id 18
-    label "804703"
-    community 1
+    label "801401"
+    village_num 8
+    household_num 14
+    individual_num 1
+    age 45
+    gender 1
+    local_leader_noms 3
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 3
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 1
+    education 16
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 3
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 3
   ]
   node [
     id 19
-    label "801201"
-    community 2
+    label "801402"
+    village_num 8
+    household_num 14
+    individual_num 2
+    age 36
+    gender 2
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 3
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 1
+    education 16
+    village_native 2
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 3
   ]
   node [
     id 20
-    label "801202"
-    community 2
+    label "801501"
+    village_num 8
+    household_num 15
+    individual_num 1
+    age 60
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 1
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 3
+    education 16
+    village_native 1
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 3
   ]
   node [
     id 21
-    label "803801"
-    community 2
+    label "801502"
+    village_num 8
+    household_num 15
+    individual_num 2
+    age 50
+    gender 2
+    local_leader_noms 3
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 1
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 3
+    education 16
+    village_native 2
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 3
   ]
   node [
     id 22
-    label "801203"
+    label "801901"
+    village_num 8
+    household_num 19
+    individual_num 1
+    age 30
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 3
+    HH_num_beds 1
+    HH_electricity 1
+    HH_latrine 1
+    education 9
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 2
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 2
   ]
   node [
     id 23
-    label "801305"
-    community 3
+    label "801902"
+    village_num 8
+    household_num 19
+    individual_num 2
+    age 20
+    gender 2
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 3
+    HH_num_beds 1
+    HH_electricity 1
+    HH_latrine 1
+    education 12
+    village_native 1
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 2
   ]
   node [
     id 24
-    label "807802"
-    community 3
+    label "802101"
+    village_num 8
+    household_num 21
+    individual_num 1
+    age 35
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 3
+    HH_num_beds 4
+    HH_electricity 2
+    HH_latrine 3
+    education 7
+    village_native 2
+    caste 3
+    subcaste 3
+    work 1
+    occupation 9
+    work_private_public 2
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 2
   ]
   node [
     id 25
-    label "801303"
-    community 3
+    label "802102"
+    village_num 8
+    household_num 21
+    individual_num 2
+    age 28
+    gender 2
+    local_leader_noms 1
+    is_village_elder 2
+    is_shgp_leader 1
+    is_gp_leader 2
+    is_temple_pujari 2
+    is_doctor 2
+    is_school_headmaster 2
+    is_anganwadi_teacher 2
+    is_shop_owner 2
+    is_other_community_leader 2
+    is_other_organization_leader 2
+    attribute_survey 1
+    HH_num_rooms 3
+    HH_num_beds 4
+    HH_electricity 2
+    HH_latrine 3
+    education 7
+    village_native 1
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 2
   ]
   node [
     id 26
-    label "801401"
-    community 3
+    label "802201"
+    village_num 8
+    household_num 22
+    individual_num 1
+    age 50
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 2
+    HH_electricity 1
+    HH_latrine 3
+    education 9
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 9
+    work_private_public 2
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 2
   ]
   node [
     id 27
-    label "801302"
-    community 3
+    label "802202"
+    village_num 8
+    household_num 22
+    individual_num 2
+    age 45
+    gender 2
+    local_leader_noms 4
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 2
+    HH_electricity 1
+    HH_latrine 3
+    education 10
+    village_native 2
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 2
   ]
   node [
     id 28
-    label "808703"
+    label "802301"
+    village_num 8
+    household_num 23
+    individual_num 1
+    age 46
+    gender 2
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 3
+    HH_num_beds 2
+    HH_electricity 1
+    HH_latrine 1
+    education 5
+    village_native 2
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 3
   ]
   node [
     id 29
-    label "807801"
-    community 3
+    label "802501"
+    village_num 8
+    household_num 25
+    individual_num 1
+    age 75
+    gender 1
+    local_leader_noms 3
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 12
+    HH_num_beds 15
+    HH_electricity 1
+    HH_latrine 3
+    education 16
+    village_native 1
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 4
   ]
   node [
     id 30
-    label "801501"
-    community 3
+    label "802510"
+    village_num 8
+    household_num 25
+    individual_num 10
+    age 26
+    gender 1
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 12
+    HH_num_beds 15
+    HH_electricity 1
+    HH_latrine 3
+    education 11
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 21
+    work_private_public 2
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 2
   ]
   node [
     id 31
-    label "801306"
-    community 3
+    label "802511"
+    village_num 8
+    household_num 25
+    individual_num 11
+    age 22
+    gender 2
+    local_leader_noms 3
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 12
+    HH_num_beds 15
+    HH_electricity 1
+    HH_latrine 3
+    education 10
+    village_native 2
+    caste 3
+    subcaste 3
+    work 1
+    occupation 15
+    work_private_public 2
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 4
   ]
   node [
     id 32
-    label "808001"
-    community 2
+    label "802512"
+    village_num 8
+    household_num 25
+    individual_num 12
+    age 20
+    gender 2
+    local_leader_noms 3
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 12
+    HH_num_beds 15
+    HH_electricity 1
+    HH_latrine 3
+    education 10
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 15
+    work_private_public 2
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 4
   ]
   node [
     id 33
-    label "801502"
-    community 3
+    label "802513"
+    village_num 8
+    household_num 25
+    individual_num 13
+    age 33
+    gender 1
+    local_leader_noms 3
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 12
+    HH_num_beds 15
+    HH_electricity 1
+    HH_latrine 3
+    education 6
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 2
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 4
   ]
   node [
     id 34
-    label "802601"
-    community 0
+    label "802514"
+    village_num 8
+    household_num 25
+    individual_num 14
+    age 29
+    gender 2
+    local_leader_noms 3
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 12
+    HH_num_beds 15
+    HH_electricity 1
+    HH_latrine 3
+    education 5
+    village_native 2
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 4
   ]
   node [
     id 35
-    label "805301"
-    community 1
+    label "802517"
+    village_num 8
+    household_num 25
+    individual_num 17
+    age 30
+    gender 1
+    local_leader_noms 3
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 12
+    HH_num_beds 15
+    HH_electricity 1
+    HH_latrine 3
+    education 8
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 10
+    work_private_public 2
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 2
   ]
   node [
     id 36
-    label "801901"
-    community 2
+    label "802518"
+    village_num 8
+    household_num 25
+    individual_num 18
+    age 27
+    gender 2
+    local_leader_noms 3
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 12
+    HH_num_beds 15
+    HH_electricity 1
+    HH_latrine 3
+    education 10
+    village_native 2
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 4
   ]
   node [
     id 37
-    label "801902"
-    community 2
+    label "802502"
+    village_num 8
+    household_num 25
+    individual_num 2
+    age 68
+    gender 2
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 12
+    HH_num_beds 15
+    HH_electricity 1
+    HH_latrine 3
+    education 16
+    village_native 1
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 4
   ]
   node [
     id 38
-    label "802101"
-    community 2
+    label "802504"
+    village_num 8
+    household_num 25
+    individual_num 4
+    age 43
+    gender 2
+    local_leader_noms 3
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 12
+    HH_num_beds 15
+    HH_electricity 1
+    HH_latrine 3
+    education 9
+    village_native 2
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 4
   ]
   node [
     id 39
-    label "802202"
+    label "802507"
+    village_num 8
+    household_num 25
+    individual_num 7
+    age 36
+    gender 1
+    local_leader_noms 3
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 12
+    HH_num_beds 15
+    HH_electricity 1
+    HH_latrine 3
+    education 11
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 2
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 2
   ]
   node [
     id 40
-    label "802102"
-    community 2
+    label "802508"
+    village_num 8
+    household_num 25
+    individual_num 8
+    age 30
+    gender 2
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 12
+    HH_num_beds 15
+    HH_electricity 1
+    HH_latrine 3
+    education 4
+    village_native 2
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 4
   ]
   node [
     id 41
-    label "802201"
-    community 2
+    label "802601"
+    village_num 8
+    household_num 26
+    individual_num 1
+    age 50
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 1
+    HH_electricity 1
+    HH_latrine 3
+    education 7
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 3
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 0
   ]
   node [
     id 42
-    label "804304"
+    label "802602"
+    village_num 8
+    household_num 26
+    individual_num 2
+    age 45
+    gender 2
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 1
+    HH_electricity 1
+    HH_latrine 3
+    education 6
+    village_native 1
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 0
   ]
   node [
     id 43
-    label "803802"
-    community 2
+    label "802603"
+    village_num 8
+    household_num 26
+    individual_num 3
+    age 42
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 1
+    HH_electricity 1
+    HH_latrine 3
+    education 14
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 3
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 0
   ]
   node [
     id 44
-    label "803001"
-    community 2
+    label "802701"
+    village_num 8
+    household_num 27
+    individual_num 1
+    age 45
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 4
+    HH_num_beds 2
+    HH_electricity 1
+    HH_latrine 1
+    education 14
+    village_native 1
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 0
   ]
   node [
     id 45
-    label "803002"
-    community 2
+    label "802702"
+    village_num 8
+    household_num 27
+    individual_num 2
+    age 33
+    gender 2
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 4
+    HH_num_beds 2
+    HH_electricity 1
+    HH_latrine 1
+    education 9
+    village_native 2
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 0
   ]
   node [
     id 46
-    label "802511"
-    community 4
+    label "803001"
+    village_num 8
+    household_num 30
+    individual_num 1
+    age 46
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 1
+    HH_electricity 1
+    HH_latrine 1
+    education 14
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 3
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 2
   ]
   node [
     id 47
-    label "802510"
+    label "803002"
+    village_num 8
+    household_num 30
+    individual_num 2
+    age 35
+    gender 2
+    local_leader_noms 2
+    is_village_elder 2
+    is_shgp_leader 1
+    is_gp_leader 2
+    is_temple_pujari 2
+    is_doctor 2
+    is_school_headmaster 2
+    is_anganwadi_teacher 2
+    is_shop_owner 2
+    is_other_community_leader 2
+    is_other_organization_leader 2
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 1
+    HH_electricity 1
+    HH_latrine 1
+    education 10
+    village_native 2
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 2
   ]
   node [
     id 48
-    label "804802"
-    community 1
+    label "803801"
+    village_num 8
+    household_num 38
+    individual_num 1
+    age 50
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 3
+    education 9
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 3
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 2
   ]
   node [
     id 49
-    label "807502"
-    community 4
+    label "803802"
+    village_num 8
+    household_num 38
+    individual_num 2
+    age 40
+    gender 2
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 3
+    education 7
+    village_native 2
+    caste 3
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 3
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 2
   ]
   node [
     id 50
-    label "802512"
-    community 4
+    label "804101"
+    village_num 8
+    household_num 41
+    individual_num 1
+    age 40
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 3
+    education 6
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 3
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 0
   ]
   node [
     id 51
-    label "802513"
-    community 4
+    label "804102"
+    village_num 8
+    household_num 41
+    individual_num 2
+    age 35
+    gender 2
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 3
+    education 6
+    village_native 2
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 0
   ]
   node [
     id 52
-    label "802514"
-    community 4
+    label "804201"
+    village_num 8
+    household_num 42
+    individual_num 1
+    age 42
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 3
+    HH_num_beds 3
+    HH_electricity 1
+    HH_latrine 3
+    education 7
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 3
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 0
   ]
   node [
     id 53
-    label "807501"
-    community 4
+    label "804202"
+    village_num 8
+    household_num 42
+    individual_num 2
+    age 35
+    gender 2
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 3
+    HH_num_beds 3
+    HH_electricity 1
+    HH_latrine 3
+    education 9
+    village_native 2
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 0
   ]
   node [
     id 54
-    label "804801"
-    community 1
+    label "804301"
+    village_num 8
+    household_num 43
+    individual_num 1
+    age 75
+    gender 1
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 3
+    HH_num_beds 1
+    HH_electricity 1
+    HH_latrine 3
+    education 16
+    village_native 1
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 0
   ]
   node [
     id 55
-    label "802603"
+    label "804302"
+    village_num 8
+    household_num 43
+    individual_num 2
+    age 50
+    gender 2
+    local_leader_noms 3
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 3
+    HH_num_beds 1
+    HH_electricity 1
+    HH_latrine 3
+    education 16
+    village_native 2
+    caste 3
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 2
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 0
   ]
   node [
     id 56
-    label "802701"
+    label "804303"
+    village_num 8
+    household_num 43
+    individual_num 3
+    age 35
+    gender 1
+    local_leader_noms 3
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 3
+    HH_num_beds 1
+    HH_electricity 1
+    HH_latrine 3
+    education 13
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 2
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 0
   ]
   node [
     id 57
-    label "802518"
-    community 4
+    label "804304"
+    village_num 8
+    household_num 43
+    individual_num 4
+    age 28
+    gender 2
+    local_leader_noms 0
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 3
+    HH_num_beds 1
+    HH_electricity 1
+    HH_latrine 3
+    education 10
+    village_native 2
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 0
   ]
   node [
     id 58
-    label "805102"
+    label "804501"
+    village_num 8
+    household_num 45
+    individual_num 1
+    age 40
+    gender 2
+    local_leader_noms 0
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 1
+    HH_num_beds 1
+    HH_electricity 1
+    HH_latrine 1
+    education 3
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 2
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 1
   ]
   node [
     id 59
-    label "805401"
+    label "804701"
+    village_num 8
+    household_num 47
+    individual_num 1
+    age 55
+    gender 2
+    local_leader_noms 0
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 1
+    HH_num_beds 1
+    HH_electricity 1
+    HH_latrine 3
+    education 16
+    village_native 1
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 1
   ]
   node [
     id 60
-    label "802504"
-    community 4
+    label "804702"
+    village_num 8
+    household_num 47
+    individual_num 2
+    age 47
+    gender 1
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 1
+    HH_num_beds 1
+    HH_electricity 1
+    HH_latrine 3
+    education 10
+    village_native 2
+    caste 3
+    subcaste 3
+    work 1
+    occupation 13
+    work_private_public 2
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 1
   ]
   node [
     id 61
-    label "802702"
-    community 0
+    label "804703"
+    village_num 8
+    household_num 47
+    individual_num 3
+    age 35
+    gender 2
+    local_leader_noms 0
+    is_village_elder 2
+    is_shgp_leader 2
+    is_gp_leader 2
+    is_temple_pujari 2
+    is_doctor 2
+    is_school_headmaster 2
+    is_anganwadi_teacher 1
+    is_shop_owner 2
+    is_other_community_leader 2
+    is_other_organization_leader 2
+    attribute_survey 1
+    HH_num_rooms 1
+    HH_num_beds 1
+    HH_electricity 1
+    HH_latrine 3
+    education 10
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 2
+    work_private_public 1
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 1
   ]
   node [
     id 62
-    label "802602"
-    community 0
+    label "804801"
+    village_num 8
+    household_num 48
+    individual_num 1
+    age 35
+    gender 1
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 3
+    education 10
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 5
+    work_private_public 2
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 1
   ]
   node [
     id 63
-    label "802507"
-    community 2
+    label "804802"
+    village_num 8
+    household_num 48
+    individual_num 2
+    age 28
+    gender 2
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 3
+    education 10
+    village_native 2
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 1
   ]
   node [
     id 64
-    label "802508"
-    community 4
-  ]
-  node [
-    id 65
-    label "804101"
-    community 0
-  ]
-  node [
-    id 66
     label "804901"
+    village_num 8
+    household_num 49
+    individual_num 1
+    age 38
+    gender 1
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 2
+    HH_electricity 1
+    HH_latrine 3
+    education 10
+    village_native 1
+    caste 1
+    subcaste 1
+    work 1
+    occupation 5
+    work_private_public 2
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 5
   ]
   node [
+    id 65
+    label "805101"
+    village_num 8
+    household_num 51
+    individual_num 1
+    age 48
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 1
+    HH_num_beds 4
+    HH_electricity 1
+    HH_latrine 3
+    education 13
+    village_native 1
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 1
+  ]
+  node [
+    id 66
+    label "805102"
+    village_num 8
+    household_num 51
+    individual_num 2
+    age 35
+    gender 2
+    local_leader_noms 2
+    is_village_elder 2
+    is_shgp_leader 1
+    is_gp_leader 2
+    is_temple_pujari 2
+    is_doctor 2
+    is_school_headmaster 2
+    is_anganwadi_teacher 2
+    is_shop_owner 2
+    is_other_community_leader 2
+    is_other_organization_leader 2
+    attribute_survey 1
+    HH_num_rooms 1
+    HH_num_beds 4
+    HH_electricity 1
+    HH_latrine 3
+    education 10
+    village_native 2
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 1
+  ]
+  node [
     id 67
-    label "804102"
-    community 0
+    label "805301"
+    village_num 8
+    household_num 53
+    individual_num 1
+    age 45
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 1
+    HH_num_beds 2
+    HH_electricity 2
+    HH_latrine 3
+    education 7
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 23
+    work_private_public 2
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 1
   ]
   node [
     id 68
-    label "808901"
-    community 2
+    label "805302"
+    village_num 8
+    household_num 53
+    individual_num 2
+    age 37
+    gender 2
+    local_leader_noms 2
+    is_village_elder 2
+    is_shgp_leader 1
+    is_gp_leader 2
+    is_temple_pujari 2
+    is_doctor 2
+    is_school_headmaster 2
+    is_anganwadi_teacher 2
+    is_shop_owner 2
+    is_other_community_leader 2
+    is_other_organization_leader 2
+    attribute_survey 1
+    HH_num_rooms 1
+    HH_num_beds 2
+    HH_electricity 2
+    HH_latrine 3
+    education 8
+    village_native 2
+    caste 4
+    subcaste 3
+    work 1
+    occupation 7
+    work_private_public 1
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 1
   ]
   node [
     id 69
-    label "808201"
-    community 2
+    label "805401"
+    village_num 8
+    household_num 54
+    individual_num 1
+    age 48
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 3
+    education 5
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 3
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 1
   ]
   node [
     id 70
-    label "804201"
-    community 0
+    label "805402"
+    village_num 8
+    household_num 54
+    individual_num 2
+    age 40
+    gender 2
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 3
+    education 2
+    village_native 2
+    caste 4
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 1
   ]
   node [
     id 71
-    label "804202"
-    community 0
+    label "805701"
+    village_num 8
+    household_num 57
+    individual_num 1
+    age 45
+    gender 1
+    local_leader_noms 4
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 2
+    HH_latrine 3
+    education 4
+    village_native 1
+    caste 1
+    subcaste 1
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 5
   ]
   node [
     id 72
-    label "804302"
-    community 0
+    label "805702"
+    village_num 8
+    household_num 57
+    individual_num 2
+    age 38
+    gender 2
+    local_leader_noms 3
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 2
+    HH_latrine 3
+    education 16
+    village_native 2
+    caste 1
+    subcaste 1
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 5
   ]
   node [
     id 73
     label "805802"
+    village_num 8
+    household_num 58
+    individual_num 2
+    age 25
+    gender 2
+    local_leader_noms 3
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 1
+    HH_electricity 2
+    HH_latrine 3
+    education 16
+    village_native 2
+    caste 1
+    subcaste 1
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 5
   ]
   node [
     id 74
-    label "804501"
-    community 1
+    label "806201"
+    village_num 8
+    household_num 62
+    individual_num 1
+    age 55
+    gender 1
+    local_leader_noms 3
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 1
+    HH_num_beds 0
+    HH_electricity 2
+    HH_latrine 3
+    education 16
+    village_native 1
+    caste 1
+    subcaste 1
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 5
   ]
   node [
     id 75
-    label "805302"
-    community 1
+    label "806202"
+    village_num 8
+    household_num 62
+    individual_num 2
+    age 35
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 1
+    HH_num_beds 0
+    HH_electricity 2
+    HH_latrine 3
+    education 12
+    village_native 1
+    caste 1
+    subcaste 1
+    work 1
+    occupation 10
+    work_private_public 2
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 5
   ]
   node [
     id 76
-    label "804701"
-    community 1
+    label "806203"
+    village_num 8
+    household_num 62
+    individual_num 3
+    age 28
+    gender 2
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 1
+    HH_num_beds 0
+    HH_electricity 2
+    HH_latrine 3
+    education 1
+    village_native 2
+    caste 1
+    subcaste 1
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 5
   ]
   node [
     id 77
-    label "804702"
-    community 1
+    label "806301"
+    village_num 8
+    household_num 63
+    individual_num 1
+    age 45
+    gender 2
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 2
+    HH_latrine 3
+    education 16
+    village_native 2
+    caste 1
+    subcaste 1
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 5
   ]
   node [
     id 78
-    label "805402"
-    community 1
+    label "806401"
+    village_num 8
+    household_num 64
+    individual_num 1
+    age 60
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 2
+    HH_latrine 3
+    education 1
+    village_native 1
+    caste 1
+    subcaste 1
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 5
   ]
   node [
     id 79
-    label "805101"
-    community 1
+    label "806402"
+    village_num 8
+    household_num 64
+    individual_num 2
+    age 52
+    gender 2
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 2
+    HH_latrine 3
+    education 16
+    village_native 1
+    caste 1
+    subcaste 1
+    work 1
+    occupation 1
+    work_private_public 2
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 5
   ]
   node [
     id 80
-    label "805701"
+    label "806501"
+    village_num 8
+    household_num 65
+    individual_num 1
+    age 55
+    gender 2
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 1
+    HH_num_beds 0
+    HH_electricity 2
+    HH_latrine 3
+    education 16
+    village_native 2
+    caste 1
+    subcaste 1
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 5
   ]
   node [
     id 81
-    label "805702"
+    label "806502"
+    village_num 8
+    household_num 65
+    individual_num 2
+    age 25
+    gender 1
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 1
+    HH_num_beds 0
+    HH_electricity 2
+    HH_latrine 3
+    education 7
+    village_native 1
+    caste 1
+    subcaste 1
+    work 1
+    occupation 25
+    work_private_public 2
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 5
   ]
   node [
     id 82
-    label "807001"
+    label "806503"
+    village_num 8
+    household_num 65
+    individual_num 3
+    age 18
+    gender 2
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 1
+    HH_num_beds 0
+    HH_electricity 2
+    HH_latrine 3
+    education 7
+    village_native 2
+    caste 1
+    subcaste 1
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 5
   ]
   node [
     id 83
-    label "806202"
+    label "806701"
+    village_num 8
+    household_num 67
+    individual_num 1
+    age 60
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 2
+    HH_latrine 3
+    education 16
+    village_native 1
+    caste 1
+    subcaste 1
+    work 1
+    occupation 8
+    work_private_public 3
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 5
   ]
   node [
     id 84
-    label "806201"
+    label "806702"
+    village_num 8
+    household_num 67
+    individual_num 2
+    age 50
+    gender 2
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 2
+    HH_latrine 3
+    education 16
+    village_native 2
+    caste 1
+    subcaste 1
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 5
   ]
   node [
     id 85
-    label "807002"
+    label "806703"
+    village_num 8
+    household_num 67
+    individual_num 3
+    age 35
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 2
+    HH_latrine 3
+    education 7
+    village_native 1
+    caste 1
+    subcaste 1
+    work 1
+    occupation 5
+    work_private_public 2
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 5
   ]
   node [
     id 86
-    label "806301"
+    label "806704"
+    village_num 8
+    household_num 67
+    individual_num 4
+    age 22
+    gender 2
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 2
+    HH_latrine 3
+    education 5
+    village_native 2
+    caste 1
+    subcaste 1
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 5
   ]
   node [
     id 87
-    label "806203"
+    label "806707"
+    village_num 8
+    household_num 67
+    individual_num 7
+    age 19
+    gender 2
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 2
+    HH_latrine 3
+    education 7
+    village_native 1
+    caste 1
+    subcaste 1
+    work 1
+    occupation 15
+    work_private_public 2
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 5
   ]
   node [
     id 88
-    label "802301"
-    community 3
+    label "807001"
+    village_num 8
+    household_num 70
+    individual_num 1
+    age 45
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 4
+    HH_electricity 2
+    HH_latrine 3
+    education 4
+    village_native 1
+    caste 1
+    subcaste 1
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 5
   ]
   node [
     id 89
-    label "806401"
+    label "807002"
+    village_num 8
+    household_num 70
+    individual_num 2
+    age 38
+    gender 2
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 4
+    HH_electricity 2
+    HH_latrine 3
+    education 16
+    village_native 2
+    caste 1
+    subcaste 1
+    work 1
+    occupation 7
+    work_private_public 2
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 5
   ]
   node [
     id 90
-    label "806402"
+    label "807003"
+    village_num 8
+    household_num 70
+    individual_num 3
+    age 28
+    gender 1
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 4
+    HH_electricity 2
+    HH_latrine 3
+    education 9
+    village_native 1
+    caste 1
+    subcaste 1
+    work 1
+    occupation 5
+    work_private_public 2
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 5
   ]
   node [
     id 91
-    label "807105"
+    label "807004"
+    village_num 8
+    household_num 70
+    individual_num 4
+    age 24
+    gender 2
+    local_leader_noms 0
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 4
+    HH_electricity 2
+    HH_latrine 3
+    education 16
+    village_native 2
+    caste 1
+    subcaste 30
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 5
   ]
   node [
     id 92
-    label "807106"
+    label "807105"
+    village_num 8
+    household_num 71
+    individual_num 5
+    age 60
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 2
+    HH_latrine 3
+    education 16
+    village_native 1
+    caste 1
+    subcaste 1
+    work 1
+    occupation -1
+    work_private_public 2
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 5
   ]
   node [
     id 93
-    label "806701"
+    label "807106"
+    village_num 8
+    household_num 71
+    individual_num 6
+    age 50
+    gender 2
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 2
+    HH_latrine 3
+    education 16
+    village_native 2
+    caste 1
+    subcaste 1
+    work 1
+    occupation 1
+    work_private_public 2
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 5
   ]
   node [
     id 94
-    label "806501"
-    community 5
-  ]
-  node [
-    id 95
-    label "806502"
-    community 5
-  ]
-  node [
-    id 96
-    label "806503"
-    community 5
-  ]
-  node [
-    id 97
-    label "806702"
-    community 5
-  ]
-  node [
-    id 98
-    label "806703"
-    community 5
-  ]
-  node [
-    id 99
-    label "807003"
-    community 5
-  ]
-  node [
-    id 100
-    label "806704"
-    community 5
-  ]
-  node [
-    id 101
-    label "806707"
-    community 5
-  ]
-  node [
-    id 102
-    label "807004"
-    community 5
-  ]
-  node [
-    id 103
-    label "807402"
+    label "807401"
+    village_num 8
+    household_num 74
+    individual_num 1
+    age 45
+    gender 2
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 1
+    HH_electricity 1
+    HH_latrine 1
+    education 4
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 7
+    work_private_public 1
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 1
   ]
   node [
-    id 104
-    label "808702"
+    id 95
+    label "807402"
+    village_num 8
+    household_num 74
+    individual_num 2
+    age 18
+    gender 2
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 1
+    HH_electricity 1
+    HH_latrine 1
+    education 14
+    village_native 1
+    caste 3
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 1
+  ]
+  node [
+    id 96
+    label "807501"
+    village_num 8
+    household_num 75
+    individual_num 1
+    age 50
+    gender 1
+    local_leader_noms 4
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 3
+    education 10
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 2
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 4
+  ]
+  node [
+    id 97
+    label "807502"
+    village_num 8
+    household_num 75
+    individual_num 2
+    age 40
+    gender 2
+    local_leader_noms 1
+    is_village_elder 2
+    is_shgp_leader 1
+    is_gp_leader 2
+    is_temple_pujari 2
+    is_doctor 2
+    is_school_headmaster 2
+    is_anganwadi_teacher 2
+    is_shop_owner 2
+    is_other_community_leader 2
+    is_other_organization_leader 2
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 3
+    education 8
+    village_native 2
+    caste 3
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 2
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 4
+  ]
+  node [
+    id 98
+    label "807801"
+    village_num 8
+    household_num 78
+    individual_num 1
+    age 30
+    gender 1
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 2
+    HH_electricity 1
+    HH_latrine 3
+    education 10
+    village_native 1
+    caste 4
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 2
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 3
   ]
   node [
-    id 105
-    label "808301"
+    id 99
+    label "807802"
+    village_num 8
+    household_num 78
+    individual_num 2
+    age 24
+    gender 2
+    local_leader_noms 0
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 2
+    HH_electricity 1
+    HH_latrine 3
+    education 10
+    village_native 2
+    caste 4
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 3
+  ]
+  node [
+    id 100
+    label "808001"
+    village_num 8
+    household_num 80
+    individual_num 1
+    age 50
+    gender 1
+    local_leader_noms 2
+    is_village_elder 1
+    is_shgp_leader 2
+    is_gp_leader 2
+    is_temple_pujari 2
+    is_doctor 2
+    is_school_headmaster 2
+    is_anganwadi_teacher 2
+    is_shop_owner 2
+    is_other_community_leader 2
+    is_other_organization_leader 2
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 2
+    HH_electricity 1
+    HH_latrine 1
+    education 4
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 2
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 2
+  ]
+  node [
+    id 101
+    label "808201"
+    village_num 8
+    household_num 82
+    individual_num 1
+    age 42
+    gender 1
+    local_leader_noms 3
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 3
+    education 10
+    village_native 1
+    caste 4
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 2
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 2
+  ]
+  node [
+    id 102
+    label "808202"
+    village_num 8
+    household_num 82
+    individual_num 2
+    age 26
+    gender 2
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 2
+    HH_num_beds 0
+    HH_electricity 1
+    HH_latrine 3
+    education 10
+    village_native 2
+    caste 4
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 2
+  ]
+  node [
+    id 103
+    label "808301"
+    village_num 8
+    household_num 83
+    individual_num 1
+    age 40
+    gender 1
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 3
+    HH_num_beds 1
+    HH_electricity 1
+    HH_latrine 3
+    education 4
+    village_native 1
+    caste 4
+    subcaste 3
+    work 1
+    occupation 30
+    work_private_public 2
+    work_outside 1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 2
+  ]
+  node [
+    id 104
+    label "808302"
+    village_num 8
+    household_num 83
+    individual_num 2
+    age 35
+    gender 2
+    local_leader_noms 0
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 3
+    HH_num_beds 1
+    HH_electricity 1
+    HH_latrine 3
+    education 16
+    village_native 2
+    caste -999
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 2
+  ]
+  node [
+    id 105
+    label "808702"
+    village_num 8
+    household_num 87
+    individual_num 2
+    age 60
+    gender 2
+    local_leader_noms 3
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 3
+    HH_num_beds 4
+    HH_electricity 1
+    HH_latrine 1
+    education 3
+    village_native 2
+    caste 4
+    subcaste 3
+    work 2
+    occupation -1
+    work_private_public -1
+    work_outside -1
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 3
   ]
   node [
     id 106
-    label "808202"
-    community 2
+    label "808703"
+    village_num 8
+    household_num 87
+    individual_num 3
+    age 23
+    gender 1
+    local_leader_noms 1
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 3
+    HH_num_beds 4
+    HH_electricity 1
+    HH_latrine 1
+    education 10
+    village_native 1
+    caste 4
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 2
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
+    community 3
   ]
   node [
     id 107
-    label "808302"
+    label "808901"
+    village_num 8
+    household_num 89
+    individual_num 1
+    age 48
+    gender 1
+    local_leader_noms 2
+    is_village_elder -1
+    is_shgp_leader -1
+    is_gp_leader -1
+    is_temple_pujari -1
+    is_doctor -1
+    is_school_headmaster -1
+    is_anganwadi_teacher -1
+    is_shop_owner -1
+    is_other_community_leader -1
+    is_other_organization_leader -1
+    attribute_survey 1
+    HH_num_rooms 3
+    HH_num_beds 2
+    HH_electricity 1
+    HH_latrine 1
+    education 13
+    village_native 1
+    caste 3
+    subcaste 3
+    work 1
+    occupation 1
+    work_private_public 2
+    work_outside 2
+    SHG_or_saving_group -1
+    loan -1
+    savings -1
+    election_card -1
+    ration_card -1
+    ration_card_color -1
     community 2
   ]
   edge [
     source 0
-    target 1
-    key 0
+    target 54
   ]
   edge [
     source 0
-    target 2
-    key 0
+    target 7
   ]
   edge [
     source 0
-    target 3
-    key 0
+    target 6
   ]
   edge [
     source 0
-    target 4
-    key 0
+    target 56
   ]
   edge [
     source 0
-    target 5
-    key 0
+    target 94
   ]
   edge [
     source 1
-    target 34
-    key 0
+    target 7
   ]
   edge [
     source 1
-    target 70
-    key 0
-  ]
-  edge [
-    source 1
-    target 72
-    key 0
-  ]
-  edge [
-    source 1
-    target 4
-    key 0
-  ]
-  edge [
-    source 1
-    target 5
-    key 0
+    target 54
   ]
   edge [
     source 2
-    target 3
-    key 0
+    target 8
   ]
   edge [
     source 3
-    target 2
-    key 0
+    target 4
   ]
   edge [
     source 4
-    target 38
-    key 0
-  ]
-  edge [
-    source 4
-    target 34
-    key 0
-  ]
-  edge [
-    source 4
-    target 62
-    key 0
-  ]
-  edge [
-    source 4
-    target 1
-    key 0
-  ]
-  edge [
-    source 4
-    target 72
-    key 0
-  ]
-  edge [
-    source 4
-    target 42
-    key 0
+    target 3
   ]
   edge [
     source 5
-    target 77
-    key 0
+    target 4
   ]
   edge [
     source 5
-    target 13
-    key 0
+    target 3
   ]
   edge [
     source 6
-    target 2
-    key 0
-  ]
-  edge [
-    source 6
-    target 1
-    key 0
+    target 7
   ]
   edge [
     source 7
-    target 8
-    key 0
+    target 6
   ]
   edge [
     source 8
-    target 12
-    key 0
+    target 9
   ]
   edge [
     source 8
-    target 13
-    key 0
+    target 29
   ]
   edge [
     source 8
-    target 14
-    key 0
+    target 35
   ]
   edge [
     source 8
-    target 15
-    key 0
+    target 37
   ]
   edge [
     source 9
-    target 10
-    key 0
+    target 7
+  ]
+  edge [
+    source 9
+    target 13
+  ]
+  edge [
+    source 9
+    target 19
+  ]
+  edge [
+    source 9
+    target 8
+  ]
+  edge [
+    source 9
+    target 61
   ]
   edge [
     source 10
-    target 9
-    key 0
+    target 11
+  ]
+  edge [
+    source 10
+    target 13
+  ]
+  edge [
+    source 10
+    target 48
   ]
   edge [
     source 11
     target 10
-    key 0
   ]
   edge [
     source 11
-    target 9
-    key 0
-  ]
-  edge [
-    source 12
-    target 8
-    key 0
-  ]
-  edge [
-    source 12
-    target 2
-    key 0
-  ]
-  edge [
-    source 12
-    target 16
-    key 0
-  ]
-  edge [
-    source 12
-    target 17
-    key 0
-  ]
-  edge [
-    source 12
-    target 18
-    key 0
-  ]
-  edge [
-    source 13
-    target 8
-    key 0
-  ]
-  edge [
-    source 13
-    target 23
-    key 0
-  ]
-  edge [
-    source 13
-    target 26
-    key 0
-  ]
-  edge [
-    source 13
-    target 37
-    key 0
-  ]
-  edge [
-    source 13
-    target 19
-    key 0
-  ]
-  edge [
-    source 13
-    target 21
-    key 0
-  ]
-  edge [
-    source 14
-    target 8
-    key 0
-  ]
-  edge [
-    source 14
-    target 26
-    key 0
-  ]
-  edge [
-    source 14
-    target 38
-    key 0
-  ]
-  edge [
-    source 14
-    target 47
-    key 0
-  ]
-  edge [
-    source 14
-    target 36
-    key 0
-  ]
-  edge [
-    source 14
-    target 23
-    key 0
-  ]
-  edge [
-    source 14
-    target 19
-    key 0
-  ]
-  edge [
-    source 14
-    target 55
-    key 0
-  ]
-  edge [
-    source 14
-    target 56
-    key 0
-  ]
-  edge [
-    source 14
-    target 34
-    key 0
-  ]
-  edge [
-    source 15
-    target 12
-    key 0
-  ]
-  edge [
-    source 15
-    target 17
-    key 0
-  ]
-  edge [
-    source 15
     target 13
-    key 0
+  ]
+  edge [
+    source 11
+    target 48
+  ]
+  edge [
+    source 12
+    target 11
+  ]
+  edge [
+    source 12
+    target 48
+  ]
+  edge [
+    source 13
+    target 16
+  ]
+  edge [
+    source 13
+    target 99
+  ]
+  edge [
+    source 13
+    target 15
+  ]
+  edge [
+    source 13
+    target 18
+  ]
+  edge [
+    source 13
+    target 19
+  ]
+  edge [
+    source 14
+    target 15
+  ]
+  edge [
+    source 14
+    target 106
+  ]
+  edge [
+    source 14
+    target 99
+  ]
+  edge [
+    source 14
+    target 98
+  ]
+  edge [
+    source 14
+    target 18
+  ]
+  edge [
+    source 14
+    target 20
   ]
   edge [
     source 15
-    target 59
-    key 0
+    target 14
   ]
   edge [
-    source 16
-    target 23
-    key 0
+    source 15
+    target 98
   ]
   edge [
-    source 16
-    target 24
-    key 0
-  ]
-  edge [
-    source 16
-    target 25
-    key 0
-  ]
-  edge [
-    source 16
-    target 26
-    key 0
+    source 15
+    target 10
   ]
   edge [
     source 16
     target 17
-    key 0
+  ]
+  edge [
+    source 16
+    target 98
+  ]
+  edge [
+    source 16
+    target 10
   ]
   edge [
     source 17
-    target 26
-    key 0
+    target 99
   ]
   edge [
     source 17
-    target 24
-    key 0
+    target 15
   ]
   edge [
     source 17
-    target 32
-    key 0
-  ]
-  edge [
-    source 17
-    target 30
-    key 0
+    target 18
   ]
   edge [
     source 18
-    target 12
-    key 0
+    target 19
   ]
   edge [
     source 18
-    target 74
-    key 0
+    target 14
   ]
   edge [
     source 18
-    target 77
-    key 0
+    target 20
   ]
   edge [
-    source 18
-    target 58
-    key 0
+    source 19
+    target 99
   ]
   edge [
-    source 18
-    target 5
-    key 0
-  ]
-  edge [
-    source 18
-    target 24
-    key 0
-  ]
-  edge [
-    source 18
-    target 23
-    key 0
-  ]
-  edge [
-    source 18
-    target 30
-    key 0
+    source 19
+    target 100
   ]
   edge [
     source 19
     target 20
-    key 0
   ]
   edge [
     source 19
-    target 16
-    key 0
-  ]
-  edge [
-    source 19
-    target 21
-    key 0
+    target 18
   ]
   edge [
     source 20
-    target 19
-    key 0
+    target 14
   ]
   edge [
     source 20
     target 16
-    key 0
   ]
   edge [
     source 20
-    target 21
-    key 0
+    target 18
+  ]
+  edge [
+    source 20
+    target 17
+  ]
+  edge [
+    source 20
+    target 100
   ]
   edge [
     source 21
     target 19
-    key 0
   ]
   edge [
     source 21
-    target 69
-    key 0
+    target 17
   ]
   edge [
     source 21
-    target 34
-    key 0
+    target 15
+  ]
+  edge [
+    source 21
+    target 41
   ]
   edge [
     source 21
     target 67
-    key 0
+  ]
+  edge [
+    source 21
+    target 99
+  ]
+  edge [
+    source 21
+    target 16
+  ]
+  edge [
+    source 21
+    target 14
+  ]
+  edge [
+    source 21
+    target 18
+  ]
+  edge [
+    source 22
+    target 23
+  ]
+  edge [
+    source 22
+    target 24
+  ]
+  edge [
+    source 22
+    target 106
+  ]
+  edge [
+    source 22
+    target 18
   ]
   edge [
     source 22
     target 20
-    key 0
-  ]
-  edge [
-    source 22
-    target 21
-    key 0
   ]
   edge [
     source 23
-    target 31
-    key 0
+    target 27
   ]
   edge [
     source 23
-    target 29
-    key 0
+    target 25
   ]
   edge [
     source 23
-    target 19
-    key 0
-  ]
-  edge [
-    source 24
-    target 31
-    key 0
-  ]
-  edge [
-    source 24
-    target 17
-    key 0
-  ]
-  edge [
-    source 24
     target 18
-    key 0
   ]
   edge [
-    source 24
-    target 29
-    key 0
-  ]
-  edge [
-    source 24
-    target 104
-    key 0
-  ]
-  edge [
-    source 25
-    target 27
-    key 0
-  ]
-  edge [
-    source 25
-    target 29
-    key 0
-  ]
-  edge [
-    source 25
-    target 19
-    key 0
-  ]
-  edge [
-    source 26
-    target 27
-    key 0
-  ]
-  edge [
-    source 26
-    target 17
-    key 0
-  ]
-  edge [
-    source 26
-    target 30
-    key 0
-  ]
-  edge [
-    source 27
-    target 25
-    key 0
-  ]
-  edge [
-    source 27
-    target 28
-    key 0
-  ]
-  edge [
-    source 27
-    target 24
-    key 0
-  ]
-  edge [
-    source 27
-    target 29
-    key 0
-  ]
-  edge [
-    source 27
-    target 26
-    key 0
-  ]
-  edge [
-    source 27
-    target 30
-    key 0
-  ]
-  edge [
-    source 28
-    target 29
-    key 0
-  ]
-  edge [
-    source 28
+    source 23
     target 16
-    key 0
   ]
   edge [
-    source 28
-    target 24
-    key 0
+    source 23
+    target 14
   ]
   edge [
-    source 28
-    target 104
-    key 0
+    source 24
+    target 25
   ]
   edge [
-    source 28
-    target 31
-    key 0
+    source 24
+    target 56
   ]
   edge [
-    source 29
+    source 24
+    target 22
+  ]
+  edge [
+    source 24
+    target 26
+  ]
+  edge [
+    source 24
     target 23
-    key 0
   ]
   edge [
-    source 29
-    target 24
-    key 0
-  ]
-  edge [
-    source 29
-    target 17
-    key 0
-  ]
-  edge [
-    source 29
-    target 28
-    key 0
-  ]
-  edge [
-    source 30
+    source 24
     target 27
-    key 0
   ]
   edge [
-    source 30
-    target 26
-    key 0
-  ]
-  edge [
-    source 30
-    target 23
-    key 0
-  ]
-  edge [
-    source 30
-    target 31
-    key 0
-  ]
-  edge [
-    source 30
-    target 32
-    key 0
-  ]
-  edge [
-    source 31
+    source 25
     target 24
-    key 0
   ]
   edge [
-    source 31
-    target 25
-    key 0
+    source 25
+    target 23
   ]
   edge [
-    source 31
+    source 25
+    target 57
+  ]
+  edge [
+    source 25
+    target 49
+  ]
+  edge [
+    source 25
+    target 56
+  ]
+  edge [
+    source 26
+    target 46
+  ]
+  edge [
+    source 27
+    target 47
+  ]
+  edge [
+    source 27
+    target 23
+  ]
+  edge [
+    source 27
+    target 46
+  ]
+  edge [
+    source 27
     target 26
-    key 0
   ]
   edge [
-    source 32
-    target 95
-    key 0
+    source 29
+    target 8
   ]
   edge [
-    source 32
-    target 68
-    key 0
+    source 29
+    target 16
   ]
   edge [
-    source 32
-    target 35
-    key 0
+    source 29
+    target 18
   ]
   edge [
-    source 32
-    target 69
-    key 0
+    source 29
+    target 23
   ]
   edge [
-    source 32
-    target 53
-    key 0
+    source 29
+    target 10
   ]
   edge [
-    source 32
+    source 29
+    target 48
+  ]
+  edge [
+    source 31
+    target 30
+  ]
+  edge [
+    source 31
+    target 63
+  ]
+  edge [
+    source 31
+    target 97
+  ]
+  edge [
+    source 31
+    target 41
+  ]
+  edge [
+    source 31
+    target 8
+  ]
+  edge [
+    source 31
+    target 18
+  ]
+  edge [
+    source 31
+    target 29
+  ]
+  edge [
+    source 31
     target 13
-    key 0
   ]
   edge [
     source 32
-    target 89
-    key 0
+    target 63
   ]
   edge [
     source 32
-    target 70
-    key 0
+    target 97
   ]
   edge [
-    source 33
-    target 17
-    key 0
+    source 32
+    target 41
   ]
   edge [
-    source 33
-    target 31
-    key 0
+    source 32
+    target 8
   ]
   edge [
-    source 33
-    target 25
-    key 0
+    source 32
+    target 18
+  ]
+  edge [
+    source 32
+    target 29
   ]
   edge [
     source 33
     target 34
-    key 0
   ]
   edge [
     source 33
-    target 35
-    key 0
+    target 41
   ]
   edge [
     source 33
+    target 96
+  ]
+  edge [
+    source 33
+    target 8
+  ]
+  edge [
+    source 33
+    target 18
+  ]
+  edge [
+    source 33
+    target 29
+  ]
+  edge [
+    source 33
+    target 62
+  ]
+  edge [
+    source 34
+    target 33
+  ]
+  edge [
+    source 34
+    target 19
+  ]
+  edge [
+    source 34
+    target 41
+  ]
+  edge [
+    source 34
+    target 8
+  ]
+  edge [
+    source 34
+    target 18
+  ]
+  edge [
+    source 34
+    target 29
+  ]
+  edge [
+    source 34
+    target 9
+  ]
+  edge [
+    source 35
+    target 18
+  ]
+  edge [
+    source 35
     target 24
-    key 0
-  ]
-  edge [
-    source 33
-    target 23
-    key 0
-  ]
-  edge [
-    source 33
-    target 27
-    key 0
-  ]
-  edge [
-    source 33
-    target 26
-    key 0
-  ]
-  edge [
-    source 34
-    target 65
-    key 0
-  ]
-  edge [
-    source 34
-    target 4
-    key 0
-  ]
-  edge [
-    source 34
-    target 56
-    key 0
-  ]
-  edge [
-    source 34
-    target 66
-    key 0
-  ]
-  edge [
-    source 34
-    target 1
-    key 0
   ]
   edge [
     source 35
-    target 75
-    key 0
-  ]
-  edge [
-    source 35
-    target 4
-    key 0
-  ]
-  edge [
-    source 35
-    target 79
-    key 0
-  ]
-  edge [
-    source 35
-    target 59
-    key 0
-  ]
-  edge [
-    source 35
-    target 53
-    key 0
-  ]
-  edge [
-    source 36
-    target 37
-    key 0
-  ]
-  edge [
-    source 36
-    target 38
-    key 0
-  ]
-  edge [
-    source 36
-    target 28
-    key 0
-  ]
-  edge [
-    source 36
-    target 26
-    key 0
-  ]
-  edge [
-    source 36
     target 30
-    key 0
+  ]
+  edge [
+    source 35
+    target 22
+  ]
+  edge [
+    source 35
+    target 16
+  ]
+  edge [
+    source 35
+    target 10
+  ]
+  edge [
+    source 35
+    target 43
+  ]
+  edge [
+    source 35
+    target 44
+  ]
+  edge [
+    source 35
+    target 41
+  ]
+  edge [
+    source 35
+    target 8
+  ]
+  edge [
+    source 36
+    target 35
+  ]
+  edge [
+    source 36
+    target 19
+  ]
+  edge [
+    source 36
+    target 25
+  ]
+  edge [
+    source 36
+    target 17
+  ]
+  edge [
+    source 36
+    target 18
+  ]
+  edge [
+    source 36
+    target 66
+  ]
+  edge [
+    source 36
+    target 47
+  ]
+  edge [
+    source 36
+    target 41
+  ]
+  edge [
+    source 36
+    target 8
   ]
   edge [
     source 37
-    target 39
-    key 0
+    target 9
   ]
   edge [
     source 37
-    target 40
-    key 0
+    target 19
   ]
   edge [
     source 37
-    target 26
-    key 0
+    target 29
   ]
   edge [
     source 37
-    target 23
-    key 0
-  ]
-  edge [
-    source 37
-    target 27
-    key 0
+    target 69
   ]
   edge [
     source 38
-    target 36
-    key 0
-  ]
-  edge [
-    source 38
-    target 40
-    key 0
+    target 45
   ]
   edge [
     source 38
     target 4
-    key 0
+  ]
+  edge [
+    source 38
+    target 19
+  ]
+  edge [
+    source 38
+    target 25
+  ]
+  edge [
+    source 38
+    target 37
   ]
   edge [
     source 38
     target 41
-    key 0
   ]
   edge [
     source 38
-    target 37
-    key 0
+    target 8
   ]
   edge [
     source 38
-    target 39
-    key 0
+    target 18
+  ]
+  edge [
+    source 38
+    target 29
+  ]
+  edge [
+    source 38
+    target 42
   ]
   edge [
     source 39
-    target 37
-    key 0
+    target 14
   ]
   edge [
     source 39
-    target 45
-    key 0
+    target 46
+  ]
+  edge [
+    source 39
+    target 24
+  ]
+  edge [
+    source 39
+    target 22
+  ]
+  edge [
+    source 39
+    target 18
+  ]
+  edge [
+    source 39
+    target 27
+  ]
+  edge [
+    source 39
+    target 41
+  ]
+  edge [
+    source 39
+    target 8
   ]
   edge [
     source 39
     target 44
-    key 0
   ]
   edge [
     source 39
-    target 41
-    key 0
+    target 10
+  ]
+  edge [
+    source 39
+    target 43
   ]
   edge [
     source 40
-    target 37
-    key 0
-  ]
-  edge [
-    source 40
-    target 38
-    key 0
+    target 39
   ]
   edge [
     source 40
     target 42
-    key 0
   ]
   edge [
     source 40
-    target 43
-    key 0
+    target 97
   ]
   edge [
     source 40
-    target 4
-    key 0
+    target 96
+  ]
+  edge [
+    source 41
+    target 50
+  ]
+  edge [
+    source 41
+    target 56
   ]
   edge [
     source 41
     target 44
-    key 0
+  ]
+  edge [
+    source 41
+    target 64
+  ]
+  edge [
+    source 41
+    target 54
   ]
   edge [
     source 42
-    target 71
-    key 0
+    target 51
   ]
   edge [
     source 42
-    target 4
-    key 0
+    target 57
   ]
   edge [
     source 42
-    target 73
-    key 0
+    target 50
   ]
   edge [
     source 42
-    target 1
-    key 0
+    target 56
   ]
   edge [
-    source 43
-    target 21
-    key 0
+    source 42
+    target 44
   ]
   edge [
-    source 43
-    target 69
-    key 0
+    source 42
+    target 41
   ]
   edge [
-    source 43
-    target 19
-    key 0
-  ]
-  edge [
-    source 44
-    target 39
-    key 0
-  ]
-  edge [
-    source 44
+    source 42
     target 45
-    key 0
+  ]
+  edge [
+    source 43
+    target 56
+  ]
+  edge [
+    source 43
+    target 50
+  ]
+  edge [
+    source 43
+    target 44
+  ]
+  edge [
+    source 43
+    target 41
   ]
   edge [
     source 44
-    target 68
-    key 0
+    target 48
   ]
   edge [
     source 44
-    target 21
-    key 0
-  ]
-  edge [
-    source 44
-    target 65
-    key 0
-  ]
-  edge [
-    source 45
-    target 39
-    key 0
+    target 50
   ]
   edge [
     source 45
     target 44
-    key 0
+  ]
+  edge [
+    source 45
+    target 54
   ]
   edge [
     source 46
     target 47
-    key 0
+  ]
+  edge [
+    source 46
+    target 107
   ]
   edge [
     source 46
     target 48
-    key 0
   ]
   edge [
     source 46
-    target 49
-    key 0
+    target 50
   ]
   edge [
     source 46
-    target 34
-    key 0
+    target 27
   ]
   edge [
-    source 46
-    target 8
-    key 0
+    source 47
+    target 46
   ]
   edge [
-    source 46
-    target 26
-    key 0
-  ]
-  edge [
-    source 46
-    target 13
-    key 0
-  ]
-  edge [
-    source 46
-    target 16
-    key 0
+    source 47
+    target 27
   ]
   edge [
     source 48
-    target 54
-    key 0
+    target 101
   ]
   edge [
     source 48
-    target 58
-    key 0
+    target 41
   ]
   edge [
     source 48
-    target 78
-    key 0
-  ]
-  edge [
-    source 48
-    target 18
-    key 0
-  ]
-  edge [
-    source 48
-    target 42
-    key 0
-  ]
-  edge [
-    source 48
-    target 48
-    key 0
-  ]
-  edge [
-    source 48
-    target 74
-    key 0
-  ]
-  edge [
-    source 48
-    target 67
-    key 0
-  ]
-  edge [
-    source 48
-    target 71
-    key 0
-  ]
-  edge [
-    source 49
-    target 75
-    key 0
-  ]
-  edge [
-    source 49
-    target 53
-    key 0
-  ]
-  edge [
-    source 49
-    target 62
-    key 0
-  ]
-  edge [
-    source 49
-    target 13
-    key 0
-  ]
-  edge [
-    source 50
-    target 48
-    key 0
-  ]
-  edge [
-    source 50
-    target 49
-    key 0
-  ]
-  edge [
-    source 50
-    target 34
-    key 0
-  ]
-  edge [
-    source 50
-    target 8
-    key 0
-  ]
-  edge [
-    source 50
-    target 26
-    key 0
-  ]
-  edge [
-    source 50
-    target 13
-    key 0
-  ]
-  edge [
-    source 51
-    target 52
-    key 0
-  ]
-  edge [
-    source 51
-    target 34
-    key 0
-  ]
-  edge [
-    source 51
-    target 53
-    key 0
-  ]
-  edge [
-    source 51
-    target 8
-    key 0
-  ]
-  edge [
-    source 51
-    target 26
-    key 0
-  ]
-  edge [
-    source 51
-    target 13
-    key 0
-  ]
-  edge [
-    source 51
-    target 54
-    key 0
-  ]
-  edge [
-    source 52
     target 51
-    key 0
   ]
   edge [
-    source 52
-    target 17
-    key 0
-  ]
-  edge [
-    source 52
-    target 34
-    key 0
-  ]
-  edge [
-    source 52
-    target 8
-    key 0
-  ]
-  edge [
-    source 52
-    target 26
-    key 0
-  ]
-  edge [
-    source 52
-    target 13
-    key 0
-  ]
-  edge [
-    source 52
-    target 12
-    key 0
-  ]
-  edge [
-    source 53
-    target 35
-    key 0
-  ]
-  edge [
-    source 53
-    target 13
-    key 0
-  ]
-  edge [
-    source 53
-    target 14
-    key 0
-  ]
-  edge [
-    source 53
-    target 49
-    key 0
-  ]
-  edge [
-    source 53
-    target 75
-    key 0
-  ]
-  edge [
-    source 54
-    target 71
-    key 0
-  ]
-  edge [
-    source 54
-    target 74
-    key 0
-  ]
-  edge [
-    source 54
-    target 77
-    key 0
-  ]
-  edge [
-    source 54
-    target 48
-    key 0
-  ]
-  edge [
-    source 54
-    target 59
-    key 0
-  ]
-  edge [
-    source 54
-    target 58
-    key 0
-  ]
-  edge [
-    source 54
-    target 78
-    key 0
-  ]
-  edge [
-    source 54
-    target 79
-    key 0
-  ]
-  edge [
-    source 54
-    target 4
-    key 0
-  ]
-  edge [
-    source 54
-    target 36
-    key 0
-  ]
-  edge [
-    source 54
-    target 67
-    key 0
-  ]
-  edge [
-    source 55
-    target 4
-    key 0
-  ]
-  edge [
-    source 55
-    target 65
-    key 0
-  ]
-  edge [
-    source 55
-    target 56
-    key 0
-  ]
-  edge [
-    source 55
-    target 34
-    key 0
-  ]
-  edge [
-    source 56
-    target 21
-    key 0
-  ]
-  edge [
-    source 56
-    target 65
-    key 0
-  ]
-  edge [
-    source 57
-    target 14
-    key 0
-  ]
-  edge [
-    source 57
-    target 17
-    key 0
-  ]
-  edge [
-    source 57
-    target 40
-    key 0
-  ]
-  edge [
-    source 57
-    target 31
-    key 0
-  ]
-  edge [
-    source 57
-    target 26
-    key 0
-  ]
-  edge [
-    source 57
-    target 58
-    key 0
-  ]
-  edge [
-    source 57
-    target 45
-    key 0
-  ]
-  edge [
-    source 57
-    target 34
-    key 0
-  ]
-  edge [
-    source 57
-    target 8
-    key 0
-  ]
-  edge [
-    source 58
-    target 18
-    key 0
-  ]
-  edge [
-    source 58
-    target 48
-    key 0
-  ]
-  edge [
-    source 58
-    target 75
-    key 0
-  ]
-  edge [
-    source 58
-    target 78
-    key 0
-  ]
-  edge [
-    source 58
-    target 79
-    key 0
-  ]
-  edge [
-    source 58
-    target 62
-    key 0
-  ]
-  edge [
-    source 58
-    target 49
-    key 0
-  ]
-  edge [
-    source 58
-    target 5
-    key 0
-  ]
-  edge [
-    source 59
-    target 35
-    key 0
-  ]
-  edge [
-    source 59
-    target 78
-    key 0
-  ]
-  edge [
-    source 59
-    target 23
-    key 0
-  ]
-  edge [
-    source 59
-    target 79
-    key 0
-  ]
-  edge [
-    source 59
-    target 27
-    key 0
-  ]
-  edge [
-    source 60
-    target 61
-    key 0
-  ]
-  edge [
-    source 60
+    source 48
     target 10
-    key 0
   ]
   edge [
-    source 60
-    target 17
-    key 0
+    source 49
+    target 48
   ]
   edge [
-    source 60
-    target 40
-    key 0
+    source 49
+    target 101
   ]
   edge [
-    source 60
-    target 15
-    key 0
+    source 49
+    target 10
   ]
   edge [
-    source 60
-    target 34
-    key 0
+    source 50
+    target 51
   ]
   edge [
-    source 60
-    target 8
-    key 0
+    source 50
+    target 54
   ]
   edge [
-    source 60
-    target 26
-    key 0
+    source 50
+    target 41
   ]
   edge [
-    source 60
-    target 13
-    key 0
+    source 51
+    target 57
   ]
   edge [
-    source 60
-    target 62
-    key 0
-  ]
-  edge [
-    source 61
-    target 56
-    key 0
-  ]
-  edge [
-    source 61
-    target 1
-    key 0
-  ]
-  edge [
-    source 62
-    target 67
-    key 0
-  ]
-  edge [
-    source 62
+    source 51
     target 42
-    key 0
   ]
   edge [
-    source 62
-    target 65
-    key 0
+    source 51
+    target 41
   ]
   edge [
-    source 62
-    target 4
-    key 0
+    source 51
+    target 50
   ]
   edge [
-    source 62
-    target 56
-    key 0
+    source 52
+    target 48
   ]
   edge [
-    source 62
-    target 34
-    key 0
+    source 52
+    target 50
   ]
   edge [
-    source 62
-    target 61
-    key 0
+    source 53
+    target 52
   ]
   edge [
-    source 63
-    target 27
-    key 0
+    source 53
+    target 57
   ]
   edge [
-    source 63
-    target 44
-    key 0
+    source 53
+    target 51
   ]
   edge [
-    source 63
-    target 38
-    key 0
+    source 53
+    target 48
   ]
   edge [
-    source 63
-    target 36
-    key 0
+    source 53
+    target 62
   ]
   edge [
-    source 63
-    target 26
-    key 0
+    source 53
+    target 50
   ]
   edge [
-    source 63
-    target 39
-    key 0
+    source 53
+    target 64
   ]
   edge [
-    source 63
-    target 34
-    key 0
+    source 53
+    target 41
   ]
   edge [
-    source 63
-    target 8
-    key 0
+    source 54
+    target 52
   ]
   edge [
-    source 63
-    target 56
-    key 0
-  ]
-  edge [
-    source 63
-    target 19
-    key 0
-  ]
-  edge [
-    source 63
+    source 54
     target 55
-    key 0
   ]
   edge [
-    source 64
-    target 63
-    key 0
+    source 54
+    target 56
   ]
   edge [
-    source 64
-    target 62
-    key 0
+    source 54
+    target 41
   ]
   edge [
-    source 64
-    target 49
-    key 0
+    source 54
+    target 94
   ]
   edge [
-    source 64
+    source 55
+    target 56
+  ]
+  edge [
+    source 55
+    target 42
+  ]
+  edge [
+    source 55
+    target 29
+  ]
+  edge [
+    source 55
+    target 54
+  ]
+  edge [
+    source 56
+    target 41
+  ]
+  edge [
+    source 56
+    target 24
+  ]
+  edge [
+    source 56
+    target 57
+  ]
+  edge [
+    source 56
+    target 54
+  ]
+  edge [
+    source 56
+    target 55
+  ]
+  edge [
+    source 56
+    target 42
+  ]
+  edge [
+    source 57
+    target 56
+  ]
+  edge [
+    source 57
     target 53
-    key 0
   ]
   edge [
-    source 65
-    target 34
-    key 0
-  ]
-  edge [
-    source 65
-    target 67
-    key 0
-  ]
-  edge [
-    source 65
-    target 1
-    key 0
-  ]
-  edge [
-    source 66
+    source 57
     target 73
-    key 0
+  ]
+  edge [
+    source 57
+    target 54
+  ]
+  edge [
+    source 58
+    target 61
+  ]
+  edge [
+    source 58
+    target 66
+  ]
+  edge [
+    source 58
+    target 62
+  ]
+  edge [
+    source 58
+    target 38
+  ]
+  edge [
+    source 58
+    target 68
+  ]
+  edge [
+    source 59
+    target 62
+  ]
+  edge [
+    source 59
+    target 58
+  ]
+  edge [
+    source 59
+    target 61
+  ]
+  edge [
+    source 59
+    target 94
+  ]
+  edge [
+    source 59
+    target 50
+  ]
+  edge [
+    source 59
+    target 52
+  ]
+  edge [
+    source 60
+    target 61
+  ]
+  edge [
+    source 60
+    target 62
+  ]
+  edge [
+    source 60
+    target 58
+  ]
+  edge [
+    source 60
+    target 94
+  ]
+  edge [
+    source 60
+    target 16
+  ]
+  edge [
+    source 61
+    target 66
+  ]
+  edge [
+    source 61
+    target 94
+  ]
+  edge [
+    source 61
+    target 99
+  ]
+  edge [
+    source 61
+    target 60
+  ]
+  edge [
+    source 61
+    target 58
+  ]
+  edge [
+    source 61
+    target 9
+  ]
+  edge [
+    source 61
+    target 16
+  ]
+  edge [
+    source 61
+    target 20
+  ]
+  edge [
+    source 62
+    target 63
+  ]
+  edge [
+    source 62
+    target 69
+  ]
+  edge [
+    source 62
+    target 66
+  ]
+  edge [
+    source 62
+    target 60
+  ]
+  edge [
+    source 62
+    target 70
+  ]
+  edge [
+    source 62
+    target 65
+  ]
+  edge [
+    source 62
+    target 56
+  ]
+  edge [
+    source 62
+    target 22
+  ]
+  edge [
+    source 62
+    target 53
+  ]
+  edge [
+    source 62
+    target 51
+  ]
+  edge [
+    source 62
+    target 58
+  ]
+  edge [
+    source 63
+    target 62
+  ]
+  edge [
+    source 63
+    target 66
+  ]
+  edge [
+    source 63
+    target 70
+  ]
+  edge [
+    source 63
+    target 61
+  ]
+  edge [
+    source 63
+    target 57
+  ]
+  edge [
+    source 63
+    target 63
+  ]
+  edge [
+    source 63
+    target 58
+  ]
+  edge [
+    source 63
+    target 51
+  ]
+  edge [
+    source 63
+    target 53
+  ]
+  edge [
+    source 64
+    target 73
+  ]
+  edge [
+    source 64
+    target 71
+  ]
+  edge [
+    source 64
+    target 72
+  ]
+  edge [
+    source 65
+    target 56
+  ]
+  edge [
+    source 65
+    target 41
+  ]
+  edge [
+    source 65
+    target 60
+  ]
+  edge [
+    source 65
+    target 50
   ]
   edge [
     source 66
-    target 80
-    key 0
+    target 68
   ]
   edge [
     source 66
-    target 81
-    key 0
+    target 61
+  ]
+  edge [
+    source 66
+    target 70
+  ]
+  edge [
+    source 66
+    target 65
+  ]
+  edge [
+    source 66
+    target 63
+  ]
+  edge [
+    source 66
+    target 42
+  ]
+  edge [
+    source 66
+    target 97
+  ]
+  edge [
+    source 66
+    target 94
   ]
   edge [
     source 67
-    target 62
-    key 0
+    target 68
+  ]
+  edge [
+    source 67
+    target 56
   ]
   edge [
     source 67
     target 65
-    key 0
   ]
   edge [
     source 67
-    target 42
-    key 0
+    target 69
   ]
   edge [
     source 67
-    target 34
-    key 0
+    target 96
   ]
   edge [
     source 68
-    target 44
-    key 0
-  ]
-  edge [
-    source 69
-    target 21
-    key 0
-  ]
-  edge [
-    source 69
-    target 32
-    key 0
-  ]
-  edge [
-    source 69
-    target 105
-    key 0
-  ]
-  edge [
-    source 70
-    target 21
-    key 0
-  ]
-  edge [
-    source 70
-    target 65
-    key 0
-  ]
-  edge [
-    source 71
-    target 70
-    key 0
-  ]
-  edge [
-    source 71
-    target 42
-    key 0
-  ]
-  edge [
-    source 71
-    target 67
-    key 0
-  ]
-  edge [
-    source 71
-    target 21
-    key 0
-  ]
-  edge [
-    source 71
-    target 54
-    key 0
-  ]
-  edge [
-    source 71
-    target 65
-    key 0
-  ]
-  edge [
-    source 71
     target 66
-    key 0
+  ]
+  edge [
+    source 68
+    target 97
+  ]
+  edge [
+    source 68
+    target 70
+  ]
+  edge [
+    source 68
+    target 65
+  ]
+  edge [
+    source 69
+    target 70
+  ]
+  edge [
+    source 69
+    target 16
+  ]
+  edge [
+    source 69
+    target 65
+  ]
+  edge [
+    source 69
+    target 67
+  ]
+  edge [
+    source 69
+    target 14
+  ]
+  edge [
+    source 70
+    target 37
+  ]
+  edge [
+    source 70
+    target 68
+  ]
+  edge [
+    source 70
+    target 66
+  ]
+  edge [
+    source 70
+    target 63
+  ]
+  edge [
+    source 70
+    target 65
+  ]
+  edge [
+    source 70
+    target 67
   ]
   edge [
     source 71
-    target 34
-    key 0
+    target 88
   ]
   edge [
-    source 72
-    target 1
-    key 0
+    source 71
+    target 72
   ]
   edge [
-    source 72
-    target 4
-    key 0
-  ]
-  edge [
-    source 72
-    target 62
-    key 0
-  ]
-  edge [
-    source 72
-    target 13
-    key 0
-  ]
-  edge [
-    source 73
-    target 81
-    key 0
-  ]
-  edge [
-    source 73
-    target 87
-    key 0
-  ]
-  edge [
-    source 73
-    target 17
-    key 0
-  ]
-  edge [
-    source 73
-    target 86
-    key 0
-  ]
-  edge [
-    source 74
-    target 18
-    key 0
-  ]
-  edge [
-    source 74
-    target 58
-    key 0
-  ]
-  edge [
-    source 74
-    target 54
-    key 0
-  ]
-  edge [
-    source 74
-    target 60
-    key 0
-  ]
-  edge [
-    source 74
+    source 71
     target 75
-    key 0
   ]
   edge [
-    source 75
-    target 58
-    key 0
-  ]
-  edge [
-    source 75
-    target 49
-    key 0
-  ]
-  edge [
-    source 75
-    target 78
-    key 0
-  ]
-  edge [
-    source 75
-    target 79
-    key 0
-  ]
-  edge [
-    source 76
-    target 54
-    key 0
-  ]
-  edge [
-    source 76
+    source 71
     target 74
-    key 0
+  ]
+  edge [
+    source 71
+    target 16
+  ]
+  edge [
+    source 71
+    target 69
+  ]
+  edge [
+    source 72
+    target 71
+  ]
+  edge [
+    source 72
+    target 89
+  ]
+  edge [
+    source 72
+    target 77
+  ]
+  edge [
+    source 72
+    target 76
+  ]
+  edge [
+    source 72
+    target 73
+  ]
+  edge [
+    source 72
+    target 66
+  ]
+  edge [
+    source 72
+    target 28
+  ]
+  edge [
+    source 72
+    target 75
+  ]
+  edge [
+    source 72
+    target 16
+  ]
+  edge [
+    source 73
+    target 72
+  ]
+  edge [
+    source 73
+    target 76
+  ]
+  edge [
+    source 73
+    target 19
+  ]
+  edge [
+    source 73
+    target 77
+  ]
+  edge [
+    source 74
+    target 77
+  ]
+  edge [
+    source 74
+    target 69
+  ]
+  edge [
+    source 74
+    target 73
+  ]
+  edge [
+    source 74
+    target 16
+  ]
+  edge [
+    source 75
+    target 76
+  ]
+  edge [
+    source 75
+    target 77
+  ]
+  edge [
+    source 75
+    target 72
+  ]
+  edge [
+    source 75
+    target 71
   ]
   edge [
     source 76
-    target 18
-    key 0
+    target 77
   ]
   edge [
     source 76
-    target 5
-    key 0
-  ]
-  edge [
-    source 76
-    target 65
-    key 0
+    target 73
   ]
   edge [
     source 76
     target 70
-    key 0
   ]
   edge [
     source 77
-    target 18
-    key 0
+    target 76
   ]
   edge [
     source 77
-    target 54
-    key 0
+    target 73
   ]
   edge [
     source 77
-    target 74
-    key 0
-  ]
-  edge [
-    source 77
-    target 5
-    key 0
-  ]
-  edge [
-    source 77
-    target 23
-    key 0
-  ]
-  edge [
-    source 78
-    target 48
-    key 0
-  ]
-  edge [
-    source 78
-    target 58
-    key 0
-  ]
-  edge [
-    source 78
-    target 75
-    key 0
-  ]
-  edge [
-    source 78
-    target 15
-    key 0
+    target 66
   ]
   edge [
     source 78
     target 79
-    key 0
   ]
   edge [
     source 78
-    target 35
-    key 0
+    target 88
   ]
   edge [
-    source 79
-    target 4
-    key 0
+    source 78
+    target 92
   ]
   edge [
-    source 79
-    target 34
-    key 0
+    source 78
+    target 71
   ]
   edge [
-    source 79
-    target 77
-    key 0
+    source 78
+    target 93
   ]
   edge [
-    source 79
+    source 78
     target 65
-    key 0
   ]
   edge [
-    source 80
-    target 82
-    key 0
+    source 78
+    target 69
+  ]
+  edge [
+    source 79
+    target 72
+  ]
+  edge [
+    source 79
+    target 83
+  ]
+  edge [
+    source 79
+    target 78
+  ]
+  edge [
+    source 79
+    target 71
+  ]
+  edge [
+    source 79
+    target 46
   ]
   edge [
     source 80
     target 81
-    key 0
   ]
   edge [
     source 80
-    target 83
-    key 0
+    target 72
   ]
   edge [
     source 80
-    target 84
-    key 0
-  ]
-  edge [
-    source 80
-    target 23
-    key 0
-  ]
-  edge [
-    source 80
-    target 59
-    key 0
-  ]
-  edge [
-    source 81
-    target 80
-    key 0
-  ]
-  edge [
-    source 81
-    target 85
-    key 0
-  ]
-  edge [
-    source 81
-    target 86
-    key 0
-  ]
-  edge [
-    source 81
-    target 87
-    key 0
-  ]
-  edge [
-    source 81
     target 73
-    key 0
   ]
   edge [
-    source 81
-    target 58
-    key 0
+    source 80
+    target 78
   ]
   edge [
     source 81
     target 88
-    key 0
   ]
   edge [
     source 81
-    target 83
-    key 0
-  ]
-  edge [
-    source 81
-    target 23
-    key 0
-  ]
-  edge [
-    source 82
-    target 89
-    key 0
-  ]
-  edge [
-    source 82
-    target 91
-    key 0
-  ]
-  edge [
-    source 82
-    target 92
-    key 0
-  ]
-  edge [
-    source 83
-    target 80
-    key 0
-  ]
-  edge [
-    source 83
-    target 81
-    key 0
-  ]
-  edge [
-    source 83
-    target 87
-    key 0
-  ]
-  edge [
-    source 83
-    target 86
-    key 0
-  ]
-  edge [
-    source 84
-    target 86
-    key 0
-  ]
-  edge [
-    source 84
-    target 59
-    key 0
-  ]
-  edge [
-    source 84
     target 73
-    key 0
   ]
   edge [
-    source 84
-    target 23
-    key 0
+    source 81
+    target 93
   ]
   edge [
-    source 85
-    target 81
-    key 0
-  ]
-  edge [
-    source 85
+    source 81
     target 82
-    key 0
   ]
   edge [
-    source 85
-    target 80
-    key 0
-  ]
-  edge [
-    source 85
-    target 91
-    key 0
-  ]
-  edge [
-    source 85
-    target 90
-    key 0
-  ]
-  edge [
-    source 85
-    target 92
-    key 0
-  ]
-  edge [
-    source 85
-    target 26
-    key 0
-  ]
-  edge [
-    source 86
-    target 73
-    key 0
-  ]
-  edge [
-    source 86
-    target 87
-    key 0
-  ]
-  edge [
-    source 86
-    target 58
-    key 0
-  ]
-  edge [
-    source 87
-    target 73
-    key 0
-  ]
-  edge [
-    source 87
-    target 86
-    key 0
-  ]
-  edge [
-    source 87
+    source 81
     target 78
-    key 0
   ]
   edge [
-    source 89
-    target 90
-    key 0
-  ]
-  edge [
-    source 89
-    target 82
-    key 0
-  ]
-  edge [
-    source 89
-    target 91
-    key 0
-  ]
-  edge [
-    source 89
+    source 82
     target 80
-    key 0
+  ]
+  edge [
+    source 82
+    target 72
+  ]
+  edge [
+    source 82
+    target 73
+  ]
+  edge [
+    source 82
+    target 78
+  ]
+  edge [
+    source 83
+    target 93
+  ]
+  edge [
+    source 83
+    target 78
+  ]
+  edge [
+    source 84
+    target 74
+  ]
+  edge [
+    source 84
+    target 79
+  ]
+  edge [
+    source 84
+    target 93
+  ]
+  edge [
+    source 84
+    target 92
+  ]
+  edge [
+    source 85
+    target 93
+  ]
+  edge [
+    source 85
+    target 90
+  ]
+  edge [
+    source 85
+    target 88
+  ]
+  edge [
+    source 85
+    target 71
+  ]
+  edge [
+    source 85
+    target 80
+  ]
+  edge [
+    source 85
+    target 78
+  ]
+  edge [
+    source 86
+    target 78
+  ]
+  edge [
+    source 86
+    target 80
+  ]
+  edge [
+    source 86
+    target 85
+  ]
+  edge [
+    source 86
+    target 89
+  ]
+  edge [
+    source 87
+    target 84
+  ]
+  edge [
+    source 87
+    target 80
+  ]
+  edge [
+    source 87
+    target 88
+  ]
+  edge [
+    source 88
+    target 92
+  ]
+  edge [
+    source 88
+    target 93
+  ]
+  edge [
+    source 88
+    target 78
+  ]
+  edge [
+    source 89
+    target 88
+  ]
+  edge [
+    source 89
+    target 71
   ]
   edge [
     source 89
     target 92
-    key 0
   ]
   edge [
     source 89
     target 79
-    key 0
   ]
   edge [
     source 89
-    target 59
-    key 0
-  ]
-  edge [
-    source 90
-    target 89
-    key 0
-  ]
-  edge [
-    source 90
-    target 81
-    key 0
-  ]
-  edge [
-    source 90
     target 93
-    key 0
   ]
   edge [
-    source 90
-    target 80
-    key 0
-  ]
-  edge [
-    source 90
-    target 44
-    key 0
-  ]
-  edge [
-    source 91
-    target 82
-    key 0
-  ]
-  edge [
-    source 91
-    target 92
-    key 0
-  ]
-  edge [
-    source 91
-    target 99
-    key 0
-  ]
-  edge [
-    source 91
-    target 93
-    key 0
-  ]
-  edge [
-    source 91
-    target 102
-    key 0
-  ]
-  edge [
-    source 91
-    target 32
-    key 0
-  ]
-  edge [
-    source 91
-    target 91
-    key 0
-  ]
-  edge [
-    source 92
-    target 82
-    key 0
-  ]
-  edge [
-    source 92
-    target 85
-    key 0
-  ]
-  edge [
-    source 92
-    target 91
-    key 0
-  ]
-  edge [
-    source 92
-    target 102
-    key 0
-  ]
-  edge [
-    source 92
-    target 99
-    key 0
-  ]
-  edge [
-    source 93
-    target 92
-    key 0
-  ]
-  edge [
-    source 93
-    target 89
-    key 0
-  ]
-  edge [
-    source 94
-    target 95
-    key 0
-  ]
-  edge [
-    source 94
-    target 81
-    key 0
-  ]
-  edge [
-    source 94
-    target 73
-    key 0
-  ]
-  edge [
-    source 94
-    target 89
-    key 0
-  ]
-  edge [
-    source 95
-    target 82
-    key 0
-  ]
-  edge [
-    source 95
-    target 73
-    key 0
-  ]
-  edge [
-    source 95
-    target 92
-    key 0
-  ]
-  edge [
-    source 95
-    target 96
-    key 0
-  ]
-  edge [
-    source 95
-    target 89
-    key 0
-  ]
-  edge [
-    source 96
-    target 94
-    key 0
-  ]
-  edge [
-    source 96
-    target 81
-    key 0
-  ]
-  edge [
-    source 96
-    target 73
-    key 0
-  ]
-  edge [
-    source 96
-    target 89
-    key 0
-  ]
-  edge [
-    source 97
-    target 84
-    key 0
-  ]
-  edge [
-    source 97
-    target 90
-    key 0
-  ]
-  edge [
-    source 97
-    target 92
-    key 0
-  ]
-  edge [
-    source 97
-    target 91
-    key 0
-  ]
-  edge [
-    source 98
-    target 92
-    key 0
-  ]
-  edge [
-    source 98
-    target 99
-    key 0
-  ]
-  edge [
-    source 98
-    target 82
-    key 0
-  ]
-  edge [
-    source 98
-    target 80
-    key 0
-  ]
-  edge [
-    source 98
-    target 94
-    key 0
-  ]
-  edge [
-    source 98
-    target 89
-    key 0
-  ]
-  edge [
-    source 99
-    target 85
-    key 0
-  ]
-  edge [
-    source 99
-    target 80
-    key 0
-  ]
-  edge [
-    source 99
-    target 82
-    key 0
-  ]
-  edge [
-    source 100
-    target 89
-    key 0
-  ]
-  edge [
-    source 100
-    target 94
-    key 0
-  ]
-  edge [
-    source 100
-    target 98
-    key 0
-  ]
-  edge [
-    source 100
-    target 85
-    key 0
-  ]
-  edge [
-    source 101
-    target 97
-    key 0
-  ]
-  edge [
-    source 101
-    target 94
-    key 0
-  ]
-  edge [
-    source 101
-    target 82
-    key 0
-  ]
-  edge [
-    source 102
-    target 99
-    key 0
-  ]
-  edge [
-    source 102
-    target 86
-    key 0
-  ]
-  edge [
-    source 103
-    target 5
-    key 0
-  ]
-  edge [
-    source 103
-    target 78
-    key 0
-  ]
-  edge [
-    source 103
-    target 18
-    key 0
-  ]
-  edge [
-    source 103
-    target 75
-    key 0
-  ]
-  edge [
-    source 103
-    target 62
-    key 0
-  ]
-  edge [
-    source 103
+    source 89
     target 72
-    key 0
   ]
   edge [
-    source 103
-    target 15
-    key 0
+    source 89
+    target 18
   ]
   edge [
-    source 103
-    target 74
-    key 0
+    source 90
+    target 89
   ]
   edge [
-    source 103
+    source 90
     target 71
-    key 0
   ]
   edge [
-    source 103
-    target 34
-    key 0
+    source 90
+    target 88
   ]
   edge [
-    source 103
+    source 91
+    target 90
+  ]
+  edge [
+    source 91
     target 77
-    key 0
   ]
   edge [
-    source 104
-    target 24
-    key 0
+    source 92
+    target 93
   ]
   edge [
-    source 104
+    source 92
+    target 90
+  ]
+  edge [
+    source 92
+    target 83
+  ]
+  edge [
+    source 92
+    target 91
+  ]
+  edge [
+    source 92
+    target 88
+  ]
+  edge [
+    source 92
+    target 100
+  ]
+  edge [
+    source 92
+    target 92
+  ]
+  edge [
+    source 93
+    target 92
+  ]
+  edge [
+    source 93
+    target 91
+  ]
+  edge [
+    source 93
+    target 90
+  ]
+  edge [
+    source 93
+    target 89
+  ]
+  edge [
+    source 93
+    target 88
+  ]
+  edge [
+    source 94
+    target 60
+  ]
+  edge [
+    source 94
     target 29
-    key 0
   ]
   edge [
-    source 104
+    source 95
+    target 94
+  ]
+  edge [
+    source 95
+    target 70
+  ]
+  edge [
+    source 95
+    target 61
+  ]
+  edge [
+    source 95
+    target 68
+  ]
+  edge [
+    source 95
+    target 42
+  ]
+  edge [
+    source 95
+    target 55
+  ]
+  edge [
+    source 95
+    target 37
+  ]
+  edge [
+    source 95
+    target 58
+  ]
+  edge [
+    source 95
+    target 53
+  ]
+  edge [
+    source 95
+    target 41
+  ]
+  edge [
+    source 95
+    target 60
+  ]
+  edge [
+    source 96
+    target 29
+  ]
+  edge [
+    source 96
+    target 35
+  ]
+  edge [
+    source 96
+    target 97
+  ]
+  edge [
+    source 96
+    target 68
+  ]
+  edge [
+    source 96
+    target 67
+  ]
+  edge [
+    source 97
+    target 96
+  ]
+  edge [
+    source 97
+    target 68
+  ]
+  edge [
+    source 97
+    target 42
+  ]
+  edge [
+    source 97
+    target 29
+  ]
+  edge [
+    source 98
+    target 99
+  ]
+  edge [
+    source 98
+    target 19
+  ]
+  edge [
+    source 98
+    target 16
+  ]
+  edge [
+    source 98
+    target 106
+  ]
+  edge [
+    source 99
+    target 98
+  ]
+  edge [
+    source 99
+    target 105
+  ]
+  edge [
+    source 99
     target 17
-    key 0
   ]
   edge [
-    source 105
-    target 32
-    key 0
+    source 99
+    target 61
   ]
   edge [
-    source 105
-    target 29
-    key 0
+    source 99
+    target 19
   ]
   edge [
-    source 106
-    target 69
-    key 0
+    source 100
+    target 81
   ]
   edge [
-    source 106
+    source 100
     target 107
-    key 0
   ]
   edge [
-    source 106
+    source 100
+    target 67
+  ]
+  edge [
+    source 100
+    target 101
+  ]
+  edge [
+    source 100
+    target 96
+  ]
+  edge [
+    source 100
+    target 29
+  ]
+  edge [
+    source 100
+    target 78
+  ]
+  edge [
+    source 100
+    target 52
+  ]
+  edge [
+    source 101
+    target 100
+  ]
+  edge [
+    source 101
+    target 103
+  ]
+  edge [
+    source 101
     target 48
-    key 0
+  ]
+  edge [
+    source 102
+    target 101
+  ]
+  edge [
+    source 102
+    target 104
+  ]
+  edge [
+    source 102
+    target 63
+  ]
+  edge [
+    source 102
+    target 49
+  ]
+  edge [
+    source 103
+    target 100
+  ]
+  edge [
+    source 103
+    target 98
+  ]
+  edge [
+    source 104
+    target 103
+  ]
+  edge [
+    source 105
+    target 99
+  ]
+  edge [
+    source 105
+    target 98
+  ]
+  edge [
+    source 105
+    target 19
   ]
   edge [
     source 106
-    target 43
-    key 0
+    target 98
+  ]
+  edge [
+    source 106
+    target 13
+  ]
+  edge [
+    source 106
+    target 99
+  ]
+  edge [
+    source 106
+    target 105
+  ]
+  edge [
+    source 106
+    target 17
   ]
   edge [
     source 107
-    target 105
-    key 0
+    target 46
   ]
 ]
