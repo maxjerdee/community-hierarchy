@@ -55,8 +55,11 @@ comm_var_fraction_label = r'Community depth fraction $F_C = \frac{\sigma_C^2}{\s
 
 # Plotting functions
 
+# # Get the default matplotlib colors
+# default_colors = plt.cm.tab20.colors
+
 # Get the default matplotlib colors
-default_colors = plt.cm.tab20.colors
+default_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 def scatter_plot_with_y_errors(xs,ys,yerrs,data_label,plot_title,x_label,y_label,basename):
     plt.clf()
@@ -80,6 +83,7 @@ def scatter_plot_with_y_errors(xs,ys,yerrs,data_label,plot_title,x_label,y_label
     plt.ylabel(y_label)
     plt.savefig(f"{figures_folder}/{basename}.png")
     plt.savefig(f"{figures_folder}/{basename}.pdf")
+    plt.savefig(f"{figures_folder}/{basename}.svg")
 
 def scatter_plot_with_y_errors_size(xs,ys,yerrs,data_label,plot_title,x_label,y_label,sizes,basename):
     plt.clf()
@@ -197,6 +201,7 @@ for data_set_name in data_set_names:
         gml_files_folder = f"../data/gml_files/villages"
 
     rep_partitions = []
+    modularities = []
     ns = []
     qs = []
     q_stds = []
@@ -212,6 +217,7 @@ for data_set_name in data_set_names:
     percent_blacks = []
     percent_hispanics = []
     H_races = []
+    H_subcastes = []
 
     school_nums = []
 
@@ -231,6 +237,7 @@ for data_set_name in data_set_names:
 
             # Get all node attributes
             node_attributes = G.nodes(data=True)
+            node_list = list(G.nodes)
 
             if data_set_name == 'highschool':
                 races = []
@@ -256,9 +263,21 @@ for data_set_name in data_set_names:
                 rep_partition = row['rep_partition'].values[0]
                 rep_partition = np.fromstring(rep_partition[1:-1], dtype=int, sep=',')
                 rep_partitions.append(rep_partition)
-
+                
                 n = len(rep_partition)
                 q = len(np.unique(rep_partition))
+
+                # Compute the modularity of the graph with respect to this represenative partition
+                communities = []
+                for r in range(q):
+                    communities.append([])
+                for i, r in enumerate(rep_partition):
+                    communities[r].append(node_list[i])
+
+                modularity = nx.community.modularity(G,communities)
+                
+                modularities.append(modularity)
+                # print(modularity)
 
                 # Read numpy array from string
                 q_counts = row['q_counts'].values[0]
@@ -354,13 +373,18 @@ for data_set_name in data_set_names:
                 ax.set_xlim(min_community_status,max_community_status)
                 ax.set_ylim(min_total_status,max_total_status)
                 
+                # Color in the order of the community_status
+                community_status_order = np.argsort(community_statuses)
+                # Get inverse order
+                community_status_order = np.argsort(community_status_order)
+
                 colors = []
                 xs = []
                 ys = []
                 for i in range(n):
                     xs.append(community_statuses[rep_partition[i]])
                     ys.append(total_status_mean[i])
-                    colors.append(default_colors[rep_partition[i] % len(default_colors)]) # Colors are just different groups
+                    colors.append(default_colors[community_status_order[rep_partition[i]] % len(default_colors)]) # Colors are just different groups
 
                 # Draw gray vertical lines
                 for line_position in community_statuses:
@@ -379,7 +403,7 @@ for data_set_name in data_set_names:
                 plt.savefig(f"{figures_folder}/individuals/{basename}.pdf")
                 plt.savefig(f"{figures_folder}/individuals/{basename}.svg")
 
-                # Create plot with box and whisket plots to represent each community
+                # Create plot with box and whisker plots to represent each community
                 plt.clf()
                 fig, ax = plt.subplots(figsize=(fig_width, fig_height))
                 ax.set_xlim(min_community_status,max_community_status)
@@ -426,32 +450,62 @@ for data_set_name in data_set_names:
                 plt.savefig(f"{figures_folder}/individuals/{basename}_box_whisker.svg")
 
 
+    ####################
+    # Make plots specific to this data set
+
     # Record the relevant data set values for the summary across data sets
     sigma_C_means_all[data_set_name] = sigma_C_means
     sigma_I_means_all[data_set_name] = sigma_I_means
     ns_all[data_set_name] = ns
 
+    #############
     # Errors, no log scale
     scatter_plot_with_y_errors(ns,sigma_C_means,sigma_C_stds,data_label,f"Size vs. community status depth in {data_label.lower()}",r'Size $n$',sigma_C_label,'n_vs_sigma_C')
     scatter_plot_with_y_errors(ns,sigma_I_means,sigma_I_stds,data_label,f"Size vs. individual status depth in {data_label.lower()}",r'Size $n$',sigma_I_label,'n_vs_sigma_I')
     scatter_plot_with_y_errors(ns,sigma_T_means,sigma_T_stds,data_label,f"Size vs. total status depth in {data_label.lower()}",r'Size $n$',sigma_T_label,'n_vs_sigma_T')
     scatter_plot_with_y_errors(ns,comm_var_fraction_means,comm_var_fraction_stds,data_label,f"Size vs. community depth fraction in {data_label.lower()}",r'Size $n$',comm_var_fraction_label,'n_vs_comm_var_fraction')
 
+    # Abbreviating these titles
+    scatter_plot_with_y_errors(modularities,sigma_C_means,sigma_C_stds,data_label,f"Modularity vs. community depth in {data_label.lower()}","Modularity",sigma_C_label,'modularity_vs_sigma_C')
+    scatter_plot_with_y_errors(modularities,sigma_I_means,sigma_I_stds,data_label,f"Modularity vs. individual depth in {data_label.lower()}","Modularity",sigma_I_label,'modularity_vs_sigma_I')
+    scatter_plot_with_y_errors(modularities,sigma_T_means,sigma_T_stds,data_label,f"Modularity vs. total depth in {data_label.lower()}","Modularity",sigma_T_label,'modularity_vs_sigma_T')
+    scatter_plot_with_y_errors(modularities,comm_var_fraction_means,comm_var_fraction_stds,data_label,f"Modularity vs. comm. depth fraction in {data_label.lower()}","Modularity",comm_var_fraction_label,'modularity_vs_comm_var_fraction')
+
     scatter_plot_with_y_errors(ns,qs,q_stds,data_label,f"Size vs. number of communities in {data_label.lower()}",r'Size $n$',r'Number of communities $q$','n_vs_q_errors')
 
     if data_set_name == 'highschool': # Only the high schools have the racial data we are familiar with
-        scatter_plot_with_y_errors(H_races,sigma_T_means,sigma_T_stds,data_label,f"Racial diversity vs. total status depth in {data_label.lower()}",r'Diversity $H_{race}$',sigma_T_label,'sigma_T_vs_H_race')
-        scatter_plot_with_y_errors(percent_whites,sigma_T_means,sigma_T_stds,data_label,f"Percent white students vs. total status depth in {data_label.lower()}",r'Percent white students',sigma_T_label,'sigma_T_vs_percent_white')
-        scatter_plot_with_y_errors(percent_blacks,sigma_T_means,sigma_T_stds,data_label,f"Percent black students vs. total status depth in {data_label.lower()}",r'Percent black students',sigma_T_label,'sigma_T_vs_percent_black')
+        scatter_plot_with_y_errors(H_races,sigma_C_means,sigma_C_stds,data_label,f"Racial diversity vs. community status depth",r'Diversity $H_{race}$',sigma_C_label,'H_race_vs_sigma_C')
+        scatter_plot_with_y_errors(percent_whites,sigma_C_means,sigma_C_stds,data_label,f"Percent white vs. community status depth",r'Percent white students',sigma_C_label,'percent_white_vs_sigma_C')
+        scatter_plot_with_y_errors(percent_blacks,sigma_C_means,sigma_C_stds,data_label,f"Percent black vs. community status depth",r'Percent black students',sigma_C_label,'percent_black_vs_sigma_C')
+        
+        scatter_plot_with_y_errors(H_races,sigma_I_means,sigma_I_stds,data_label,f"Racial diversity vs. individual status depth",r'Diversity $H_{race}$',sigma_I_label,'H_race_vs_sigma_I')
+        scatter_plot_with_y_errors(percent_whites,sigma_I_means,sigma_I_stds,data_label,f"Percent white vs. individual status depth",r'Percent white students',sigma_I_label,'percent_white_vs_sigma_I')
+        scatter_plot_with_y_errors(percent_blacks,sigma_I_means,sigma_I_stds,data_label,f"Percent black vs. individual status depth",r'Percent black students',sigma_I_label,'percent_black_vs_sigma_I')
+        
+        scatter_plot_with_y_errors(H_races,sigma_T_means,sigma_T_stds,data_label,f"Racial diversity vs. total status depth",r'Diversity $H_{race}$',sigma_T_label,'H_race_vs_sigma_T')
+        scatter_plot_with_y_errors(percent_whites,sigma_T_means,sigma_T_stds,data_label,f"Percent white vs. total status depth",r'Percent white students',sigma_T_label,'percent_white_vs_sigma_T')
+        scatter_plot_with_y_errors(percent_blacks,sigma_T_means,sigma_T_stds,data_label,f"Percent black vs. total status depth",r'Percent black students',sigma_T_label,'percent_black_vs_sigma_T')
+        
+        scatter_plot_with_y_errors(H_races,comm_var_fraction_means,comm_var_fraction_stds,data_label,f"Racial diversity vs. community depth fraction",r'Diversity $H_{race}$',comm_var_fraction_label,'H_race_vs_comm_var_fraction')
+        scatter_plot_with_y_errors(percent_whites,comm_var_fraction_means,comm_var_fraction_stds,data_label,f"Percent white vs. community depth fraction",r'Percent white students',comm_var_fraction_label,'percent_white_vs_comm_var_fraction')
+        scatter_plot_with_y_errors(percent_blacks,comm_var_fraction_means,comm_var_fraction_stds,data_label,f"Percent black vs. community depth fraction",r'Percent black students',comm_var_fraction_label,'percent_black_vs_comm_var_fraction')
 
+    ######################
     # Errors, log scale
     scatter_plot_log_x_scale_with_y_errors(ns,sigma_C_means,sigma_C_stds,data_label,f"Size vs. community status depth in {data_label.lower()}",r'Size $n$',sigma_C_label,'n_vs_sigma_C_log')
     scatter_plot_log_x_scale_with_y_errors(ns,sigma_I_means,sigma_I_stds,data_label,f"Size vs. individual status depth in {data_label.lower()}",r'Size $n$',sigma_I_label,'n_vs_sigma_I_log')
     scatter_plot_log_x_scale_with_y_errors(ns,sigma_T_means,sigma_T_stds,data_label,f"Size vs. total status depth in {data_label.lower()}",r'Size $n$',sigma_T_label,'n_vs_sigma_T_log')
     scatter_plot_log_x_scale_with_y_errors(ns,comm_var_fraction_means,comm_var_fraction_stds,data_label,f"Size vs. community depth fraction in {data_label.lower()}",r'Size $n$',comm_var_fraction_label,'n_vs_comm_var_fraction_log')
 
+    #######################
     # No errors, no log scale
     scatter_plot(ns,qs,data_label,f"Size vs. number of communities in {data_label.lower()}",r'Size $n$',r'Number of communities $q$','n_vs_q')
+    scatter_plot(ns,modularities,data_label,f"Size vs. modularity in {data_label.lower()}",r'Size $n$',r'Modularity','n_vs_modularity')
+
+    if data_set_name == 'highschool': # Only the high schools have the racial data we are familiar with
+        scatter_plot(H_races,modularities,data_label,f"Racial diversity vs. modularity",r'Diversity $H_{race}$',"Modularity",'H_race_vs_modularity')
+        scatter_plot(percent_whites,modularities,data_label,f"Percent white vs. modularity",r'Percent white students',"Modularity",'percent_white_vs_modularity')
+        scatter_plot(percent_blacks,modularities,data_label,f"Percent black vs. modularity",r'Percent black students',"Modularity",'percent_black_vs_modularity')
 
     # Contour plots of all of the schools
 

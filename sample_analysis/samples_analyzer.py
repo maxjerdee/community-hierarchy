@@ -59,6 +59,8 @@ def get_representative_partition(partitions, number_of_subsamples=30,reduction='
 
 number_of_subsamples = 30 # Number of subsamples to take from the posterior samples for the purposes of finding the representative partition
 
+number_of_modularity_subsamples = 100 # Number of subsamples to take from the posterior samples for the purposes of computing the modularity
+
 samples_folders = ['../data/samples/AddHealth', '../data/samples/misc', '../data/samples/villages']
 
 gml_files_folders = ['../data/gml_files/AddHealth', '../data/gml_files/misc', '../data/gml_files/villages']
@@ -77,6 +79,7 @@ summary_df = pd.DataFrame(columns=['basename','sigma_C_mean','sigma_C_std','sigm
 'sigma_T_mean','sigma_T_std','nu_mean','nu_std','rep_partition','q_counts','total_status_mean','total_status_std'])
 
 reset = True
+# reset = False
 
 if reset:
     basenames = []
@@ -93,11 +96,15 @@ if reset:
 
     nu_means = []
     nu_stds = []
+    
+    total_status_means = []
+    total_status_stds = []
+
+    modularity_means = []
+    modularity_stds = []
 
     rep_partitions = []
     q_counts_all = []
-    total_status_means = []
-    total_status_stds = []
 else: # Load previously computed bits
     df_in_dict = pd.read_csv(summary_filename)
 
@@ -116,6 +123,9 @@ else: # Load previously computed bits
 
     nu_means = list(df_in_dict['nu_mean'])
     nu_stds = list(df_in_dict['nu_std'])
+
+    modularity_means = list(df_in_dict['modularity_mean'])
+    modularity_stds = list(df_in_dict['modularity_std'])
 
     rep_partitions = list(df_in_dict['rep_partition'])
     q_counts_all = list(df_in_dict['q_counts'])
@@ -194,6 +204,36 @@ for samples_folder_i, samples_folder in enumerate(samples_folders):
 
                     total_status_means.append(str(total_status_mean.tolist()))
                     total_status_stds.append(str(total_status_std.tolist()))
+
+                    # Compute the modularities across some of the sampled partitions to obtain expected and errors of the modularity across the sampled partitions. 
+                    # Read the GML file to get the underlying network
+                    G = nx.read_gml(f"{gml_files_folders[samples_folder_i]}/{basename}.gml")
+                    # Get a list of the nodes
+                    node_list = list(G.nodes)
+                    # Only compute the modularity over a subsampled set of partitions (python too slow to do all of them)
+                    subsample_indices = np.linspace(0,num_samples-1,number_of_modularity_subsamples)
+                    subsample_indices = np.round(subsample_indices).astype(int)
+
+                    modularities = []
+                    for partition_i in subsample_indices:
+                        communities = []
+                        for r in range(q):
+                            communities.append([])
+                        for i, r in enumerate(rep_partition):
+                            communities[r].append(node_list[i])
+
+                        modularity = nx.community.modularity(G,communities)
+                        
+                        modularities.append(modularity)
+
+                    modularities = np.array(modularities)
+                    modularity_mean = np.mean(modularities)
+                    modularity_std = np.std(modularities)
+
+                    print(modularities,modularity_mean,modularity_std)
+
+                    modularity_means.append(modularity_mean)
+                    modularity_stds.append(modularity_std)
 
                     # Get the information-theoretic representative partition  
                     rep_partition = get_representative_partition(partitions,number_of_subsamples=number_of_subsamples,reduction='flat')
