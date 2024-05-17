@@ -62,9 +62,9 @@ number_of_subsamples = 30 # Number of subsamples to take from the posterior samp
 
 number_of_modularity_subsamples = 100 # Number of subsamples to take from the posterior samples for the purposes of computing the modularity
 
-samples_folders = ['../data/samples/AddHealth', '../data/samples/misc', '../data/samples/villages']
+samples_folders = ['../data/samples/AddHealth', '../data/samples/villages', '../data/samples/misc']
 
-gml_files_folders = ['../data/gml_files/AddHealth', '../data/gml_files/misc', '../data/gml_files/villages']
+gml_files_folders = ['../data/gml_files/AddHealth', '../data/gml_files/villages', '../data/gml_files/misc']
 
 model_types = ['BT','SBM','SBM-BT']
 
@@ -77,7 +77,7 @@ model_type = 'SBM-BT'
 summary_filename = f"samples_summary_{model_type}.csv"
 
 summary_df = pd.DataFrame(columns=['basename','sigma_C_mean','sigma_C_std','sigma_I_mean','sigma_I_std','sigma_T_mean','sigma_T_std',
-'sigma_T_mean','sigma_T_std','nu_mean','nu_std','rep_partition','q_counts','total_status_mean','total_status_std'])
+'sigma_T_mean','sigma_T_std','nu_mean','nu_std','modularity_mean','modularity_std','rep_partition','q_counts','total_status_mean','total_status_std'])
 
 # reset = True
 reset = False

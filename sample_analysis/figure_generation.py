@@ -219,6 +219,9 @@ for data_set_name in data_set_names:
     H_races = []
     H_subcastes = []
 
+    community_sizes = []
+    avg_community_sizes = []
+
     school_nums = []
 
     # Grades to show
@@ -239,23 +242,6 @@ for data_set_name in data_set_names:
             node_attributes = G.nodes(data=True)
             node_list = list(G.nodes)
 
-            if data_set_name == 'highschool':
-                races = []
-                sexes = []
-                grades = []
-                # Print node attributes
-                for node, attributes in node_attributes:
-                    # Write the original independent score here using labels and data read
-                    # print(f"Node {node}:")
-                    for key, value in attributes.items():
-                        # print(f"  {key}: {value}")
-                        if key == 'race':
-                            races.append(value)
-                        if key == 'sex':
-                            sexes.append(value)
-                        if key == 'grade':
-                            grades.append(value)
-
             row = summary_df[summary_df['basename']==basename]
             if len(row) > 0:
 
@@ -266,6 +252,16 @@ for data_set_name in data_set_names:
                 
                 n = len(rep_partition)
                 q = len(np.unique(rep_partition))
+
+                # Count the community sizes in the representative partition
+                rep_partition_community_sizes = np.zeros(q)
+                for i in range(n):
+                    rep_partition_community_sizes[rep_partition[i]] += 1
+                
+                print(rep_partition_community_sizes)
+                
+                for size in rep_partition_community_sizes:
+                    community_sizes.append(size)
 
                 # Compute the modularity of the graph with respect to this represenative partition
                 communities = []
@@ -302,6 +298,7 @@ for data_set_name in data_set_names:
 
                 ns.append(n)
                 qs.append(q)
+                avg_community_sizes.append(n/q)
                 sigma_C_means.append(row['sigma_C_mean'].values[0])
                 sigma_I_means.append(row['sigma_I_mean'].values[0])
                 sigma_T_means.append(row['sigma_T_mean'].values[0])
@@ -313,6 +310,18 @@ for data_set_name in data_set_names:
 
                 if data_set_name == 'highschool':
                     # Get the breakdown by race
+                    races = []
+                    sexes = []
+                    grades = []
+                    for node, attributes in node_attributes:
+                        for key, value in attributes.items():
+                            # print(f"  {key}: {value}")
+                            if key == 'race':
+                                races.append(value)
+                            if key == 'sex':
+                                sexes.append(value)
+                            if key == 'grade':
+                                grades.append(value)
                     total_race_identified = 0
                     race_count_dict = {}
                     for race in races_all:
@@ -335,6 +344,28 @@ for data_set_name in data_set_names:
                     percent_whites.append(percent_white)
                     percent_blacks.append(percent_black)
                     percent_hispanics.append(percent_hispanic)
+                if data_set_name == 'anyinteractions':
+                    # Get the breakdown by subcaste
+                    subcastes = []
+                    for node, attributes in node_attributes:
+                        for key, value in attributes.items():
+                            # print(f"  {key}: {value}")
+                            if key == 'subcaste':
+                                subcastes.append(value)
+                    
+                    subcaste_count_dict = {}
+                    for subcaste in subcastes:
+                        if subcaste not in subcaste_count_dict.keys():
+                            subcaste_count_dict[subcaste] = 0
+                        subcaste_count_dict[subcaste] += 1
+
+                    H_subcaste = 0
+                    for k,v in subcaste_count_dict.items():
+                        if v > 0:
+                            H_subcaste -= v/len(subcastes)*np.log(v/len(subcastes))
+                    
+                    print(subcaste_count_dict,H_subcaste)
+                    H_subcastes.append(H_subcaste)
 
                 # Compute the 
 
@@ -490,6 +521,12 @@ for data_set_name in data_set_names:
         scatter_plot_with_y_errors(percent_whites,comm_var_fraction_means,comm_var_fraction_stds,data_label,f"Percent white vs. community depth fraction",r'Percent white students',comm_var_fraction_label,'percent_white_vs_comm_var_fraction')
         scatter_plot_with_y_errors(percent_blacks,comm_var_fraction_means,comm_var_fraction_stds,data_label,f"Percent black vs. community depth fraction",r'Percent black students',comm_var_fraction_label,'percent_black_vs_comm_var_fraction')
 
+    if data_set_name == 'anyinteractions': # Indian villages, look at diversity as measured by the entropy of the subcaste distribution
+        scatter_plot_with_y_errors(H_subcastes,sigma_C_means,sigma_C_stds,data_label,f"Subcaste diversity vs. community status depth",r'Diversity $H_{subcaste}$',sigma_C_label,'H_subcaste_vs_sigma_C')
+        scatter_plot_with_y_errors(H_subcastes,sigma_I_means,sigma_I_stds,data_label,f"Subcaste diversity vs. individual status depth",r'Diversity $H_{subcaste}$',sigma_I_label,'H_subcaste_vs_sigma_I')
+        scatter_plot_with_y_errors(H_subcastes,sigma_T_means,sigma_T_stds,data_label,f"Subcaste diversity vs. total status depth",r'Diversity $H_{subcaste}$',sigma_T_label,'H_subcaste_vs_sigma_T')
+        scatter_plot_with_y_errors(H_subcastes,comm_var_fraction_means,comm_var_fraction_stds,data_label,f"Subcaste diversity vs. community depth fraction",r'Diversity $H_{subcaste}$',comm_var_fraction_label,'H_subcaste_vs_comm_var_fraction')
+
     ######################
     # Errors, log scale
     scatter_plot_log_x_scale_with_y_errors(ns,sigma_C_means,sigma_C_stds,data_label,f"Size vs. community status depth in {data_label.lower()}",r'Size $n$',sigma_C_label,'n_vs_sigma_C_log')
@@ -506,6 +543,28 @@ for data_set_name in data_set_names:
         scatter_plot(H_races,modularities,data_label,f"Racial diversity vs. modularity",r'Diversity $H_{race}$',"Modularity",'H_race_vs_modularity')
         scatter_plot(percent_whites,modularities,data_label,f"Percent white vs. modularity",r'Percent white students',"Modularity",'percent_white_vs_modularity')
         scatter_plot(percent_blacks,modularities,data_label,f"Percent black vs. modularity",r'Percent black students',"Modularity",'percent_black_vs_modularity')
+
+    if data_set_name == 'anyinteractions': # Only the high schools have the racial data we are familiar with
+        scatter_plot(H_subcastes,modularities,data_label,f"Subcaste diversity vs. modularity",r'Diversity $H_{subcaste}$',"Modularity",'H_subcaste_vs_modularity')
+
+    # Histogram of the sizes of the communities
+    plt.clf()
+    plt.hist(community_sizes, bins=40)
+    plt.xlabel("Community size")
+    plt.ylabel("Frequency")
+    plt.title(f"Distribution of community sizes in {data_label.lower()}")
+    plt.savefig(f"{figures_folder}/comm_sizes.png")
+    plt.savefig(f"{figures_folder}/comm_sizes.pdf")
+    plt.savefig(f"{figures_folder}/comm_sizes.svg")
+    
+    plt.clf()
+    plt.hist(avg_community_sizes, bins=20)
+    plt.xlabel("Average community size")
+    plt.ylabel("Frequency")
+    plt.title(f"Distribution of average community sizes in {data_label.lower()}")
+    plt.savefig(f"{figures_folder}/avg_comm_sizes.png")
+    plt.savefig(f"{figures_folder}/avg_comm_sizes.pdf")
+    plt.savefig(f"{figures_folder}/avg_comm_sizes.svg")
 
     # Contour plots of all of the schools
 
@@ -563,6 +622,25 @@ for data_set_name in data_set_names:
     plt.savefig(f"{figures_folder}/sigma_I_vs_sigma_C.png")    
     plt.savefig(f"{figures_folder}/sigma_I_vs_sigma_C.pdf")     
     plt.savefig(f"{figures_folder}/sigma_I_vs_sigma_C.svg")    
+
+    # Plotting the schools by size:
+    plt.clf()
+    ax = draw_contour_background(max_sigma_I,max_sigma_C,fig_width,fig_height)
+
+    sizes = np.sqrt(np.array(ns))
+
+    # Color the points by the size
+    s_plot = ax.scatter(sigma_I_means,sigma_C_means, s=sizes, c='black',zorder=2,alpha=0.5)
+
+    # Set labels and title
+    # plt.legend()
+    ax.set_xlabel(sigma_I_label)
+    ax.set_ylabel(sigma_C_label)
+    ax.set_title(f"Individual and community status depths in {data_label.lower()}")
+    plt.tight_layout(pad = 2)
+    plt.savefig(f"{figures_folder}/sigma_I_vs_sigma_C_no_color.png")    
+    plt.savefig(f"{figures_folder}/sigma_I_vs_sigma_C_no_color.pdf")     
+    plt.savefig(f"{figures_folder}/sigma_I_vs_sigma_C_no_color.svg")    
 
 
     
