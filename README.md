@@ -22,8 +22,6 @@
 <!-- prettier-ignore-end -->
 
 
-# community-hierarchy
-
 ### Model the interaction between community and hierarchy in directed graphs
 
 ##### Maximilian Jerdee, Elizabeth Bruch, Mark Newman
