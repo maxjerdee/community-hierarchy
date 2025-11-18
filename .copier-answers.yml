@@ -1,0 +1,14 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: 2025.11.10-5-g52b3bca
+_src_path: gh:scientific-python/cookie
+backend: skbuild
+docs: sphinx
+email: maxjerdee@gmail.com
+full_name: Maximilian Jerdee
+license: MIT
+org: maxjerdee
+project_name: community-hierarchy
+project_short_description: Model the interaction between community and hierarchy in
+    directed graphs
+url: https://github.com/maxjerdee/community-hierarchy
+vcs: true
