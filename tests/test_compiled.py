@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import directedstrcture._core as m
+import directedstructure._core as m
 
 
 def test_add():

@@ -1,4 +1,4 @@
-# directedstrcture
+# directedstructure
 
 ```{toctree}
 :maxdepth: 2

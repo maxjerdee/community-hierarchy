@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import importlib.metadata
 
-import directedstrcture as m
+import directedstructure as m
 
 
 def test_version():
-    assert importlib.metadata.version("directedstrcture") == m.__version__
+    assert importlib.metadata.version("directedstructure") == m.__version__

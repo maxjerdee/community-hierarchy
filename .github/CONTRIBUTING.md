@@ -59,7 +59,7 @@ uv run pytest
 Use pytest-cov to generate coverage reports:
 
 ```bash
-uv run pytest --cov=directedstrcture
+uv run pytest --cov=directedstructure
 ```
 
 # Building docs
