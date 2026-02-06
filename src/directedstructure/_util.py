@@ -58,6 +58,7 @@ def log_sum_exp(x: ArrayLike) -> float | np.complex64:
     a: np.float64 | np.complex64 = np.max(x)
     return a + np.log(np.sum(np.exp(x - a)))
 
+
 def log_mean_and_se(x: ArrayLike) -> tuple[float, float]:
     """Overflow protected log(mean(exp(x))) and standard error of that log(mean) given an array x.
 
@@ -73,13 +74,8 @@ def log_mean_and_se(x: ArrayLike) -> tuple[float, float]:
         variance_shifted = np.exp(0) - np.exp(2 * log_E_Z - log_E_Z_2)
         if variance_shifted <= 0.0:
             return log_E_Z, 0.0
-        log_std = 0.5 * (
-            np.log(variance_shifted)
-            + log_E_Z_2
-        )
-        log_Z_err_est = np.exp(
-            log_std - 0.5 * np.log(len(x)) - log_E_Z
-        )
+        log_std = 0.5 * (np.log(variance_shifted) + log_E_Z_2)
+        log_Z_err_est = np.exp(log_std - 0.5 * np.log(len(x)) - log_E_Z)
     else:
         log_Z_err_est = np.nan
 
@@ -100,16 +96,19 @@ def concentration_to_variation(concentration: float) -> float:
     """
     if concentration < 0.0:
         raise ValueError("Concentration parameter cannot be negative.")
-    
+
     # Hardcoded cases
     if concentration == 0.0:
         return 1.0
     if concentration == np.inf:
         return 0.0
-    
-    return np.exp(log_binom(concentration - 0.5, - 0.5)) # binom(alpha - 1/2, alpha)
 
-def variation_to_concentration(variation: float, tol: float = 1e-8, max_iter: int = 100) -> float:
+    return np.exp(log_binom(concentration - 0.5, -0.5))  # binom(alpha - 1/2, alpha)
+
+
+def variation_to_concentration(
+    variation: float, tol: float = 1e-8, max_iter: int = 100
+) -> float:
     """Convert variation parameter (gamma Gini coefficient) to concentration parameter (symmetric Dirichlet).
     This is not an analytic inversion, but rather numerically solves through iteration.
 

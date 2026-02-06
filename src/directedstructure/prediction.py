@@ -1,5 +1,5 @@
 # Module for computing the posterior probability of edges (observed and unobserved) in the network
-# These functions can be intensive and so wrap c++ implementations. 
+# These functions can be intensive and so wrap c++ implementations.
 
 from __future__ import annotations
 
@@ -13,9 +13,9 @@ from .core import samples
 
 
 def expected_edges(
-        G: nx.Graph,
-        **kwargs,
-        ) -> pd.DataFrame:
+    G: nx.Graph,
+    **kwargs,
+) -> pd.DataFrame:
     """
     Compute the expected number of edges between each pair of nodes in the network according to the posterior predictive.
 
@@ -25,7 +25,7 @@ def expected_edges(
         NetworkX graph to compute expected edge counts for.
     **kwargs :
         Additional keyword arguments to pass to specify model and sampling configuration (see `samples` function for full list).
-        
+
     Returns
     -------
     pd.DataFrame
@@ -38,16 +38,19 @@ def expected_edges(
     # Size warning: This function may be very slow for large graphs since it needs to process all pairs of nodes.
     num_nodes = G.number_of_nodes()
     if num_nodes > 1e4:
-        print("Warning: Computing expected edges for large graphs may be very slow and memory intensive.")
+        print(
+            "Warning: Computing expected edges for large graphs may be very slow and memory intensive."
+        )
 
     # Get the samples for this model configuration (likely cached)
     samples_df = samples(G, **kwargs)
 
-    # Convert the samples into a large numpy array 
+    # Convert the samples into a large numpy array
 
     # Pass these samples to the C++ function to compute expected edges
 
     pass
+
 
 def anomalies(G: nx.Graph, **kwargs) -> pd.DataFrame:
     """
@@ -70,10 +73,15 @@ def anomalies(G: nx.Graph, **kwargs) -> pd.DataFrame:
 
     # Size warning
     num_nodes = G.number_of_nodes()
-    if num_nodes > 1e5: # Set the limit higher than the other predictive functions since this will only be computed on the present edges
-        print("Warning: Computing anomalies for large graphs may be very slow and memory intensive.")
+    if (
+        num_nodes > 1e5
+    ):  # Set the limit higher than the other predictive functions since this will only be computed on the present edges
+        print(
+            "Warning: Computing anomalies for large graphs may be very slow and memory intensive."
+        )
 
     pass
+
 
 def link_predictions(G: nx.Graph, **kwargs) -> pd.DataFrame:
     """
@@ -95,6 +103,7 @@ def link_predictions(G: nx.Graph, **kwargs) -> pd.DataFrame:
     _check_input_validity(G, **kwargs)
 
     pass
+
 
 def posterior_predictive(G_train: nx.Graph, G_test: nx.Graph, **kwargs) -> pd.DataFrame:
     """

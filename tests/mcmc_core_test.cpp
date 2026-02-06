@@ -1,3 +1,5 @@
+// Script to allow for testing and debugging the MCMC core class without needing to run the full Python interface. This is useful for faster iteration during development and debugging of the core MCMC algorithm.
+
 #include "MCMC_core.h"
 
 #include <iostream>

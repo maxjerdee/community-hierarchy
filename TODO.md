@@ -12,4 +12,10 @@ Q: Does the fact that the meaning of the scores, stored in the [0,1] interval, c
 
 1/29/16:
 - Changed proposals to act on sigma_I * scores to avoid the earlier ergodicity issues that were leading to the sigma_I sinkhole. 
-- Still need to check against Mathematica for the simple test case. 
+- Still need to check against Mathematica for the simple test case.
+
+2/6/26:
+- Implemented the community-hierarchy interaction, and treatment of ties (neutral interactions)
+- For some reason the direct c++ runs 3x faster than the same function when called from python. Having trouble figuring out what the difference is here. 
+- Should implement the rest of the API, host the function on pypi, and get the documentation live.
+- Add some basic functionality tests (checks against exact Mathematica results)

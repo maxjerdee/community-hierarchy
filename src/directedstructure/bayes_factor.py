@@ -4,6 +4,7 @@
 import networkx as nx
 from .input_output import _check_input_validity, _set_model_parameters
 
+
 def _one_group_bayesian_evidence(G: nx.Graph, model_name: str):
     """
     Compute the bayesian evidence for a model restricted to a single group.
@@ -12,9 +13,10 @@ def _one_group_bayesian_evidence(G: nx.Graph, model_name: str):
     # It may also involve integrating over the mean_degree_scaling parameter if that is not fixed.
 
     # We note that the one-group model has the form P(A|k) P(k|m,alpha) P(m|rho_in, lambda_in, scaling)
-    # It's unclear to me if the scaling is needed here. 
-    # Since we have this factorization, we can integrate over alpha separately from rho_in, lmabda_in, scaling. 
+    # It's unclear to me if the scaling is needed here.
+    # Since we have this factorization, we can integrate over alpha separately from rho_in, lmabda_in, scaling.
     pass
+
 
 def bayesian_evidence(G: nx.Graph, model_name: str, **kwargs) -> float:
     """
@@ -39,10 +41,27 @@ def bayesian_evidence(G: nx.Graph, model_name: str, **kwargs) -> float:
         G = G.to_undirected()
 
     # Set model parameters according to model_name if needed
-    assortative, mixing_variation, variation_in, variation_out, degree_correction, mean_degree_scaling, num_groups = _set_model_parameters(model_name, assortative, mixing_variation, variation_in, variation_out, degree_correction, mean_degree_scaling, num_groups)
-    
+    (
+        assortative,
+        mixing_variation,
+        variation_in,
+        variation_out,
+        degree_correction,
+        mean_degree_scaling,
+        num_groups,
+    ) = _set_model_parameters(
+        model_name,
+        assortative,
+        mixing_variation,
+        variation_in,
+        variation_out,
+        degree_correction,
+        mean_degree_scaling,
+        num_groups,
+    )
+
     # Run a few sweeps of the model to warm up the chain and get a rough estimate of the distribution of the number of groups
-    
+
     # Set the num_groups_cutoff at the largest number of groups observed during the warm-up phase plus a buffer
 
     # Run the Wang-Landau algorithm to compute the H(q|A) for this model
@@ -54,7 +73,6 @@ def bayesian_evidence(G: nx.Graph, model_name: str, **kwargs) -> float:
     # Run a MCMC sweep
 
     # Propose a move to change the number of groups, and supplement the accept/reject with the current density of state estimates
-    
 
 
 def bayes_factor(G: nx.Graph, model_1: str, model_2: str, **kwargs) -> float:
@@ -67,9 +85,9 @@ def bayes_factor(G: nx.Graph, model_1: str, model_2: str, **kwargs) -> float:
     G : nx.Graph
         NetworkX graph to compute the Bayes factor for.
     model_1 : str
-        Name of the first model. 
+        Name of the first model.
     model_2 : str
-        Name of the second model. 
+        Name of the second model.
     **kwargs :
         Additional keyword arguments to pass to specify model and sampling configuration (see `samples` function for full list).
     """

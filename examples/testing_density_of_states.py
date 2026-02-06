@@ -7,7 +7,6 @@ import directedstructure as ds
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 # Read gml file
 G = nx.read_gml("examples/data/friends.gml")
 
@@ -24,19 +23,20 @@ MCMC_sampler = ds.MCMC(
     neighbors,
     in_neighbors,
     out_neighbors,
-        partition,
-        2,              
-        False,         
-        False,           
-        0.5,            
-        True,         
-        0.5,           
-        True,        
-        0.0,           
-        True,          
-        0.0,            
-        True,          
-        42);           
+    partition,
+    2,
+    False,
+    False,
+    0.5,
+    True,
+    0.5,
+    True,
+    0.0,
+    True,
+    0.0,
+    True,
+    42,
+)
 
 # Running some normal MCMC sweeps
 num_samples = 1000
@@ -62,19 +62,23 @@ for i in range(100000):
     if (i + 1) % 10000 == 0:
         print(f"Wang-Landau MCMC Sweep {i + 1}")
         # Save the current estimate of the density of states
-        log_density_num_groups = getattr(MCMC_sampler, 'log_density_num_groups')[1:15] # Skip zero groups
-        plt.plot(range(1, len(log_density_num_groups) + 1), np.exp(log_density_num_groups-np.max(log_density_num_groups))) # Normalize for numerical stability
-        plt.xlabel('Number of Groups')
-        plt.ylabel('Estimated Density of States (normalized)')
-        plt.title('Estimated Density of States from Wang-Landau')
-        plt.savefig('examples/testing_density_of_states.png')
+        log_density_num_groups = getattr(MCMC_sampler, "log_density_num_groups")[
+            1:15
+        ]  # Skip zero groups
+        plt.plot(
+            range(1, len(log_density_num_groups) + 1),
+            np.exp(log_density_num_groups - np.max(log_density_num_groups)),
+        )  # Normalize for numerical stability
+        plt.xlabel("Number of Groups")
+        plt.ylabel("Estimated Density of States (normalized)")
+        plt.title("Estimated Density of States from Wang-Landau")
+        plt.savefig("examples/testing_density_of_states.png")
         print(log_density_num_groups)
-            
-            
-    wang_landau_modification_factor = 0.001/(1 + i/1000.0) # Decrease modification factor over time
+
+    wang_landau_modification_factor = 0.001 / (
+        1 + i / 1000.0
+    )  # Decrease modification factor over time
     MCMC_sampler.MCMC_sweep(1.0, False, wang_landau_modification_factor, 15)
-
-
 
 
 # # Print the type of G
@@ -100,7 +104,7 @@ for i in range(100000):
 
 # # print(node_groups_df)
 
-# # Use Wang-Landau to numerically compute the Bayes factor between two models. Note that note all combinations of models are valid. 
+# # Use Wang-Landau to numerically compute the Bayes factor between two models. Note that note all combinations of models are valid.
 
 # bayes_factor_value = ds.bayes_factor(G, model_1 = "traditional_SBM", model_2 = "traditional_DCSBM", seed = 0, num_samples = 10000, merge_split_enabled = False)
 

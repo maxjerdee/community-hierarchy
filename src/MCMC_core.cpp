@@ -304,7 +304,8 @@ void MCMC::MCMC_sweep(double beta, bool merge_split_enabled, double wang_landau_
     
     auto sweep_end_time = std::chrono::high_resolution_clock::now();
     auto sweep_duration = std::chrono::duration_cast<std::chrono::milliseconds>(sweep_end_time - sweep_start_time).count();
-    std::cout << "MCMC_sweep: " << sweep_duration << "ms, " << (total_proposals - total_proposals_before) << " proposals, n=" << n << std::endl;
+    // Print time taken
+    // std::cout << "MCMC_sweep: " << sweep_duration << "ms, " << (total_proposals - total_proposals_before) << " proposals, n=" << n << std::endl;
 }
 
 /**
