@@ -32,6 +32,7 @@ def samples(
     initial_scores: list[float] | None = None,
     seed: int | None = None,
     num_samples: int = 1000, 
+    sweeps_per_sample: int = 10,
     merge_split_enabled: bool = True, 
     beta: float = 1.0,
     num_tempering_chains: int = 1, 
@@ -123,6 +124,8 @@ def samples(
         Random seed for reproducibility. Defaults to None.
     num_samples : int, optional
         Number of samples to take. Defaults to 1000.
+    sweeps_per_sample : int, optional
+        Number of MCMC sweeps to perform between each sample. Defaults to 10.
     merge_split_enabled: bool, optional
         Whether to use merge-split moves in the MCMC sampling. Defaults to True.
     beta : float, optional
@@ -189,6 +192,7 @@ def samples(
         initial_scores_tuple,
         seed,
         num_samples,
+        sweeps_per_sample,
         merge_split_enabled,
         beta,
         num_tempering_chains,

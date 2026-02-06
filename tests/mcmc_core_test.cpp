@@ -104,6 +104,8 @@ int main() {
         partition[i] = rand() % 4;  // Randomly assign to group 0 or 1
     }
     
+    // Initial scores zero
+    std::vector<double> scores(wins.size(), 0.0);
 
     // // Simple 3-node test network
     // std::vector<std::unordered_map<int, double>> out_neighbors(3);
@@ -153,10 +155,29 @@ int main() {
     //     false,          // mean_degree_scaling_fixed
     //     46);            // seed
 
+//     Current individual_depth: 0.00285373, group_depth: 5.50269
+// Current H_A_b: 4016.1, H_Adir_G_A_s_nu: 754.709, H_s_G_b_depths: 491.956
+// MCMC Sweep 37910, wang_landau_modification_factor: 0.002570
+
+/*
+MCMC Sweep 37485, wang_landau_modification_factor: 0.002598
+Current individual_depth: 1.7147, group_depth: 1.6392
+Current H_A_b: 4035, H_Adir_G_A_s_nu: 572.011, H_s_G_b_depths: 408.005
+MCMC Sweep 37486, wang_landau_modification_factor: 0.002598
+Current individual_depth: 1.7147, group_depth: 1.6392
+Current H_A_b: 4177.56, H_Adir_G_A_s_nu: 568.478, H_s_G_b_depths: 9.66102e+11
+MCMC Sweep 37487, wang_landau_modification_factor: 0.002598
+Current individual_depth: 1.7147, group_depth: 1.90919
+Current H_A_b: 4208.7, H_Adir_G_A_s_nu: 568.507, H_s_G_b_depths: 3.31476e+09
+MCMC Sweep 37488, wang_landau_modification_factor: 0.002598
+Current individual_depth: 1.68126, group_depth: 1.90919
+*/
+
     // Canonical typical DCSBM
     MCMC m(wins,
         ties,
         partition,
+        scores,
         2,              // num_groups (passed as value)
         false,          // num_groups_fixed
         false,           // assortative
@@ -182,7 +203,7 @@ int main() {
     
     */
     
-    int num_samples = 100000;
+    int num_samples = 1000000;
     int num_samples_used = num_samples / 2;
     
     // Track statistics
@@ -214,7 +235,7 @@ int main() {
         // m.MCMC_sweep(0.0, true); // Testing merge-split
         // m.MCMC_sweep(0.0, false); // Testing single site
         // m.MCMC_sweep(1.0, false, wang_landau_modification_factor, 15); // Testing WL algorithm
-        m.MCMC_sweep(1.0, false);
+        m.MCMC_sweep(1.0, false, -1.0, -1, 1000);
         
         // Only count samples from the second half towards histograms and statistics
         if(i >= num_samples - num_samples_used) {
@@ -259,18 +280,18 @@ int main() {
             first_score_hist[score_bin]++;
         }
         
-        // Print current partition
-        std::cout << "Current partition: ";
-        for(const auto& group : m.partition){
-            std::cout << group << " ";
-        }
-        std::cout << std::endl;
-        // Print the first 10 scores
-        std::cout << "Current scores: ";
-        for(int s = 0; s < std::min(10, static_cast<int>(m.scores.size())); s++){
-            std::cout << m.scores[s] << " ";
-        }
-        std::cout << std::endl;
+        // // Print current partition
+        // std::cout << "Current partition: ";
+        // for(const auto& group : m.partition){
+        //     std::cout << group << " ";
+        // }
+        // std::cout << std::endl;
+        // // Print the first 10 scores
+        // std::cout << "Current scores: ";
+        // for(int s = 0; s < std::min(10, static_cast<int>(m.scores.size())); s++){
+        //     std::cout << m.scores[s] << " ";
+        // }
+        // std::cout << std::endl;
         // Print the current depths
         std::cout << "Current individual_depth: " << m.individual_depth << ", group_depth: " << m.group_depth << std::endl;
         // Print the current H_A_b, H_Adir_G_A_s, H_s_G_b_depths

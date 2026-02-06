@@ -243,6 +243,25 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     }
     for (std::size_t r = 0; r < static_cast<std::size_t>(num_groups); r++) {
         if (r < group_scaled_score_sums.size()) {
+            if(throw_error && (std::isnan(group_scaled_score_sums_actual[r]) ||  std::isnan(group_scaled_score_sums[r]) || std::abs(group_scaled_score_sums_actual[r] - group_scaled_score_sums[r]) > NUMERICAL_CHECK_EPSILON)){
+                std::cerr << "Error: group_scaled_score_sums does not match the actual value for group " << r << ".\n";
+                std::cerr << "group_scaled_score_sums[" << r << "]: " << group_scaled_score_sums[r] << ", group_scaled_score_sums_actual[" << r << "]: " << group_scaled_score_sums_actual[r] << "\n";
+                // Print out the node_counts and group members for debugging
+                std::cerr << "node_counts[" << r << "]: " << node_counts[r] << "\n";
+                std::cerr << "group_members[" << r << "]: "; 
+                for (int node : group_members[r]) {
+                    std::cerr << node << " ";
+                }                
+                std::cerr << "\n";
+                // Print the scores of the nodes in the group for further debugging
+                std::cerr << "scores of nodes in group " << r << ": ";
+                for (int node : group_members[r]) {
+                    std::cerr << "node " << node << ": score " << scores[node] << ", scaled_score " << scaled_scores[node] << "\n";
+                }
+                // Print the individual_depth
+                std::cerr << "individual_depth: " << individual_depth << "\n";
+                exit(1);
+            }
             group_scaled_score_sums[r] = value_check(group_scaled_score_sums_actual[r], group_scaled_score_sums[r], NUMERICAL_CHECK_EPSILON, throw_error, "group_scaled_score_sums[" + std::to_string(r) + "]");
         } else {
             if (throw_error) {

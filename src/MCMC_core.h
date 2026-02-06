@@ -177,7 +177,7 @@ public:
     int accepted_ties_parameter_proposals = 0; // Total number of ties_parameter proposals
 
     /* API */
-    void MCMC_sweep(double beta = 1.0, bool merge_split_enabled = true, double wang_landau_modification_factor = -1.0, int max_num_groups_cutoff = -1); // Perform an MCMC sweep; merge_split toggles merge/split proposals
+    void MCMC_sweep(double beta = 1.0, bool merge_split_enabled = true, double wang_landau_modification_factor = -1.0, int max_num_groups_cutoff = -1, int num_sweeps = 1); // Perform MCMC sweeps; merge_split toggles merge/split proposals
     void change_parameter(const std::string& param_name, double new_value); // Change a continuous parameter. Accessible for Python entropic sampling. 
 
     // Functions that include the logic to generate a proposal

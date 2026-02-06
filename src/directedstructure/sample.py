@@ -81,6 +81,7 @@ def _samples_cached(
     initial_scores_tuple,
     seed,
     num_samples: int,
+    sweeps_per_sample: int,
     merge_split_enabled: bool,
     beta: float,
     num_tempering_chains: int,
@@ -237,8 +238,7 @@ def _samples_cached(
             # Run a sweep through the MCMC for this beta.
             # This proposes one single site swap for each node, hyperparameter proposals, 
             # and one global merge/split if enabled.
-            for t in range(10):
-                MCMC_states[chain_beta].MCMC_sweep(chain_beta, merge_split_enabled)
+            MCMC_states[chain_beta].MCMC_sweep(chain_beta, merge_split_enabled, num_sweeps=sweeps_per_sample)
 
             # Add a new row to the samples dataframe
             samples_df.at[len(samples_df), "beta"] = chain_beta

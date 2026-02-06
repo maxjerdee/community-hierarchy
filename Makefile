@@ -12,7 +12,7 @@ PYBIND11_INCLUDES := $(shell $(PYTHON) -m pybind11 --includes 2>/dev/null)
 PY_LDFLAGS := $(shell $(PYTHON)-config --embed --ldflags 2>/dev/null || $(PYTHON)-config --ldflags 2>/dev/null || python3-config --embed --ldflags 2>/dev/null || python3-config --ldflags 2>/dev/null || echo "")
 MKDIR_P := mkdir -p
 
-CXXFLAGS := -std=c++17 -Wall -Wextra -O2 -fPIC -I$(SRC_DIR)
+CXXFLAGS := -std=c++17 -Wall -Wextra -O3 -march=native -fPIC -I$(SRC_DIR) -DDIRECTEDSTRUCTURE_PYBIND
 
 SOURCES := $(SRC_DIR)/MCMC_core.cpp \
 		   $(SRC_DIR)/MCMC_proposals.cpp \

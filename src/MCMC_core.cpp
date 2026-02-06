@@ -5,11 +5,14 @@
 #include "helpers.h"
 #include <algorithm>
 #include <iostream>
+#include <chrono>
 
+#ifdef DIRECTEDSTRUCTURE_PYBIND
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
 namespace py = pybind11;
+#endif
 
 /**
  * MCMC Constructor
@@ -248,9 +251,12 @@ MCMC::MCMC(std::vector<std::unordered_map<int, double>> wins,
  * @param merge_split_enabled: Enable/disable merge and split moves, defaults to true
  * @param wang_landau_modification_factor: If > 0, use Wang-Landau with this modification factor, defaults to -1 (disabled)
  * @param max_num_groups_cutoff: Maximum number of groups to track in Wang-Landau, defaults to -1 (no cutoff)
+ * @param num_sweeps: Number of sweeps to run, defaults to 1
  * 
  */
-void MCMC::MCMC_sweep(double beta, bool merge_split_enabled, double wang_landau_modification_factor, int max_num_groups_cutoff) {
+void MCMC::MCMC_sweep(double beta, bool merge_split_enabled, double wang_landau_modification_factor, int max_num_groups_cutoff, int num_sweeps) {
+    auto sweep_start_time = std::chrono::high_resolution_clock::now();
+    
     this->beta = beta;  // Set inverse temperature for this sweep
     this->merge_split_enabled = merge_split_enabled;  // Toggle merge/split proposals
     this->wang_landau_modification_factor = wang_landau_modification_factor; // Set Wang-Landau modification factor
@@ -276,27 +282,29 @@ void MCMC::MCMC_sweep(double beta, bool merge_split_enabled, double wang_landau_
     //     {"split_move", 1.0}
     // };
     
-    // Perform n proposal attempts (expected: one per node)
-    for(int i = 0; i < n; i++){
-        if(verbose){
-            print("MCMC sweep proposal " + std::to_string(i + 1) + " of " + std::to_string(n));
-        }
-        propose_move();  // Generate and accept/reject a random proposal
+    // Perform num_sweeps sweeps; each sweep has n proposal attempts (expected: one per node)
+    int total_proposals_before = total_proposals;
+    for(int sweep = 0; sweep < num_sweeps; sweep++){
+        for(int i = 0; i < n; i++){
+            if(verbose){
+                print("MCMC sweep " + std::to_string(sweep + 1) + ", proposal " + std::to_string(i + 1) + " of " + std::to_string(n));
+            }
+            propose_move();  // Generate and accept/reject a random proposal
 
-        // If Wang-Landau is enabled, update log density of states
-        if(wang_landau_modification_factor > 0){
-            log_density_num_groups[num_groups] += wang_landau_modification_factor;
+            // If Wang-Landau is enabled, update log density of states
+            if(wang_landau_modification_factor > 0){
+                log_density_num_groups[num_groups] += wang_landau_modification_factor;
+            }
+            // // Print the entropies
+            // print("H_A_b: " + std::to_string(H_A_b) + ", H_A_G_b: " + std::to_string(H_A_G_b) + ", H_k: " + std::to_string(H_k) + ", H_M: " + std::to_string(H_M) + ", H_parameters: " + std::to_string(H_parameters) + ", H_b: " + std::to_string(H_b));
         }
-        
-        if(verbose){
-            // Validate bookkeeping consistency (expensive, for debugging)
-            check_state_bookkeeping(true); // Check after each proposal
-        }
-        // // Print the entropies
-        // print("H_A_b: " + std::to_string(H_A_b) + ", H_A_G_b: " + std::to_string(H_A_G_b) + ", H_k: " + std::to_string(H_k) + ", H_M: " + std::to_string(H_M) + ", H_parameters: " + std::to_string(H_parameters) + ", H_b: " + std::to_string(H_b));
     }
-    // Final bookkeeping check at end of sweep
+    // Final bookkeeping check at end of all sweeps
     check_state_bookkeeping(true);
+    
+    auto sweep_end_time = std::chrono::high_resolution_clock::now();
+    auto sweep_duration = std::chrono::duration_cast<std::chrono::milliseconds>(sweep_end_time - sweep_start_time).count();
+    std::cout << "MCMC_sweep: " << sweep_duration << "ms, " << (total_proposals - total_proposals_before) << " proposals, n=" << n << std::endl;
 }
 
 /**
@@ -619,6 +627,7 @@ void MCMC::change_parameter(const std::string& param_name, double new_value) {
     }
 }
 
+#ifdef DIRECTEDSTRUCTURE_PYBIND
 PYBIND11_MODULE(MCMC_core, m) {
     py::class_<MCMC>(m, "MCMC")
         .def(py::init<
@@ -696,7 +705,8 @@ PYBIND11_MODULE(MCMC_core, m) {
            .def_readonly("wang_landau_modification_factor", &MCMC::wang_landau_modification_factor)
            .def_readonly("max_num_groups_cutoff", &MCMC::max_num_groups_cutoff)
            .def_readonly("log_density_num_groups", &MCMC::log_density_num_groups)
-           .def("MCMC_sweep", &MCMC::MCMC_sweep, py::arg("beta") = 1.0, py::arg("merge_split_enabled") = true, py::arg("wang_landau_modification_factor") = -1.0, py::arg("max_num_groups_cutoff") = -1)
+           .def("MCMC_sweep", &MCMC::MCMC_sweep, py::arg("beta") = 1.0, py::arg("merge_split_enabled") = true, py::arg("wang_landau_modification_factor") = -1.0, py::arg("max_num_groups_cutoff") = -1, py::arg("num_sweeps") = 1)
            .def("change_parameter", &MCMC::change_parameter, py::arg("param_name"), py::arg("new_value"));
 
 }
+#endif
