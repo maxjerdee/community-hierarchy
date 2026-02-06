@@ -15,9 +15,9 @@ from .clusterings import consensus_clustering
 def samples(
     G: nx.Graph, 
     *,
-    groups_model_name: str = 'general_canonical', 
-    hierarchy_model_name: str = _UNSET,
-    interaction_name: str = 'coupled',
+    groups_model: str = 'general_canonical', 
+    hierarchy_model: str = _UNSET,
+    interaction: str = 'coupled',
     assortative: bool = _UNSET,
     mixing_variation: str = _UNSET, 
     variation_in: float | None = _UNSET,
@@ -29,6 +29,7 @@ def samples(
     ties_parameter: float | None = _UNSET,
     num_groups: int | None = _UNSET,
     initial_partition: list[int] | None = None, 
+    initial_scores: list[float] | None = None,
     seed: int | None = None,
     num_samples: int = 1000, 
     merge_split_enabled: bool = True, 
@@ -47,7 +48,7 @@ def samples(
 
     G : nx.Graph
         NetworkX graph to find group structure of.
-    groups_model_name : str, optional
+    groups_model : str, optional
         Type of model to fit. Choices fix parameters to special cases of interest, but can be overridden by providing specific parameter values.
         Options and corrresponding parameter values:
             - 'general_canonical': All parameters inferred except mean_degree_scaling, which is set to 0 (canonical model) [Default]
@@ -62,13 +63,13 @@ def samples(
             - 'microcanonical_DCSBM': assortative = False, mixing_variation = 'simple', degree_correction = 0.5, mean_degree_scaling = -1 (microcanonical degree-corrected SBM)
             - 'general_unified': All parameters inferred including mean_degree_scaling (generalizes all models considered)
         Defaults to 'general_canonical'. If a different model_name is provided, the corresponding parameters are set unless explicitly overridden.
-    hierarchy_model_name : str, optional
+    hierarchy_model : str, optional
         Type of hierarchy model to fit. Options:
             - 'bradley_terry': Bradley-Terry model for pairwise comparisons
             - 'bradley_terry_ties': Bradley-Terry model with ties
         Defaults to 'bradley_terry_ties' with neutral interactions are present and 'bradley_terry' otherwise. 
         If neutral interactions are present and 'bradley_terry' is chosen only dominant interactions are used.
-    interaction_name : str, optional
+    interaction : str, optional
         Type of coupling between groups and hierarchy to use. Options:
             - 'coupled': groups and hierarchy are coupled (default)
             - 'independent': groups and hierarchy are inferred independently
@@ -115,7 +116,9 @@ def samples(
     num_groups : int, optional
         Number of communities (q) in the graph. If None, the number of communities is inferred from the data. Defaults to None.
     initial_partition : List[int], optional
-        Initial partition of the graph. If None, a random partition is used. Defaults to None.
+        Initial partition of the graph. If None, a modularity maximized partition is used. Defaults to None.
+    initial_scores : List[float], optional
+        Initial scores of the nodes for the hierarchy model. If None, win percentages are used. Defaults to None.
     seed : int, optional
         Random seed for reproducibility. Defaults to None.
     num_samples : int, optional
@@ -140,9 +143,9 @@ def samples(
     """
 
     # Check input validity
-    _check_input_validity(G=G, groups_model_name=groups_model_name, hierarchy_model_name=hierarchy_model_name, interaction_name=interaction_name, assortative=assortative, mixing_variation=mixing_variation, variation_in=variation_in, variation_out=variation_out, degree_correction=degree_correction, mean_degree_scaling=mean_degree_scaling,
+    _check_input_validity(G=G, groups_model=groups_model, hierarchy_model=hierarchy_model, interaction=interaction, assortative=assortative, mixing_variation=mixing_variation, variation_in=variation_in, variation_out=variation_out, degree_correction=degree_correction, mean_degree_scaling=mean_degree_scaling,
         individual_depth=individual_depth, group_depth=group_depth, ties_parameter=ties_parameter,
-        num_groups=num_groups, initial_partition=initial_partition, seed=seed, num_samples=num_samples, merge_split_enabled=merge_split_enabled, beta=beta, num_tempering_chains=num_tempering_chains, no_cache=no_cache, timeout=timeout, verbose=verbose)
+        num_groups=num_groups, initial_partition=initial_partition, initial_scores=initial_scores, seed=seed, num_samples=num_samples, merge_split_enabled=merge_split_enabled, beta=beta, num_tempering_chains=num_tempering_chains, no_cache=no_cache, timeout=timeout, verbose=verbose)
 
     # Split the graph into a directed graph of wins and an undirected graph of ties
     G_wins = nx.DiGraph()
@@ -153,7 +156,7 @@ def samples(
         if d.get('type') == 'dominant':
             G_wins.add_edge(u, v)
         elif d.get('type') == 'neutral':
-            if hierarchy_model_name != "bradley_terry": # Bradley-Terry model drops ties
+            if hierarchy_model != "bradley_terry": # Bradley-Terry model drops ties
                 G_ties.add_edge(u, v)
 
     if verbose:
@@ -165,9 +168,10 @@ def samples(
 
     # Normalize possibly-unhashable args
     initial_partition_tuple = tuple(initial_partition) if initial_partition is not None else None
+    initial_scores_tuple = tuple(initial_scores) if initial_scores is not None else None
 
     # Set model parameters according to model_name if needed
-    assortative, mixing_variation, variation_in, variation_out, degree_correction, mean_degree_scaling, individual_depth, group_depth, ties_parameter, num_groups = _set_model_parameters(groups_model_name, hierarchy_model_name, interaction_name, assortative, mixing_variation, variation_in, variation_out, degree_correction, mean_degree_scaling, individual_depth, group_depth, ties_parameter, num_groups)
+    assortative, mixing_variation, variation_in, variation_out, degree_correction, mean_degree_scaling, individual_depth, group_depth, ties_parameter, num_groups = _set_model_parameters(groups_model, hierarchy_model, interaction, assortative, mixing_variation, variation_in, variation_out, degree_correction, mean_degree_scaling, individual_depth, group_depth, ties_parameter, num_groups)
 
     return _samples_cached(
         G_wins_hash,
@@ -182,6 +186,7 @@ def samples(
         ties_parameter,
         num_groups,
         initial_partition_tuple,
+        initial_scores_tuple,
         seed,
         num_samples,
         merge_split_enabled,

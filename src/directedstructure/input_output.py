@@ -14,9 +14,9 @@ def _check_input_validity(
     G: nx.Graph,
     node_groups: Optional[pd.DataFrame] = None,
     *,
-    groups_model_name: str = "general_canonical",
-    hierarchy_model_name: str = _UNSET,
-    interaction_name: str = "coupled",
+    groups_model: str = "general_canonical",
+    hierarchy_model: str = _UNSET,
+    interaction: str = "coupled",
     assortative: bool = _UNSET,
     mixing_variation: str = _UNSET,
     variation_in: Optional[float] = _UNSET,
@@ -28,6 +28,7 @@ def _check_input_validity(
     ties_parameter: Optional[float] = _UNSET,
     num_groups: Optional[int] = _UNSET,
     initial_partition: Optional[Iterable[int]] = None,
+    initial_scores: Optional[Iterable[float]] = None,
     seed: Optional[int] = None,
     num_samples: int = 1000,
     merge_split_enabled: bool = True,
@@ -66,7 +67,7 @@ def _check_input_validity(
             if 'type' not in data:
                 raise ValueError(f"Edge ({u}, {v}) is missing 'type' attribute while other edges have it.")
 
-    # groups_model_name
+    # groups_model
     valid_models = [
         "general_canonical",
         "general_unified",
@@ -77,28 +78,28 @@ def _check_input_validity(
         "hybrid_ASBM",
         "planted_partition",
     ]
-    if groups_model_name not in valid_models:
-        raise ValueError(f"Unknown groups_model_name '{groups_model_name}'. Valid options: {valid_models}")
+    if groups_model not in valid_models:
+        raise ValueError(f"Unknown groups_model '{groups_model}'. Valid options: {valid_models}")
 
-    # hierarchy_model_name
-    if hierarchy_model_name is _UNSET:
+    # hierarchy_model
+    if hierarchy_model is _UNSET:
         if neutral_type_found:
-            hierarchy_model_name = "bradley_terry_ties" # Default when ties are present
+            hierarchy_model = "bradley_terry_ties" # Default when ties are present
         else:
-            hierarchy_model_name = "bradley_terry" # Default when no ties
+            hierarchy_model = "bradley_terry" # Default when no ties
 
     # Warning, neutral edges will be ignored by bradley_terry model
-    if hierarchy_model_name == "bradley_terry" and neutral_type_found:
+    if hierarchy_model == "bradley_terry" and neutral_type_found:
         warnings.warn("Hierarchy model 'bradley_terry' does not account for neutral edges. These edges will be ignored in hierarchy inference. 'bradley_terry_ties' model will account for them.", UserWarning)
 
     valid_hierarchy_models = ["bradley_terry", "bradley_terry_ties"]
-    if hierarchy_model_name not in valid_hierarchy_models:
-        raise ValueError(f"Unknown hierarchy_model_name '{hierarchy_model_name}'. Valid options: {valid_hierarchy_models}")
+    if hierarchy_model not in valid_hierarchy_models:
+        raise ValueError(f"Unknown hierarchy_model '{hierarchy_model}'. Valid options: {valid_hierarchy_models}")
 
-    # interaction_name
-    valid_interaction_names = ["coupled", "independent"]
-    if interaction_name not in valid_interaction_names:
-        raise ValueError(f"Unknown interaction_name '{interaction_name}'. Valid options: {valid_interaction_names}")
+    # interaction
+    valid_interactions = ["coupled", "independent"]
+    if interaction not in valid_interactions:
+        raise ValueError(f"Unknown interaction '{interaction}'. Valid options: {valid_interactions}")
 
     # Fix the unset parameters to their defaults (to pass the type checks below)
     if assortative is _UNSET:
@@ -192,6 +193,18 @@ def _check_input_validity(
         if num_groups is not None and len(unique_groups) < num_groups:
             raise ValueError("initial_partition has a different number of groups than num_groups.")
 
+    # initial_scores: if provided, must be iterable of floats of length equal to number of nodes
+    if initial_scores is not None:
+        try:
+            is_list = list(initial_scores)
+        except Exception:
+            raise TypeError("initial_scores must be an iterable of floats or None.")
+        if G is not None and len(is_list) != G.number_of_nodes():
+            raise ValueError("initial_scores length must match number of nodes in G.")
+        for s in is_list:
+            if not isinstance(s, (int, float)):
+                raise ValueError("initial_scores must contain numeric values.")
+
     # seed
     if seed is not None and not isinstance(seed, int):
         raise TypeError("seed must be an integer or None.")
@@ -227,10 +240,10 @@ def _check_input_validity(
     # Passes all checks
     return None
 
-# assortative, mixing_variation, variation_in, variation_out, degree_correction, mean_degree_scaling, individual_depth, group_depth, ties_parameter, num_groups = _set_model_parameters(groups_model_name, hierarchy_model_name, interaction_name, assortative, mixing_variation, variation_in, variation_out, degree_correction, mean_degree_scaling, individual_depth, group_depth, ties_parameter, num_groups)
-def _set_model_parameters(groups_model_name: str,
-                    hierarchy_model_name: str,
-                    interaction_name: str,
+# assortative, mixing_variation, variation_in, variation_out, degree_correction, mean_degree_scaling, individual_depth, group_depth, ties_parameter, num_groups = _set_model_parameters(groups_model, hierarchy_model, interaction, assortative, mixing_variation, variation_in, variation_out, degree_correction, mean_degree_scaling, individual_depth, group_depth, ties_parameter, num_groups)
+def _set_model_parameters(groups_model: str,
+                    hierarchy_model: str,
+                    interaction: str,
                     assortative: bool = _UNSET,
                     mixing_variation: str = _UNSET,
                     variation_in: Optional[float] = _UNSET,
@@ -244,76 +257,76 @@ def _set_model_parameters(groups_model_name: str,
     """
     Convert the model_name to corresponding non-default parameter values (if not explicitly provided)
     """
-    # groups_model_name
-    if groups_model_name == 'general_canonical':
+    # groups_model
+    if groups_model == 'general_canonical':
         pass # all parameters take default values
-    elif groups_model_name == 'traditional_SBM':
+    elif groups_model == 'traditional_SBM':
         if mixing_variation is _UNSET:
             mixing_variation = 'simple'
         if assortative is _UNSET:
             assortative = False
         if degree_correction is _UNSET:
             degree_correction = 0.0
-    elif groups_model_name == 'traditional_DCSBM':
+    elif groups_model == 'traditional_DCSBM':
         if mixing_variation is _UNSET:
             mixing_variation = 'simple'
         if assortative is _UNSET:
             assortative = False
         if degree_correction is _UNSET:
             degree_correction = 0.5
-    elif groups_model_name == 'traditional_GDCSBM':
+    elif groups_model == 'traditional_GDCSBM':
         if mixing_variation is _UNSET:
             mixing_variation = 'simple'
         if assortative is _UNSET:
             assortative = False
-    elif groups_model_name == 'simple_ASBM':
+    elif groups_model == 'simple_ASBM':
         if mixing_variation is _UNSET:
             mixing_variation = 'simple'
         if degree_correction is _UNSET:
             degree_correction = 0.0
-    elif groups_model_name == 'hybrid_ASBM':
+    elif groups_model == 'hybrid_ASBM':
         if mixing_variation is _UNSET:
             mixing_variation = 'internal'
         if degree_correction is _UNSET:
             degree_correction = 0.0
-    elif groups_model_name == 'planted_partition':
+    elif groups_model == 'planted_partition':
         if mixing_variation is _UNSET:
             mixing_variation = 'none'
         if degree_correction is _UNSET:
             degree_correction = 0.0
-    elif groups_model_name == 'general_ASBM':
+    elif groups_model == 'general_ASBM':
         if mixing_variation is _UNSET:
             mixing_variation = 'general'
         if degree_correction is _UNSET:
             degree_correction = 0.0
-    elif groups_model_name == 'microcanonical_SBM':
+    elif groups_model == 'microcanonical_SBM':
         if assortative is _UNSET:
             assortative = False
         if degree_correction is _UNSET:
             degree_correction = 0.0
         if mean_degree_scaling is _UNSET:
             mean_degree_scaling = -1
-    elif groups_model_name == 'microcanonical_DCSBM':
+    elif groups_model == 'microcanonical_DCSBM':
         if assortative is _UNSET:
             assortative = False
         if degree_correction is _UNSET:
             degree_correction = 0.5
         if mean_degree_scaling is _UNSET:
             mean_degree_scaling = -1
-    elif groups_model_name == 'general_unified':
+    elif groups_model == 'general_unified':
         if mean_degree_scaling is _UNSET:
             mean_degree_scaling = None # infer
     
-    # hierarchy_model_name
-    if hierarchy_model_name == 'bradley_terry':
+    # hierarchy_model
+    if hierarchy_model == 'bradley_terry':
         ties_parameter = 0.0
-    elif hierarchy_model_name == 'bradley_terry_ties':
+    elif hierarchy_model == 'bradley_terry_ties':
         pass # Take default or user-provided value
 
-    # interaction_name
-    if interaction_name == 'coupled':
+    # interaction
+    if interaction == 'coupled':
         pass # all parameters take default values
-    elif interaction_name == 'independent':
+    elif interaction == 'independent':
         group_depth = 0.0
 
     # If mixing_variation is still _UNSET, set it to 'general' by default

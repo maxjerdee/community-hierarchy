@@ -11,7 +11,7 @@
 class MCMC {
 public:
     // New constructor signature (matches the implementation order):
-    // MCMC(wins, ties, initial_partition, num_groups, num_groups_fixed, assortative,
+    // MCMC(wins, ties, initial_partition, scores, num_groups, num_groups_fixed, assortative,
     //      variation_in, variation_in_fixed, variation_out, variation_out_fixed,
     //      degree_correction, degree_correction_fixed, mean_degree_scaling, mean_degree_scaling_fixed,
     //      individual_depth, individual_depth_fixed, group_depth, group_depth_fixed,
@@ -19,6 +19,7 @@ public:
     MCMC(std::vector<std::unordered_map<int, double>> wins,
         std::vector<std::unordered_map<int, double>> ties,
         std::vector<int> partition,
+        std::vector<double> scores,
         int num_groups,
         const bool& num_groups_fixed,
         const bool& assortative,

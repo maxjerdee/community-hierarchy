@@ -16,6 +16,54 @@ from .MCMC_core import MCMC
 
 logger = logging.getLogger(__name__)
 
+def _gen_initial_partition(G_wins: nx.DiGraph, G_ties: nx.Graph, num_groups: int | None) -> List[int]:
+    # Generate an initial partition for the MCMC sampler using greedy modularity maximization on the undirected version of the graph.
+
+    # Generate a graph with edges for both wins and ties to use for the initial partition
+    G_undirected = nx.Graph()
+    G_undirected.add_nodes_from(G_wins.nodes())
+    for u, v in G_wins.edges():
+        G_undirected.add_edge(u, v)
+    for u, v in G_ties.edges():
+        G_undirected.add_edge(u, v)
+
+    if num_groups is not None:
+        communities = nx.community.greedy_modularity_communities(G_undirected, cutoff = num_groups, best_n = num_groups) # Forces num_groups
+    else:
+        communities = nx.community.greedy_modularity_communities(G_undirected)
+
+    node_to_index_dict = {node: i for i, node in enumerate(G_undirected.nodes())}
+    neighbors_labels = nx.to_dict_of_lists(G_undirected)
+    neighbors_list = []
+    for i in range(len(neighbors_labels)):
+        neighbors_list.append({})
+
+    # Convert the returned communities into a partition list
+    partition = [0] * G_undirected.number_of_nodes()
+    for i, community in enumerate(communities):
+        for node in community:
+            partition[node_to_index_dict[node]] = i
+    
+    return partition
+
+def _gen_initial_scores(G_wins: nx.DiGraph, G_ties: nx.Graph) -> List[float]:
+    # Generate initial scores for the MCMC sampler using win percentages. This is a simple heuristic that can help the sampler converge faster.
+
+    node_to_index_dict = {node: i for i, node in enumerate(G_wins.nodes())}
+    neighbors_labels = nx.to_dict_of_lists(G_wins)
+    neighbors_list = []
+    for i in range(len(neighbors_labels)):
+        neighbors_list.append({})
+
+    scores = [0.0] * G_wins.number_of_nodes()
+    for node in G_wins.nodes():
+        wins = G_wins.out_degree(node)
+        losses = G_wins.in_degree(node)
+        ties = G_ties.degree(node)
+        scores[node_to_index_dict[node]] = (wins - losses) / (wins + losses + ties + 1e-6) # Add small constant to avoid division by zero
+    
+    return scores
+
 @lru_cache(maxsize=16)
 def _samples_cached(
     G_wins_key: str,
@@ -30,6 +78,7 @@ def _samples_cached(
     ties_parameter,
     num_groups,
     initial_partition_tuple,
+    initial_scores_tuple,
     seed,
     num_samples: int,
     merge_split_enabled: bool,
@@ -68,6 +117,9 @@ def _samples_cached(
     # Convert the initial partition tuple back to a list (undo the hashable conversion)
     initial_partition = list(initial_partition_tuple) if initial_partition_tuple is not None else None
 
+    # Convert the initial scores tuple back to a list (undo the hashable conversion)
+    initial_scores = list(initial_scores_tuple) if initial_scores_tuple is not None else None
+
     # Define the beta values which will be used. We choose these to form a geometric series. 
     # If only one beta is used, then it is set to beta_max
     if num_tempering_chains == 1:
@@ -102,19 +154,15 @@ def _samples_cached(
     # For each beta, initialize a MCMC state
     MCMC_states: Dict[float, MCMC] = {}
     for chain_beta in betas:
-        # Generate initial partition and parameter values if they are not provided
+        # Generate initial partition and parameter values if they are not provided (This is occurring inside the beta loop in case we want to randomize the initial state for each chain, which can help with mixing)
         if initial_partition is None:
-            # TODO: This could be changed to a draw from the true partition prior
-            # Chooes the number of groups
-            if num_groups is not None:
-                initial_num_groups = num_groups
-            else:
-                initial_num_groups = np.random.randint(1, len(G_wins) + 1)
-            range_list = list(range(initial_num_groups))
-            remainder_list = []
-            for _ in range(len(G_wins) - initial_num_groups):
-                remainder_list.append(np.random.choice(range_list))
-            initial_partition = range_list + remainder_list
+            initial_partition = _gen_initial_partition(G_wins, G_ties, num_groups)
+        
+        initial_num_groups = len(set(initial_partition))
+
+        # Generate initial scores if not provided
+        if initial_scores is None:
+            initial_scores = _gen_initial_scores(G_wins, G_ties)
 
         # Record which parameters are fixed and which are to be sampled
         variation_in_fixed = variation_in is not None
@@ -141,7 +189,7 @@ def _samples_cached(
         num_groups_fixed = num_groups is not None
         
         # Call the MCMC constructor with initial values and fixed/free parameters
-        # Constructor signature: (wins, ties, partition, num_groups, num_groups_fixed, assortative,
+        # Constructor signature: (wins, ties, partition, scores, num_groups, num_groups_fixed, assortative,
         #                         variation_in, variation_in_fixed, variation_out, variation_out_fixed,
         #                         degree_correction, degree_correction_fixed, mean_degree_scaling, mean_degree_scaling_fixed, 
         #                         individual_depth, individual_depth_fixed, group_depth, group_depth_fixed,
@@ -150,6 +198,7 @@ def _samples_cached(
             wins,
             ties, 
             initial_partition, 
+            initial_scores,
             int(initial_num_groups), 
             bool(num_groups_fixed), 
             bool(assortative), 

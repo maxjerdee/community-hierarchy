@@ -30,6 +30,7 @@ namespace py = pybind11;
 MCMC::MCMC(std::vector<std::unordered_map<int, double>> wins,
            std::vector<std::unordered_map<int, double>> ties,
            std::vector<int> partition,
+           std::vector<double> scores,
            int num_groups,
            const bool& num_groups_fixed,
            const bool& assortative,
@@ -59,7 +60,7 @@ MCMC::MCMC(std::vector<std::unordered_map<int, double>> wins,
       merge_split_enabled(true),
       proposal_weights(),
       partition(std::move(partition)),  // Move initial partition (avoid copy)
-      scores(), // Hierarchical scores of each node
+      scores(std::move(scores)), // Move initial scores (avoid copy)
       scaled_scores(), // Scores divided by the individual depth. MCMC moves are proposed according to these for better ergodicity.
       variation_in(variation_in),  // Copy variation parameters (stored as values)
       variation_out(variation_out),
@@ -176,12 +177,6 @@ MCMC::MCMC(std::vector<std::unordered_map<int, double>> wins,
         m += node_neighbors.size();  // Sum all edge occurrences
     }
     m /= 2; // Each undirected edge is counted twice in adjacency list
-
-    // Initialize the scores to 0
-    scores.resize(n);
-    for(int i = 0; i < n; i++){
-        scores[i] = 0.0;
-    }
 
     // Reset execution timers for performance profiling
     time_H_k = 0.0;
@@ -630,6 +625,7 @@ PYBIND11_MODULE(MCMC_core, m) {
                  std::vector<std::unordered_map<int, double>>,
                  std::vector<std::unordered_map<int, double>>,
                  std::vector<int>,
+                 std::vector<double>,
                  int,
                  const bool&,
                  const bool&,
@@ -651,6 +647,7 @@ PYBIND11_MODULE(MCMC_core, m) {
              py::arg("wins"),
              py::arg("ties"),
              py::arg("partition"),
+             py::arg("scores"),
              py::arg("num_groups"),
              py::arg("num_groups_fixed") = false,
              py::arg("assortative") = true,
