@@ -7,10 +7,11 @@
 :glob:
 
 modules.md
-examples/figures.md
+examples/prediction.md
+examples/speed_test.md
+examples/visualization.md
 ```
 
-clustering-mi
 
 ```{include} ../README.md
 :start-after: <!-- SPHINX-START -->
