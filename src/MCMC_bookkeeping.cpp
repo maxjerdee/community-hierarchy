@@ -1,9 +1,9 @@
+#define _USE_MATH_DEFINES
 #include "MCMC_core.h"
 #include "globals.h"
 #include "helpers.h"
 
 #include <algorithm>
-#define _USE_MATH_DEFINES
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
