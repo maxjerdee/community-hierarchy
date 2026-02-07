@@ -374,11 +374,13 @@ def node_groups(
     pass
 
 
-def node_properties(G: nx.Graph, consensus_clustering_metric="L1", **kwargs) -> pd.DataFrame:
+def node_properties(
+    G: nx.Graph, consensus_clustering_metric="L1", **kwargs
+) -> pd.DataFrame:
     """
     Infer properties of individual nodes in the network.
     Returns a pandas DataFrame with the consensus group of each node, its score within the hierarchy, and the average status of their group.
-    
+
     Parameters
     ----------
     G : nx.Graph
@@ -412,12 +414,11 @@ def node_properties(G: nx.Graph, consensus_clustering_metric="L1", **kwargs) -> 
     scores_std = samples_df[score_columns].std().to_numpy()
 
     # Add column that gives the average score of each group for each sample, then compute the means and std across the samples
-    
-    
+
     group_members = {group: [] for group in np.unique(consensus_groups)}
     for node, group in zip(node_names, consensus_groups):
         group_members[group].append(node)
-    
+
     group_score_sample_means = {}
     group_score_means = np.zeros(len(consensus_groups))
     group_score_stds = np.zeros(len(consensus_groups))
@@ -429,7 +430,6 @@ def node_properties(G: nx.Graph, consensus_clustering_metric="L1", **kwargs) -> 
         for node in members:
             group_score_means[node_names.index(node)] = group_score_mean
             group_score_stds[node_names.index(node)] = group_score_std
-
 
     node_properties_df = pd.DataFrame(
         {
@@ -449,6 +449,18 @@ def network_properties(G: nx.Graph, **kwargs) -> pd.DataFrame:
     """
     Infer properties of the overall network structure.
     Returns a pandas DataFrame with the inferred parameters and their uncertainties, including those fixed by the model specification.
+
+    These are:
+        - num_groups: number of groups in the network
+        - density_in: average density of edges within groups
+        - density_out: average density of edges between groups
+        - variation_in: variation in the internal mixing weights of nodes within groups
+        - variation_out: variation in the external mixing weights of nodes within groups
+        - degree_correction: level of degree correction, or in-group degree inequality
+        - mean_degree_scaling: scaling of mean degree with group size, where mean degree of nodes in a group of size n scales as n^mean_degree_scaling
+        - individual_depth: spread of individual scores within groups
+        - group_depth: spread of group scores
+        - ties_parameter: frequency of ties in the hierarchy model
 
     Parameters
     ----------
@@ -483,6 +495,7 @@ def network_properties(G: nx.Graph, **kwargs) -> pd.DataFrame:
     )
 
     return parameters_df
+
 
 def parameters(
     G: nx.Graph,

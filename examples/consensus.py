@@ -25,4 +25,3 @@ print("Shape of clusterings array:", clusterings.shape)
 consensus_L1 = ds.consensus_clustering(clusterings, metric="L1")
 
 print("Consensus clustering (L1):", consensus_L1)
-

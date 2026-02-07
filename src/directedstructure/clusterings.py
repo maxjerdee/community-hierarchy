@@ -11,14 +11,13 @@ from numpy.typing import ArrayLike
 
 try:
     from . import MCMC_core
+
     HAS_CPP_BINDING = True
 except ImportError:
     HAS_CPP_BINDING = False
 
 
-def consensus_clustering(
-    clusterings: ArrayLike, *, metric: str = "L1"
-) -> ArrayLike:
+def consensus_clustering(clusterings: ArrayLike, *, metric: str = "L1") -> ArrayLike:
     """
     From a set of clusterings, find the consensus clustering. Will return the clustering
     whose coincidence matrix is the closest to the average coincidence matrix under the provided metric.
@@ -29,7 +28,7 @@ def consensus_clustering(
         A 2D array of clusterings. Each row is a clustering.
     metric : str, optional
         The metric to use to compare clusterings. Defaults to 'L1'. Options: {'L1', 'L2'}.
-    
+
     Returns
     -------
     ArrayLike
@@ -46,7 +45,7 @@ def consensus_clustering(
             clusterings_list, metric
         )
         return np.array(result)
-    
+
     # Fall back to Python implementation if C++ binding not available
     return _consensus_clustering_python(clusterings, metric)
 
@@ -77,13 +76,9 @@ def _consensus_clustering_python(
     for clustering in clusterings:
         coincidence_matrix = np.subtract.outer(clustering, clustering) == 0
         if metric == "L1":
-            distance = np.sum(
-                np.abs(aggregate_coincidence_matrix - coincidence_matrix)
-            )
+            distance = np.sum(np.abs(aggregate_coincidence_matrix - coincidence_matrix))
         elif metric == "L2":
-            distance = np.sum(
-                (aggregate_coincidence_matrix - coincidence_matrix) ** 2
-            )
+            distance = np.sum((aggregate_coincidence_matrix - coincidence_matrix) ** 2)
         if distance < best_distance:
             best_clustering = clustering
             best_distance = distance

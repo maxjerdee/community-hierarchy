@@ -75,7 +75,9 @@ samples_df = ds.samples(G, **model_settings_dict)
 print(samples_df)
 
 # Plot the sum of H_A_b,H_Adir_G_A_s_nu,H_s_G_b_depths over the samples to check for convergence
-plt.plot(samples_df["H_A_b"] + samples_df["H_Adir_G_A_s_nu"] + samples_df["H_s_G_b_depths"])
+plt.plot(
+    samples_df["H_A_b"] + samples_df["H_Adir_G_A_s_nu"] + samples_df["H_s_G_b_depths"]
+)
 plt.xlabel("Sample index")
 plt.ylabel("H_A_b + H_Adir_G_A_s_nu + H_s_G_b_depths")
 plt.title("Convergence of MCMC")

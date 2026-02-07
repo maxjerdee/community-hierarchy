@@ -10,5 +10,3 @@
 
 
 # Posterior samples of individual and group depths
-
-
