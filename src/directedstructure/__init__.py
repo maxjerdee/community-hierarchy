@@ -9,8 +9,9 @@ from __future__ import annotations
 from ._version import version as __version__
 
 # first party imports
-from directedstructure.core import node_groups, mixing_matrix, parameters, samples
+from directedstructure.core import samples, node_properties, network_properties
 from directedstructure.input_output import plot_groups, write_gml, get_neighbors
+from directedstructure.clusterings import consensus_clustering
 from directedstructure.prediction import expected_edges, anomalies, link_predictions
 from .MCMC_core import MCMC
 
@@ -19,6 +20,9 @@ from ._version import version as __version__
 __all__ = [
     "__version__",
     "node_groups",
+    "node_properties",
+    "network_properties",
+    "consensus_clustering",
     "plot_groups",
     "write_gml",
     "mixing_matrix",

@@ -13,7 +13,8 @@ pybind11_add_module(MCMC_core MODULE src/MCMC_core.cpp
                      src/MCMC_proposals.cpp
                      src/MCMC_bookkeeping.cpp
                      src/MCMC_merge_split.cpp
-                     src/helpers.cpp)
+                     src/helpers.cpp
+                     src/consensus.cpp)
 
 target_compile_definitions(MCMC_core PRIVATE DIRECTEDSTRUCTURE_PYBIND)
 

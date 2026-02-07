@@ -19,3 +19,5 @@ Q: Does the fact that the meaning of the scores, stored in the [0,1] interval, c
 - For some reason the direct c++ runs 3x faster than the same function when called from python. Having trouble figuring out what the difference is here. 
 - Should implement the rest of the API, host the function on pypi, and get the documentation live.
 - Add some basic functionality tests (checks against exact Mathematica results)
+- Include versions of the model where the community and hierarchy can each (or both) be fixed, in case we are interested in how it might change due to some externally observed variable.
+- Add the consensus clustering code (in c++ since it can be pretty intensive)

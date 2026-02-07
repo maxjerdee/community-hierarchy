@@ -1,6 +1,7 @@
 // Implementation stripped; this file now only wires the header to pybind.
 
 #include "MCMC_core.h"
+#include "consensus.h"
 #include "globals.h"
 #include "helpers.h"
 #include <algorithm>
@@ -708,6 +709,20 @@ PYBIND11_MODULE(MCMC_core, m) {
            .def_readonly("log_density_num_groups", &MCMC::log_density_num_groups)
            .def("MCMC_sweep", &MCMC::MCMC_sweep, py::arg("beta") = 1.0, py::arg("merge_split_enabled") = true, py::arg("wang_landau_modification_factor") = -1.0, py::arg("max_num_groups_cutoff") = -1, py::arg("num_sweeps") = 1)
            .def("change_parameter", &MCMC::change_parameter, py::arg("param_name"), py::arg("new_value"));
+
+    // Bind ConsensusClustering class
+    py::class_<ConsensusClustering>(m, "ConsensusClustering")
+        .def_static("consensus_clustering", &ConsensusClustering::consensus_clustering,
+                    py::arg("clusterings"),
+                    py::arg("metric") = "L1",
+                    "Compute consensus clustering from a set of clusterings.\n\n"
+                    "Finds the clustering whose coincidence matrix is closest to the average\n"
+                    "coincidence matrix under the specified metric.\n\n"
+                    "Parameters:\n"
+                    "  clusterings: List of clusterings (each is a list of node assignments)\n"
+                    "  metric: 'L1' or 'L2' distance metric (default: 'L1')\n\n"
+                    "Returns:\n"
+                    "  The consensus clustering as a list of node group assignments");
 
 }
 #endif

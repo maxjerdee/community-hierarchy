@@ -1,5 +1,4 @@
 # Find the consensus clustering given a set of clusterings
-# TODO: Implement this in C++ for speed.
 
 from __future__ import annotations
 from typing import List, Tuple
@@ -10,9 +9,15 @@ import pandas as pd
 import numpy as np
 from numpy.typing import ArrayLike
 
+try:
+    from . import MCMC_core
+    HAS_CPP_BINDING = True
+except ImportError:
+    HAS_CPP_BINDING = False
+
 
 def consensus_clustering(
-    clusterings: ArrayLike, *, metric: str = "L1", graph_mask: nx.Graph | None = None
+    clusterings: ArrayLike, *, metric: str = "L1"
 ) -> ArrayLike:
     """
     From a set of clusterings, find the consensus clustering. Will return the clustering
@@ -24,12 +29,34 @@ def consensus_clustering(
         A 2D array of clusterings. Each row is a clustering.
     metric : str, optional
         The metric to use to compare clusterings. Defaults to 'L1'. Options: {'L1', 'L2'}.
-    graph_mask : nx.Graph, optional
-        If a graph is given, only the entries of the coincidence matrix corresponding to the edges of the graph will be considered. Defaults to None.
+    
+    Returns
+    -------
+    ArrayLike
+        The consensus clustering.
     """
 
-    clusterings = np.array(clusterings)
+    clusterings = np.array(clusterings, dtype=np.int32)
 
+    # Use C++ implementation if available
+    if HAS_CPP_BINDING:
+        # Convert clusterings to list of lists for C++
+        clusterings_list = clusterings.tolist()
+        result = MCMC_core.ConsensusClustering.consensus_clustering(
+            clusterings_list, metric
+        )
+        return np.array(result)
+    
+    # Fall back to Python implementation if C++ binding not available
+    return _consensus_clustering_python(clusterings, metric)
+
+
+def _consensus_clustering_python(
+    clusterings: np.ndarray, metric: str = "L1"
+) -> np.ndarray:
+    """
+    Python fallback implementation for consensus clustering.
+    """
     # Get the number of clusterings and the number of nodes
     num_clusterings, num_nodes = clusterings.shape
 
@@ -46,33 +73,17 @@ def consensus_clustering(
     best_distance = np.inf
     best_clustering = None
 
-    # If a graph is given, only consider the entries corresponding to the edges of the graph
-    if graph_mask is not None:
-        adj_matrix = nx.to_numpy_array(graph_mask)
-
     # For each clustering, update the best clustering if the distance is smaller
     for clustering in clusterings:
         coincidence_matrix = np.subtract.outer(clustering, clustering) == 0
         if metric == "L1":
-            if graph_mask is not None:
-                distance = np.sum(
-                    np.abs(aggregate_coincidence_matrix - coincidence_matrix)
-                    * adj_matrix
-                )
-            else:
-                distance = np.sum(
-                    np.abs(aggregate_coincidence_matrix - coincidence_matrix)
-                )
+            distance = np.sum(
+                np.abs(aggregate_coincidence_matrix - coincidence_matrix)
+            )
         elif metric == "L2":
-            if graph_mask is not None:
-                distance = np.sum(
-                    (aggregate_coincidence_matrix - coincidence_matrix) ** 2
-                    * adj_matrix
-                )
-            else:
-                distance = np.sum(
-                    (aggregate_coincidence_matrix - coincidence_matrix) ** 2
-                )
+            distance = np.sum(
+                (aggregate_coincidence_matrix - coincidence_matrix) ** 2
+            )
         if distance < best_distance:
             best_clustering = clustering
             best_distance = distance

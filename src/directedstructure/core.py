@@ -374,13 +374,115 @@ def node_groups(
     pass
 
 
-def node_properties(G: nx.Graph, **kwargs) -> pd.DataFrame:
-    pass
+def node_properties(G: nx.Graph, consensus_clustering_metric="L1", **kwargs) -> pd.DataFrame:
+    """
+    Infer properties of individual nodes in the network.
+    Returns a pandas DataFrame with the consensus group of each node, its score within the hierarchy, and the average status of their group.
+    
+    Parameters
+    ----------
+    G : nx.Graph
+        NetworkX graph to find group structure of.
+    consensus_clustering_metric : str, optional
+        Metric to use for finding consensus clustering. Options: {'L1', 'L2'}. Defaults to 'L1'.
+    kwargs : optional
+        Additional keyword arguments to specify the model configuration or sampling. See :func:`samples` for full options.
+
+    """
+    samples_df = samples(G, **kwargs)
+
+    # Extract names of nodes from the graph
+    node_names = list(G.nodes())
+
+    # Extract list of clusterings from samples dataframe
+    # Find all columns ending with "_group"
+    group_columns = [f"{node}_group" for node in node_names]
+    clusterings = []
+    for col in group_columns:
+        clusterings.append(samples_df[col].values)
+
+    clusterings = np.array(clusterings).T
+
+    # Find consensus clustering with L1 metric
+    consensus_groups = consensus_clustering(clusterings, metric="L1")
+
+    # Compute the mean and standard deviation of the scores for each node across samples
+    score_columns = [f"{node}_score" for node in node_names]
+    scores_mean = samples_df[score_columns].mean().to_numpy()
+    scores_std = samples_df[score_columns].std().to_numpy()
+
+    # Add column that gives the average score of each group for each sample, then compute the means and std across the samples
+    
+    
+    group_members = {group: [] for group in np.unique(consensus_groups)}
+    for node, group in zip(node_names, consensus_groups):
+        group_members[group].append(node)
+    
+    group_score_sample_means = {}
+    group_score_means = np.zeros(len(consensus_groups))
+    group_score_stds = np.zeros(len(consensus_groups))
+    for group, members in group_members.items():
+        member_score_columns = [f"{member}_score" for member in members]
+        group_score_sample_means[group] = samples_df[member_score_columns].mean(axis=1)
+        group_score_mean = group_score_sample_means[group].mean()
+        group_score_std = group_score_sample_means[group].std()
+        for node in members:
+            group_score_means[node_names.index(node)] = group_score_mean
+            group_score_stds[node_names.index(node)] = group_score_std
+
+
+    node_properties_df = pd.DataFrame(
+        {
+            "node": node_names,
+            "consensus_group": consensus_groups,
+            "score_mean": scores_mean,
+            "score_std": scores_std,
+            "group_score_mean": group_score_means,
+            "group_score_std": group_score_stds,
+        }
+    )
+
+    return node_properties_df
 
 
 def network_properties(G: nx.Graph, **kwargs) -> pd.DataFrame:
-    pass
+    """
+    Infer properties of the overall network structure.
+    Returns a pandas DataFrame with the inferred parameters and their uncertainties, including those fixed by the model specification.
 
+    Parameters
+    ----------
+
+    G : nx.Graph
+        NetworkX graph to find group structure of.
+    kwargs : optional
+        Additional keyword arguments to specify the model configuration or sampling. See :func:`samples` for full options.
+    """
+    samples_df = samples(G, **kwargs)
+
+    parameter_list = [
+        "num_groups",
+        "density_in",
+        "density_out",
+        "variation_in",
+        "variation_out",
+        "degree_correction",
+        "mean_degree_scaling",
+        "individual_depth",
+        "group_depth",
+        "ties_parameter",
+    ]
+
+    # Calculate means and standard deviations for each parameter
+    parameters_df = pd.DataFrame(
+        {
+            "parameter": parameter_list,
+            "mean": [samples_df[param].mean() for param in parameter_list],
+            "std": [samples_df[param].std() for param in parameter_list],
+        }
+    )
+
+    return parameters_df
 
 def parameters(
     G: nx.Graph,
