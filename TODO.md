@@ -58,3 +58,4 @@ make: *** [Makefile:63: test] Segmentation fault (core dumped)
 
 3/11/26:
 - Need to bring the stripped and original implementations into alignment. 
+- For some reason I'm now seeing that the c++ testing script is not exploring possible community structures at all while the python wrapped version seemingly is. 

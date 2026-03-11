@@ -366,14 +366,17 @@ Initialization:
         1.0,            // group_depth (passed as value)
         false,           // group_depth_fixed
         1.0,            // ties_parameter (passed as value)
-        true,          // ties_parameter_fixed
+        false,          // ties_parameter_fixed
         42);            // seed
 
-    // Print scores
-    std::cout << "Current scores: ";
-    for(int s = 0; s < std::min(10, static_cast<int>(m.scores.size())); s++){
-        std::cout << "Node " << s << ": Score " << m.scores[s] << " ";
+    std::cout << "Current node states: ";
+    if (m.scores.size() > 0 && m.partition.size() > 0) {
+        std::cout << "Node 0 -> Group " << m.partition[0] << ", Score " << m.scores[0] << " ";
     }
+    if (m.scores.size() > 1 && m.partition.size() > 1) {
+        std::cout << "Node 1 -> Group " << m.partition[1] << ", Score " << m.scores[1] << " ";
+    }
+    std::cout << std::endl;
 
     /*
     Configuration from python:
@@ -413,13 +416,16 @@ Initialization:
         // m.MCMC_sweep(0.0, true); // Testing merge-split
         // m.MCMC_sweep(0.0, false); // Testing single site
         // m.MCMC_sweep(1.0, false, wang_landau_modification_factor, 15); // Testing WL algorithm
-        m.MCMC_sweep(1.0, false, -1.0, -1, 1000);
+        m.MCMC_sweep(1.0, false, -1.0, -1, 100);
 
-        // Print scores
-        std::cout << "Current scores: ";
-        for(int s = 0; s < std::min(10, static_cast<int>(m.scores.size())); s++){
-            std::cout << "Node " << s << ": Score " << m.scores[s] << " ";
+        std::cout << "Current node states: ";
+        if (m.scores.size() > 0 && m.partition.size() > 0) {
+            std::cout << "Node 0 -> Group " << m.partition[0] << ", Score " << m.scores[0] << " ";
         }
+        if (m.scores.size() > 1 && m.partition.size() > 1) {
+            std::cout << "Node 1 -> Group " << m.partition[1] << ", Score " << m.scores[1] << " ";
+        }
+        std::cout << std::endl;
         
         // Only count samples from the second half towards histograms and statistics
         if(i >= num_samples - num_samples_used) {

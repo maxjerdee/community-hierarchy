@@ -14,6 +14,8 @@ MKDIR_P := mkdir -p
 
 CXXFLAGS := -std=c++17 -Wall -Wextra -O3 -march=native -fPIC -I$(SRC_DIR) -DDIRECTEDSTRUCTURE_PYBIND
 DEBUG_CXXFLAGS := -std=c++17 -Wall -Wextra -O0 -g -fPIC -I$(SRC_DIR) -DDIRECTEDSTRUCTURE_PYBIND
+TEST_CXXFLAGS := -std=c++17 -Wall -Wextra -O3 -march=native -fPIC -I$(SRC_DIR)
+TEST_DEBUG_CXXFLAGS := -std=c++17 -Wall -Wextra -O0 -g -fPIC -I$(SRC_DIR)
 
 SOURCES := $(SRC_DIR)/MCMC_core.cpp \
 		   $(SRC_DIR)/MCMC_proposals.cpp \
@@ -22,15 +24,19 @@ SOURCES := $(SRC_DIR)/MCMC_core.cpp \
 		   $(SRC_DIR)/consensus.cpp \
 		   $(SRC_DIR)/helpers.cpp
 OBJECTS := $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))
+TEST_CORE_OBJECTS := $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%_test.o,$(SOURCES))
 
 TEST_SOURCES := tests/mcmc_core_test.cpp
 TEST_OBJECTS := $(patsubst tests/%.cpp,$(BUILD_DIR)/tests_%.o,$(TEST_SOURCES))
+DEBUG_OBJECTS := $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%_debug.o,$(SOURCES))
+DEBUG_TEST_CORE_OBJECTS := $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%_test_debug.o,$(SOURCES))
 
 MODULE_TARGET := $(PKG_DIR)/$(MODULE_NAME)$(EXT_SUFFIX)
 TEST_BIN := $(BUILD_DIR)/mcmc_core_test
 TEST_BIN_DEBUG := $(BUILD_DIR)/mcmc_core_test_debug
+CSV_BIN := AddHealth_analysis/run_sampler_to_csv
 
-.PHONY: all clean test
+.PHONY: all clean test csv
 
 all: $(MODULE_TARGET) $(TEST_BIN)
 
@@ -44,26 +50,37 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) $(PYBIND11_INCLUDES) -c $< -o $@
 
 $(BUILD_DIR)/tests_%.o: tests/%.cpp | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) $(PYBIND11_INCLUDES) -c $< -o $@
+	$(CXX) $(TEST_CXXFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/addhealth_%.o: AddHealth_analysis/%.cpp | $(BUILD_DIR)
+	$(CXX) $(TEST_CXXFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/%_test.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
+	$(CXX) $(TEST_CXXFLAGS) -c $< -o $@
 
 $(MODULE_TARGET): $(OBJECTS) | $(PKG_DIR)
 	$(CXX) $(CXXFLAGS) -shared $^ -o $@ $(PY_LDFLAGS)
 
-$(TEST_BIN): $(TEST_OBJECTS) $(OBJECTS) | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(PY_LDFLAGS)
+$(TEST_BIN): $(TEST_OBJECTS) $(TEST_CORE_OBJECTS) | $(BUILD_DIR)
+	$(CXX) $(TEST_CXXFLAGS) $^ -o $@
+
+$(CSV_BIN): $(BUILD_DIR)/addhealth_run_sampler_to_csv.o $(TEST_CORE_OBJECTS)
+	$(CXX) $(TEST_CXXFLAGS) $^ -o $@
 
 # Debug build for valgrind
 $(BUILD_DIR)/%_debug.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
 	$(CXX) $(DEBUG_CXXFLAGS) $(PYBIND11_INCLUDES) -c $< -o $@
 
 $(BUILD_DIR)/tests_%_debug.o: tests/%.cpp | $(BUILD_DIR)
-	$(CXX) $(DEBUG_CXXFLAGS) $(PYBIND11_INCLUDES) -c $< -o $@
+	$(CXX) $(TEST_DEBUG_CXXFLAGS) -c $< -o $@
 
-DEBUG_OBJECTS := $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%_debug.o,$(SOURCES))
+$(BUILD_DIR)/%_test_debug.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
+	$(CXX) $(TEST_DEBUG_CXXFLAGS) -c $< -o $@
+
 DEBUG_TEST_OBJECTS := $(patsubst tests/%.cpp,$(BUILD_DIR)/tests_%_debug.o,$(TEST_SOURCES))
 
-$(TEST_BIN_DEBUG): $(DEBUG_TEST_OBJECTS) $(DEBUG_OBJECTS) | $(BUILD_DIR)
-	$(CXX) $(DEBUG_CXXFLAGS) $^ -o $@ $(PY_LDFLAGS)
+$(TEST_BIN_DEBUG): $(DEBUG_TEST_OBJECTS) $(DEBUG_TEST_CORE_OBJECTS) | $(BUILD_DIR)
+	$(CXX) $(TEST_DEBUG_CXXFLAGS) $(DEBUG_TEST_OBJECTS) $(DEBUG_TEST_CORE_OBJECTS) -o $@
 
 clean:
 	rm -rf $(BUILD_DIR) $(MODULE_TARGET)
@@ -76,6 +93,9 @@ clean:
 # Run the C++ harness
 test: $(TEST_BIN)
 	./$(TEST_BIN)
+
+# Build the C++ sampler-to-CSV binary only
+csv: $(CSV_BIN)
 
 # Run with valgrind (requires valgrind to be installed)
 test-valgrind: $(TEST_BIN_DEBUG)

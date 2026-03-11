@@ -126,6 +126,9 @@ void MCMC::propose_single_site_move() {
     // Execute the proposed move
     flip_nodes({node}, new_group);
 
+    // // Check that the bookkeeping is correct after the move (before acceptance check)
+    // check_state_bookkeeping(true); // throw_error
+
     // If Wang-Landau is enabled and num_groups has changed, adjust acceptance probability (inverse of density of states)
     double wang_landau_adjustment = 0.0;
     if(wang_landau_modification_factor > 0 && num_groups != num_groups_old){
@@ -140,9 +143,22 @@ void MCMC::propose_single_site_move() {
     double delta_H = H_A_G_b - H_A_G_b_old + H_parameters - H_parameters_old + H_s_G_b_depths - H_s_G_b_depths_old;
     double acceptance_prob = std::exp(-beta * delta_H - wang_landau_adjustment);
     if (uniform_random(rng) >= acceptance_prob) {
+        // print("Rejected single site move: node " + std::to_string(node) + " from group " + std::to_string(old_group) + " to group " + std::to_string(new_group));
+        // if(node == 0){  // Debugging: track moves of node 0
+        //     print("Rejected single site move for node 0: from group " + std::to_string(old_group) + " to group " + std::to_string(new_group) + " with delta_H " + std::to_string(delta_H));
+        //     // Print the old and new values of the entropies
+        //     print("H_A_G_b_old: " + std::to_string(H_A_G_b_old) + ", H_A_G_b: " + std::to_string(H_A_G_b));
+        //     print("H_parameters_old: " + std::to_string(H_parameters_old) + ", H_parameters: " + std::to_string(H_parameters));
+        //     print("H_s_G_b_depths_old: " + std::to_string(H_s_G_b_depths_old) + ", H_s_G_b_depths: " + std::to_string(H_s_G_b_depths));
+        //     print("num_groups_old: " + std::to_string(num_groups_old) + ", num_groups: " + std::to_string(num_groups));
+        // }
         // Reject: flip node back to original group
         flip_nodes({node}, old_group);
     } else {
+        // if(node == 0){  // Debugging: track moves of node 0
+        //     print("Accepted single site move for node 0: from group " + std::to_string(old_group) + " to group " + std::to_string(new_group) + " with delta_H " + std::to_string(delta_H));
+        // }
+        // print("Accepted single site move: node " + std::to_string(node) + " from group " + std::to_string(old_group) + " to group " + std::to_string(new_group));
         accepted_single_site_proposals++;
     }
 }

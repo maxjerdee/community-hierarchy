@@ -5,11 +5,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Read gml file
-# G = nx.read_gml("examples/data/networks/highschool_51.gml")
+G = nx.read_gml("examples/data/networks/highschool_51.gml")
 # G = nx.read_gml("examples/data/networks/highschool_84.gml")
 # G = nx.read_gml("examples/data/networks/friends.gml")
 # G = nx.read_gml("examples/data/networks/english-football.gml")
-G = nx.read_gml("examples/data/networks/english-football-restricted.gml")
+# G = nx.read_gml("examples/data/networks/english-football-restricted.gml")
 # G = nx.read_gml("examples/data/networks/championship_2021.gml")
 # G = nx.read_gml("examples/data/networks/business_depts.gml")
 
@@ -17,6 +17,7 @@ model_settings_dict = {
     "groups_model": "traditional_DCSBM",
     # "group_attribute": "group",
     "hierarchy_model": "bradley_terry_ties",
+    # "hierarchy_model": "bradley_terry",
     "interaction": "coupled",
     "verbose": True,
     "num_samples": 10000,
