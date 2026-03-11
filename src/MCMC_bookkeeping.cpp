@@ -497,7 +497,7 @@ double MCMC::calculate_H_Adir_G_A_s_nu() {
     // Iterate over all undirected edges
     for(int i = 0; i < n; i++){
         for(const auto& [j, Awins_ij] : wins[i]){
-            double log_p_win_ij = scores[i] - log_sum_exp(std::vector<double>{scores[i], scores[j], std::log(ties_parameter)}); // P(i -> j|i - j)
+            double log_p_win_ij = scores[i] - log_sum_exp(std::vector<double>{scores[i], scores[j], std::log(ties_parameter) + scores[i]/2.0 + scores[j]/2.0}); // P(i -> j|i - j)
             H_Adir_G_A_s_nu_actual += log_factorial(Awins_ij) - Awins_ij * log_p_win_ij;
             if(verbose){
                 print("Edge (" + std::to_string(i) + " -> " + std::to_string(j) + "): Awins_ij = " + std::to_string(Awins_ij) + ", log_p_win_ij = " + std::to_string(log_p_win_ij) + ", contribution = " + std::to_string(log_factorial(Awins_ij) - Awins_ij * log_p_win_ij));
@@ -512,7 +512,7 @@ double MCMC::calculate_H_Adir_G_A_s_nu() {
         // }
         for(const auto& [j, Aties_ij] : ties[i]){
             if(i < j){
-                double log_p_tie_ij = std::log(ties_parameter) - log_sum_exp(std::vector<double>{scores[i], scores[j], std::log(ties_parameter)}); // P(i <-> j|i - j)
+                double log_p_tie_ij = std::log(ties_parameter) + scores[i]/2.0 + scores[j]/2.0 - log_sum_exp(std::vector<double>{scores[i], scores[j], std::log(ties_parameter) + scores[i]/2.0 + scores[j]/2.0}); // P(i <-> j|i - j)
                 H_Adir_G_A_s_nu_actual += log_factorial(Aties_ij) - Aties_ij * log_p_tie_ij;
                 if(verbose){
                     print("Edge (" + std::to_string(i) + " <-> " + std::to_string(j) + "): Aties_ij = " + std::to_string(Aties_ij) + ", log_p_tie_ij = " + std::to_string(log_p_tie_ij) + ", contribution = " + std::to_string(log_factorial(Aties_ij) - Aties_ij * log_p_tie_ij));

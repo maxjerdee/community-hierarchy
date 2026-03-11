@@ -75,12 +75,27 @@ std::pair<std::vector<std::unordered_map<int, double>>, std::vector<std::unorder
             }
         } else if (in_edge && line == "]") {
             if (source != -1 && target != -1) {
-                // Add edge based on type
-                if (edge_type == "dominant") {
-                    wins[source][target] = 1.0;
-                } else if (edge_type == "neutral") {
-                    ties[source][target] = 1.0;
-                    ties[target][source] = 1.0; // Undirected
+                // Add edge based on type, incrementing weight if edge already exists (multigraph support)
+                // Default to "dominant" if no type is specified
+                if (edge_type == "neutral") {
+                    // Increment weight for undirected edge in both directions
+                    if (ties[source].find(target) != ties[source].end()) {
+                        ties[source][target] += 1.0;
+                    } else {
+                        ties[source][target] = 1.0;
+                    }
+                    if (ties[target].find(source) != ties[target].end()) {
+                        ties[target][source] += 1.0;
+                    } else {
+                        ties[target][source] = 1.0;
+                    }
+                } else {
+                    // Default to "dominant" (edge_type == "dominant" or edge_type == "")
+                    if (wins[source].find(target) != wins[source].end()) {
+                        wins[source][target] += 1.0;  // Increment weight for multigraph
+                    } else {
+                        wins[source][target] = 1.0;   // First edge between these nodes
+                    }
                 }
             }
             in_edge = false;
@@ -88,26 +103,163 @@ std::pair<std::vector<std::unordered_map<int, double>>, std::vector<std::unorder
     }
     
     file.close();
+
+    double total_wins = 0.0;
+    for (const auto& row : wins) {
+        for (const auto& [_, weight] : row) {
+            total_wins += weight;
+        }
+    }
+
+    double total_ties_stored = 0.0;
+    for (const auto& row : ties) {
+        for (const auto& [_, weight] : row) {
+            total_ties_stored += weight;
+        }
+    }
+
+    std::cout << "[mcmc_test] Parsed GML: total_wins=" << total_wins
+              << ", total_ties=" << (total_ties_stored / 2.0)
+              << " (stored_ties_sum=" << total_ties_stored << ")" << std::endl;
+
     return std::make_pair(wins, ties);
 }
 
+// Read the partition from group labels in the GML file (if present). Returns a vector where index is node id and value is group id. If no group labels are found, returns an empty vector.
+// node [
+//     id 0
+//     label "Barnsley"
+//     group "league-one"
+//   ]
+std::vector<int> read_partition(const std::string& filename) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open file " << filename << std::endl;
+        exit(1);
+    }
+    std::unordered_map<std::string, int> group_name_to_id;
+    std::vector<int> partition;
+
+    std::string line;
+    int current_node_id = -1;
+
+    while (std::getline(file, line)) {
+        // Print line for debugging
+        if (line.find("node [") != std::string::npos) {
+            current_node_id = -1;
+        } else if (current_node_id == -1 && line.find("id") != std::string::npos) {
+            std::smatch match;
+            if (std::regex_search(line, match, std::regex("id\\s+(\\d+)"))) {
+                current_node_id = std::stoi(match[1]);
+                std::cout << "Line: " << line << std::endl;
+                std::cout << "Found node with id: " << current_node_id << std::endl;
+            }
+        } else if (current_node_id != -1 && line.find("group") != std::string::npos) {
+            std::smatch match;
+            if (std::regex_search(line, match, std::regex("group\\s+(\"([^\"]+)\"|([^\\s\\]]+))"))) {
+                std::string group_name = match[2].matched ? match[2].str() : match[3].str();
+                std::cout << "Line: " << line << std::endl;
+                std::cout << "Found group label: " << group_name << std::endl;
+                if (group_name_to_id.find(group_name) == group_name_to_id.end()) {
+                    group_name_to_id[group_name] = group_name_to_id.size(); // Assign new group id
+                }
+                int group_id = group_name_to_id[group_name];
+                if (current_node_id >= partition.size()) {
+                    partition.resize(current_node_id + 1, -1); // Resize partition vector if needed
+                }
+                partition[current_node_id] = group_id;
+            }
+        }
+    }
+
+    file.close();
+    return partition;
+}
+
+// Read node scores from the GML file (if present). Returns a vector where index is node id and value is score.
+// Supports lines like:
+//   score 0.25
+//   score -1
+//   score "0.25"
+std::vector<double> read_scores(const std::string& filename) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open file " << filename << std::endl;
+        exit(1);
+    }
+
+    std::vector<double> scores;
+    std::string line;
+    int current_node_id = -1;
+
+    while (std::getline(file, line)) {
+        if (line.find("node [") != std::string::npos) {
+            current_node_id = -1;
+        } else if (current_node_id == -1 && line.find("id") != std::string::npos) {
+            std::smatch match;
+            if (std::regex_search(line, match, std::regex("id\\s+(\\d+)"))) {
+                current_node_id = std::stoi(match[1]);
+            }
+        } else if (current_node_id != -1 && line.find("score") != std::string::npos) {
+            std::smatch match;
+            if (std::regex_search(line, match, std::regex("score\\s+(\"?([-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][-+]?\\d+)?)\"?)"))) {
+                double score = std::stod(match[2]);
+                if (current_node_id >= static_cast<int>(scores.size())) {
+                    scores.resize(current_node_id + 1, 0.0);
+                }
+                scores[current_node_id] = score;
+            }
+        }
+    }
+
+    file.close();
+    return scores;
+}
+
+
 int main() {
+    // const std::string gml_path = "examples/data/networks/english-football-restricted.gml";
+    const std::string gml_path = "examples/data/networks/english-football-restricted-wins_and_ties_integrated-scored.gml";
+    // const std::string gml_path = "examples/data/networks/friends.gml";
+
     // Read real network from GML file
     // std::vector<std::unordered_map<int, double>> neighbors = read_gml("examples/data/dolphins.gml");
-    // auto [wins, ties] = read_gml("examples/data/friends.gml");
-    auto [wins, ties] = read_gml("examples/data/highschool_51.gml");
-    // auto [wins, ties] = read_gml("examples/data/highschool_30.gml");
-    // auto [wins, ties] = read_gml("examples/data/highschool_84.gml");
-    // auto [wins, ties] = read_gml("examples/data/test_2.gml");
+    // auto [wins, ties] = read_gml("examples/data/networks/friends.gml");
+    // auto [wins, ties] = read_gml("examples/data/networks/highschool_51.gml");
+    // auto [wins, ties] = read_gml("examples/data/networks/business_depts.gml");
+    auto [wins, ties] = read_gml(gml_path);
+    std::vector<int> partition;// = read_partition(gml_path);
+    std::vector<double> scores;// = read_scores(gml_path);
+    // auto [wins, ties] = read_gml("examples/data/networks/highschool_30.gml");
+    // auto [wins, ties] = read_gml("examples/data/networks/highschool_84.gml");
+    // auto [wins, ties] = read_gml("examples/data/networks/example_3_nodes.gml");
+    // std::vector<int> partition = read_partition("examples/data/networks/example_3_nodes.gml");
 
-    // Initialize partition with random groups
-    std::vector<int> partition(wins.size());
-    for (std::size_t i = 0; i < wins.size(); i++) {
-        partition[i] = rand() % 4;  // Randomly assign to group 0 or 1
+    // If no partition found in file, initialize with random groups
+    if (partition.empty()) {
+        partition.resize(wins.size());
+        for (std::size_t i = 0; i < wins.size(); i++) {
+            partition[i] = rand() % 2;  // Randomly assign to group 0 or 1
+        }
+        std::cout << "No partition found in file, initialized randomly" << std::endl;
     }
-    
-    // Initial scores zero
-    std::vector<double> scores(wins.size(), 0.0);
+
+    // // Initialize partition with random groups
+    // std::vector<int> partition(wins.size());
+    // for (std::size_t i = 0; i < wins.size(); i++) {
+    //     partition[i] = rand() % 4;  // Randomly assign to group 0 or 1
+    // }
+ 
+    // Print the initial partition
+    std::cout << "Initial partition: ";
+    for (std::size_t i = 0; i < partition.size(); i++) {
+        std::cout << "Node " << i << ": Group " << partition[i] << std::endl;
+    }
+
+    // Ensure scores align with graph size; missing scores default to zero.
+    if (scores.size() < wins.size()) {
+        scores.resize(wins.size(), 0.0);
+    }
 
     // // Simple 3-node test network
     // std::vector<std::unordered_map<int, double>> out_neighbors(3);
@@ -131,15 +283,32 @@ int main() {
 
     std::cout << "Loaded graph with " << wins.size() << " nodes" << std::endl;
 
-    // Print wins and ties
-    for (std::size_t i = 0; i < wins.size(); i++){
-        for (const auto& [j, weight] : wins[i]){
-            std::cout << "Win: " << i << " -> " << j << " (weight " << weight << ")" << std::endl;
-        }
-        for (const auto& [j, weight] : ties[i]){
-            std::cout << "Tie: " << i << " <-> " << j << " (weight " << weight << ")" << std::endl;
-        }
-    }
+    // // Print wins and ties
+    // for (std::size_t i = 0; i < wins.size(); i++){
+    //     std::cout << "Wins of node " + std::to_string(i) + ":" << std::endl;
+    //     for(const auto& [j, weight] : wins[i]){
+    //         std::cout << "  Wins against node " + std::to_string(j) + " with weight " + std::to_string(weight) << std::endl;
+    //     }
+    //     for (const auto& [j, weight] : wins[i]){
+    //         std::cout << "Win: " << i << " -> " << j << " (weight " << weight << ")" << std::endl;
+    //         if(weight == 0.0){
+    //             std::cerr << "Error: Edge with zero weight found in wins.\n";
+    //             exit(1);
+    //         }
+    //     }
+    //     for (const auto& [j, weight] : ties[i]){
+    //         std::cout << "Tie: " << i << " <-> " << j << " (weight " << weight << ")" << std::endl;
+    //         if(weight == 0.0){
+    //             std::cerr << "Error: Edge with zero weight found in ties.\n";
+    //             exit(1);
+    //         }
+    //     }
+    // }
+    // exit(1);
+
+    // for(const auto& [j, weight] : wins[0]){
+    //     std::cout << "  Wins against node " + std::to_string(j) + " with weight " + std::to_string(weight) << std::endl;
+    // }
 
     // // Full general model
     // MCMC m(neighbors,
@@ -157,29 +326,30 @@ int main() {
     //     false,          // mean_degree_scaling_fixed
     //     46);            // seed
 
-//     Current individual_depth: 0.00285373, group_depth: 5.50269
-// Current H_A_b: 4016.1, H_Adir_G_A_s_nu: 754.709, H_s_G_b_depths: 491.956
-// MCMC Sweep 37910, wang_landau_modification_factor: 0.002570
+/*
+football initial version:
+MCMC Sweep 44, wang_landau_modification_factor: 0.095877
+Current individual_depth: 0.566201, group_depth: 0.1621
+Current H_A_b: 136540, H_Adir_G_A_s_nu: 20527.9, H_s_G_b_depths: 523.492
+MCMC Sweep 45, wang_landau_modification_factor: 0.095785
+Current individual_depth: 0.591137, group_depth: 0.167678
+
+Current H_A_b: 298479, H_Adir_G_A_s_nu: 27975.7, H_s_G_b_depths: 542.546
+*/
 
 /*
-MCMC Sweep 37485, wang_landau_modification_factor: 0.002598
-Current individual_depth: 1.7147, group_depth: 1.6392
-Current H_A_b: 4035, H_Adir_G_A_s_nu: 572.011, H_s_G_b_depths: 408.005
-MCMC Sweep 37486, wang_landau_modification_factor: 0.002598
-Current individual_depth: 1.7147, group_depth: 1.6392
-Current H_A_b: 4177.56, H_Adir_G_A_s_nu: 568.478, H_s_G_b_depths: 9.66102e+11
-MCMC Sweep 37487, wang_landau_modification_factor: 0.002598
-Current individual_depth: 1.7147, group_depth: 1.90919
-Current H_A_b: 4208.7, H_Adir_G_A_s_nu: 568.507, H_s_G_b_depths: 3.31476e+09
-MCMC Sweep 37488, wang_landau_modification_factor: 0.002598
-Current individual_depth: 1.68126, group_depth: 1.90919
+Initialization:
 */
+
+    std::cout << "wins.size() = " << wins.size() << std::endl;
 
     // Canonical typical DCSBM
     MCMC m(wins,
         ties,
         partition,
+        false,          // partition_fixed
         scores,
+        false,          // scores_fixed
         2,              // num_groups (passed as value)
         false,          // num_groups_fixed
         false,           // assortative
@@ -193,11 +363,17 @@ Current individual_depth: 1.68126, group_depth: 1.90919
         true,          // mean_degree_scaling_fixed
         1.0,            // individual_depth (passed as value)
         false,           // individual_depth_fixed
-        0.0,            // group_depth (passed as value)
+        1.0,            // group_depth (passed as value)
         false,           // group_depth_fixed
         1.0,            // ties_parameter (passed as value)
-        false,          // ties_parameter_fixed
+        true,          // ties_parameter_fixed
         42);            // seed
+
+    // Print scores
+    std::cout << "Current scores: ";
+    for(int s = 0; s < std::min(10, static_cast<int>(m.scores.size())); s++){
+        std::cout << "Node " << s << ": Score " << m.scores[s] << " ";
+    }
 
     /*
     Configuration from python:
@@ -205,7 +381,7 @@ Current individual_depth: 1.68126, group_depth: 1.90919
     
     */
     
-    int num_samples = 1000000;
+    int num_samples = 100;
     int num_samples_used = num_samples / 2;
     
     // Track statistics
@@ -238,6 +414,12 @@ Current individual_depth: 1.68126, group_depth: 1.90919
         // m.MCMC_sweep(0.0, false); // Testing single site
         // m.MCMC_sweep(1.0, false, wang_landau_modification_factor, 15); // Testing WL algorithm
         m.MCMC_sweep(1.0, false, -1.0, -1, 1000);
+
+        // Print scores
+        std::cout << "Current scores: ";
+        for(int s = 0; s < std::min(10, static_cast<int>(m.scores.size())); s++){
+            std::cout << "Node " << s << ": Score " << m.scores[s] << " ";
+        }
         
         // Only count samples from the second half towards histograms and statistics
         if(i >= num_samples - num_samples_used) {
@@ -361,7 +543,7 @@ Current individual_depth: 1.68126, group_depth: 1.90919
     // Print the log_density_num_groups vector if Wang-Landau is enabled
     if(m.wang_landau_modification_factor > 0){
         std::cout << "\n=== Log Density of States for Number of Groups ===" << std::endl;
-        for(int num_groups = 0; num_groups < m.log_density_num_groups.size(); num_groups++){
+        for(size_t num_groups = 0; num_groups < m.log_density_num_groups.size(); num_groups++){
             std::cout << "num_groups = " << num_groups << ": log_density = " << m.log_density_num_groups[num_groups] << std::endl;
         }
     }

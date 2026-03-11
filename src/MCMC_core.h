@@ -16,10 +16,12 @@ public:
     //      degree_correction, degree_correction_fixed, mean_degree_scaling, mean_degree_scaling_fixed,
     //      individual_depth, individual_depth_fixed, group_depth, group_depth_fixed,
     //      ties_parameter, ties_parameter_fixed, seed)
-    MCMC(std::vector<std::unordered_map<int, double>> wins,
-        std::vector<std::unordered_map<int, double>> ties,
-        std::vector<int> partition,
-        std::vector<double> scores,
+    MCMC(const std::vector<std::unordered_map<int, double>>& wins,
+        const std::vector<std::unordered_map<int, double>>& ties,
+        const std::vector<int>& partition,
+        const bool& partition_fixed,
+        const std::vector<double>& scores,
+        const bool& scores_fixed,
         int num_groups,
         const bool& num_groups_fixed,
         const bool& assortative,
@@ -75,6 +77,8 @@ public:
     double ties_parameter; // Parameter controlling the frequency of ties 
 
     // Parameter controls (whether proposals change these parameters)
+    bool partition_fixed; // Fix the partition (no single-site, merge, or split moves)
+    bool scores_fixed; // Fix the scores (no score moves)
     bool variation_in_fixed;
     bool variation_out_fixed;
     bool degree_correction_fixed;

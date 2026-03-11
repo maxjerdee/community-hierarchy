@@ -13,11 +13,13 @@ PY_LDFLAGS := $(shell $(PYTHON)-config --embed --ldflags 2>/dev/null || $(PYTHON
 MKDIR_P := mkdir -p
 
 CXXFLAGS := -std=c++17 -Wall -Wextra -O3 -march=native -fPIC -I$(SRC_DIR) -DDIRECTEDSTRUCTURE_PYBIND
+DEBUG_CXXFLAGS := -std=c++17 -Wall -Wextra -O0 -g -fPIC -I$(SRC_DIR) -DDIRECTEDSTRUCTURE_PYBIND
 
 SOURCES := $(SRC_DIR)/MCMC_core.cpp \
 		   $(SRC_DIR)/MCMC_proposals.cpp \
 		   $(SRC_DIR)/MCMC_bookkeeping.cpp \
 		   $(SRC_DIR)/MCMC_merge_split.cpp \
+		   $(SRC_DIR)/consensus.cpp \
 		   $(SRC_DIR)/helpers.cpp
 OBJECTS := $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))
 
@@ -26,6 +28,7 @@ TEST_OBJECTS := $(patsubst tests/%.cpp,$(BUILD_DIR)/tests_%.o,$(TEST_SOURCES))
 
 MODULE_TARGET := $(PKG_DIR)/$(MODULE_NAME)$(EXT_SUFFIX)
 TEST_BIN := $(BUILD_DIR)/mcmc_core_test
+TEST_BIN_DEBUG := $(BUILD_DIR)/mcmc_core_test_debug
 
 .PHONY: all clean test
 
@@ -49,6 +52,19 @@ $(MODULE_TARGET): $(OBJECTS) | $(PKG_DIR)
 $(TEST_BIN): $(TEST_OBJECTS) $(OBJECTS) | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(PY_LDFLAGS)
 
+# Debug build for valgrind
+$(BUILD_DIR)/%_debug.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
+	$(CXX) $(DEBUG_CXXFLAGS) $(PYBIND11_INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/tests_%_debug.o: tests/%.cpp | $(BUILD_DIR)
+	$(CXX) $(DEBUG_CXXFLAGS) $(PYBIND11_INCLUDES) -c $< -o $@
+
+DEBUG_OBJECTS := $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%_debug.o,$(SOURCES))
+DEBUG_TEST_OBJECTS := $(patsubst tests/%.cpp,$(BUILD_DIR)/tests_%_debug.o,$(TEST_SOURCES))
+
+$(TEST_BIN_DEBUG): $(DEBUG_TEST_OBJECTS) $(DEBUG_OBJECTS) | $(BUILD_DIR)
+	$(CXX) $(DEBUG_CXXFLAGS) $^ -o $@ $(PY_LDFLAGS)
+
 clean:
 	rm -rf $(BUILD_DIR) $(MODULE_TARGET)
 	rm -f $(PKG_DIR)/$(MODULE_NAME)*.so $(PKG_DIR)/$(MODULE_NAME)*.pyd
@@ -60,3 +76,7 @@ clean:
 # Run the C++ harness
 test: $(TEST_BIN)
 	./$(TEST_BIN)
+
+# Run with valgrind (requires valgrind to be installed)
+test-valgrind: $(TEST_BIN_DEBUG)
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./$(TEST_BIN_DEBUG)

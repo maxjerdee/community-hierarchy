@@ -1,13 +1,14 @@
 # Wrappers for the core functionality
 
 from __future__ import annotations
+from typing import Optional
 
 import numpy as np
 from numpy.typing import ArrayLike
 import networkx as nx
 import pandas as pd
 
-from .input_output import _check_input_validity, _UNSET, _set_model_parameters
+from .input_output import _check_input_validity, _UNSET, _set_model_parameters, _get_node_data
 from ._graph_cache import (
     _store_wins_graph,
     _get_wins_graph,
@@ -21,6 +22,8 @@ from .clusterings import consensus_clustering
 def samples(
     G: nx.Graph,
     *,
+    group_attribute: str | None = None,
+    hierarchy_attribute: str | None = None,
     groups_model: str = "general_canonical",
     hierarchy_model: str = _UNSET,
     interaction: str = "coupled",
@@ -54,7 +57,16 @@ def samples(
     ----------
 
     G : nx.Graph
-        NetworkX graph to find group structure of.
+        NetworkX graph to find group and hierarchy structure of.
+        If `group_attribute` is provided distinct values fix node groups.
+        If `hierarchy_attribute` is provided numeric values fix hierarchy scores.
+        Any unspecified attributes are inferred by the model.
+    group_attribute : str, optional
+        Node attribute name containing fixed group labels. Defaults to None, in which case
+        groups are inferred rather than read from node attributes.
+    hierarchy_attribute : str, optional
+        Node attribute name containing fixed hierarchy scores. Defaults to None, in which case
+        scores are inferred rather than read from node attributes.
     groups_model : str, optional
         Type of model to fit. Choices fix parameters to special cases of interest, but can be overridden by providing specific parameter values.
         Options and corrresponding parameter values:
@@ -154,6 +166,8 @@ def samples(
     # Check input validity
     _check_input_validity(
         G=G,
+        group_attribute=group_attribute,
+        hierarchy_attribute=hierarchy_attribute,
         groups_model=groups_model,
         hierarchy_model=hierarchy_model,
         interaction=interaction,
@@ -179,17 +193,52 @@ def samples(
         verbose=verbose,
     )
 
+    # Get node data from graph to potentially fix the group or hierarchy structure
+    node_group_list, node_group_name_list, node_score_list = _get_node_data(
+        G,
+        group_attribute=group_attribute,
+        hierarchy_attribute=hierarchy_attribute,
+    )
+
+    # Overwrite the initial_partition and initial_scores if they are provided in the node data
+    # Also set whether these are fixed
+    partition_fixed = False
+    if node_group_list is not None:
+        if initial_partition is not None:
+            print(
+                "Warning: initial_partition provided as an argument will be overwritten by node data."
+            )
+        initial_partition = node_group_list
+        partition_fixed = True
+    
+    scores_fixed = False
+    if node_score_list is not None:
+        if initial_scores is not None:
+            print(
+                "Warning: initial_scores provided as an argument will be overwritten by node data."
+            )
+        initial_scores = node_score_list
+        scores_fixed = True 
+
     # Split the graph into a directed graph of wins and an undirected graph of ties
     G_wins = nx.DiGraph()
     G_ties = nx.Graph()
     G_wins.add_nodes_from(G.nodes(data=True))
     G_ties.add_nodes_from(G.nodes(data=True))
     for u, v, d in G.edges(data=True):
-        if d.get("type") == "dominant":
-            G_wins.add_edge(u, v)
-        elif d.get("type") == "neutral":
+        if d.get("type") == "neutral":
             if hierarchy_model != "bradley_terry":  # Bradley-Terry model drops ties
-                G_ties.add_edge(u, v)
+                # Add or accumulate weight for ties
+                if G_ties.has_edge(u, v):
+                    G_ties[u][v]["weight"] += d.get("weight", 1.0)
+                else:
+                    G_ties.add_edge(u, v, weight=d.get("weight", 1.0))
+        else:
+            # Add or accumulate weight for wins
+            if G_wins.has_edge(u, v):
+                G_wins[u][v]["weight"] += d.get("weight", 1.0)
+            else:
+                G_wins.add_edge(u, v, weight=d.get("weight", 1.0))
 
     if verbose:
         print(
@@ -247,7 +296,9 @@ def samples(
         ties_parameter,
         num_groups,
         initial_partition_tuple,
+        partition_fixed,
         initial_scores_tuple,
+        scores_fixed,
         seed,
         num_samples,
         sweeps_per_sample,
@@ -259,123 +310,13 @@ def samples(
         verbose,
     )
 
-
-def node_groups(
-    G: nx.Graph,
-    *,
-    model_name: str = "general_canonical",
-    assortative: bool = _UNSET,
-    mixing_variation: str = _UNSET,
-    variation_in: float | None = _UNSET,
-    variation_out: float | None = _UNSET,
-    degree_correction: float | None = _UNSET,
-    mean_degree_scaling: float | None = _UNSET,
-    num_groups: int | None = _UNSET,
-    verbose: bool = False,
-    **kwargs,
-) -> pd.DataFrame:
-    """
-    Find groups of nodes in the network using a stochastic block model with various possible configurations.
-
-    Parameters
-    ----------
-
-    G : nx.Graph
-        NetworkX graph to find group structure of.
-    model_name : str, optional
-        Type of model to fit. Choices fix parameters to special cases of interest, but can be overridden by providing specific parameter values.
-        Options and corrresponding parameter values:
-            - 'general_canonical': All parameters inferred except mean_degree_scaling, which is set to 0 (canonical model)
-            - 'general_unified': All parameters inferred including mean_degree_scaling (generalizes all models considered)
-            - 'traditional_SBM': assortative = False, mixing_variation = 'simple', degree_correction = 0, mean_degree_scaling = 0
-            - 'traditional_DCSBM': assortative = False, mixing_variation = 'simple', degree_correction = 0.5, mean_degree_scaling = 0 (traditional degree-corrected stochastic block model)
-            - 'traditional_GDCSBM': assortative = False, mixing_variation = 'simple', degree_correction = None, mean_degree_scaling = 0 (infer degree correction, generalized)
-            - 'simple_ASBM': assortative = True, mixing_variation = 'simple', degree_correction = 0, mean_degree_scaling = 0 (assortative with simple mixing variation)
-            - 'hybrid_ASBM': assortative = True, mixing_variation = 'internal', degree_correction = 0, mean_degree_scaling = 0 (assortative with internal mixing variation, Zhang and Peixoto 2020)
-            - 'planted_partition': assortative = True, mixing_variation = 'none', degree_correction = 0, mean_degree_scaling = 0
-        Defaults to 'general_canonical'. If a different model_name is provided, the corresponding parameters are set unless explicitly overridden.
-    assortative : bool, optional
-        Whether to allow the model to consider generically assortative group structure.
-        If assortative = False, fix the overall in and out group densities to be equal: rho_in = rho_out.
-        Defaults to True.
-    mixing_variation : str, optional
-        Type of variation in mixing weights to use. Controls variation_in, variation_out parameters.
-        Options:
-            - 'general': infers variation_in and variation_out
-            - 'simple': fixes variation_in = variation_out = 0.5
-            - 'none': fixes variation_in = variation_out = 0
-            - 'internal': fixes variation_in = 0.5, variation_out = 0
-            - 'external': fixes variation_in = 0, variation_out = 0.5
-        Defaults to 'general'.
-    variation_in : float, optional
-        Value of the variation_in (intra-group mixing variation) parameter. Must be from 0 to 1.
-        variation_in = 0 yields no variation in internal mixing weights, as found in the planted partition model, while
-        variation_in = 0.5 corresponds to typical variation as found in the traditional SBM.
-        A value of None allows the parameter to vary freely. Defaults to None.
-    variation_out : float, optional
-        Value of the variation_out (inter-group mixing variation) parameter. Must be from 0 to 1.
-        variation_out = 0 yields no variation in external mixing weights, as found in the planted partition model, while
-        variation_out = 0.5 corresponds to typical variation as found in the traditional SBM.
-        A value of None allows the parameter to vary freely. Defaults to None.
-    degree_correction : float, optional
-        Value of the degree_correction (in-group degree inequality) parameter. Must be from 0 to 1.
-        A value of 0 corresponds to no degree correction and a value of 0.5 corresponds to typical degree correction.
-        A value of None allows the parameter to vary freely. Defaults to None.
-    mean_degree_scaling : float, optional
-        Value of the mean_degree_scaling (gamma) parameter. Mean degree of nodes in a group of size n scales as n^mean_degree_scaling.
-        Traditional canonical models have gamma = 0, while microcanonical models have gamma = -1.
-        A value of None allows the parameter to vary freely. Defaults to 0.
-    num_groups : int, optional
-        Number of communities (q) in the graph. If None, the number of communities is inferred from the data. Defaults to None.
-    verbose : bool, optional
-        Whether to print progress and debug information. Defaults to False.
-    kwargs : optional
-        Additional keyword arguments to specify the sampling procedure. See `sampling` for details.
-    """
-
-    # Check input validity
-    _check_input_validity(
-        G=G,
-        model_name=model_name,
-        assortative=assortative,
-        mixing_variation=mixing_variation,
-        variation_in=variation_in,
-        variation_out=variation_out,
-        degree_correction=degree_correction,
-        mean_degree_scaling=mean_degree_scaling,
-        num_groups=num_groups,
-        verbose=verbose,
-        **kwargs,
-    )
-
-    # Get the samples for this model configuration (likely cached)
-    samples_df = samples(
-        G,
-        model_name=model_name,
-        assortative=assortative,
-        mixing_variation=mixing_variation,
-        variation_in=variation_in,
-        variation_out=variation_out,
-        degree_correction=degree_correction,
-        mean_degree_scaling=mean_degree_scaling,
-        num_groups=num_groups,
-        **kwargs,
-    )
-
-    print(samples_df)
-
-    # Get the clusterings returned by the samples (as an array)
-    clusterings = samples_df.filter(like="group_").to_numpy()
-
-    print(clusterings)
-
-    # Find the consensus out of the returned clusterings
-    clustering = consensus_clustering(clusterings)
-    pass
-
-
 def node_properties(
-    G: nx.Graph, consensus_clustering_metric="L1", **kwargs
+    G: nx.Graph,
+    consensus_clustering_metric="L1",
+    samples_df: Optional[pd.DataFrame] = None,
+    group_attribute: str | None = None,
+    hierarchy_attribute: str | None = None,
+    **kwargs,
 ) -> pd.DataFrame:
     """
     Infer properties of individual nodes in the network.
@@ -384,14 +325,36 @@ def node_properties(
     Parameters
     ----------
     G : nx.Graph
-        NetworkX graph to find group structure of.
+        NetworkX graph to find group and hierarchy structure of.
+        If `group_attribute` is provided distinct values fix node groups.
+        If `hierarchy_attribute` is provided numeric values fix hierarchy scores.
+        Any unspecified attributes are inferred by the model.
     consensus_clustering_metric : str, optional
         Metric to use for finding consensus clustering. Options: {'L1', 'L2'}. Defaults to 'L1'.
+    samples_df : pd.DataFrame, optional
+        DataFrame of samples from the posterior distribution. If not provided, samples will be generated using the provided graph and kwargs.
+    group_attribute : str, optional
+        Node attribute name containing fixed group labels. Defaults to None.
+    hierarchy_attribute : str, optional
+        Node attribute name containing fixed hierarchy scores. Defaults to None.
     kwargs : optional
         Additional keyword arguments to specify the model configuration or sampling. See :func:`samples` for full options.
 
     """
-    samples_df = samples(G, **kwargs)
+    # Extract groups and hiearchies that have been provided
+    node_group_list, node_group_name_list, node_hierarchy_list = _get_node_data(
+        G,
+        group_attribute=group_attribute,
+        hierarchy_attribute=hierarchy_attribute,
+    )
+
+    if samples_df is None:
+        samples_df = samples(
+            G,
+            group_attribute=group_attribute,
+            hierarchy_attribute=hierarchy_attribute,
+            **kwargs,
+        )
 
     # Extract names of nodes from the graph
     node_names = list(G.nodes())
@@ -407,6 +370,13 @@ def node_properties(
 
     # Find consensus clustering with L1 metric
     consensus_groups = consensus_clustering(clusterings, metric="L1")
+
+    # If the node_group_name_list is not None, replace the consensus group labels with the provided names
+    if node_group_name_list is not None:
+        consensus_groups_named = np.empty_like(consensus_groups, dtype=object)
+        for i, group in enumerate(consensus_groups):
+            consensus_groups_named[i] = node_group_name_list[group]
+        consensus_groups = consensus_groups_named
 
     # Compute the mean and standard deviation of the scores for each node across samples
     score_columns = [f"{node}_score" for node in node_names]
@@ -445,7 +415,13 @@ def node_properties(
     return node_properties_df
 
 
-def network_properties(G: nx.Graph, **kwargs) -> pd.DataFrame:
+def network_properties(
+    G: nx.Graph,
+    samples_df: Optional[pd.DataFrame] = None,
+    group_attribute: str | None = None,
+    hierarchy_attribute: str | None = None,
+    **kwargs,
+) -> pd.DataFrame:
     """
     Infer properties of the overall network structure.
     Returns a pandas DataFrame with the inferred parameters and their uncertainties, including those fixed by the model specification.
@@ -467,10 +443,22 @@ def network_properties(G: nx.Graph, **kwargs) -> pd.DataFrame:
 
     G : nx.Graph
         NetworkX graph to find group structure of.
+    samples_df : pd.DataFrame, optional
+        DataFrame of samples from the posterior distribution. If not provided, samples will be generated using the provided graph and kwargs.
+    group_attribute : str, optional
+        Node attribute name containing fixed group labels. Defaults to None.
+    hierarchy_attribute : str, optional
+        Node attribute name containing fixed hierarchy scores. Defaults to None.
     kwargs : optional
         Additional keyword arguments to specify the model configuration or sampling. See :func:`samples` for full options.
     """
-    samples_df = samples(G, **kwargs)
+    if samples_df is None:
+        samples_df = samples(
+            G,
+            group_attribute=group_attribute,
+            hierarchy_attribute=hierarchy_attribute,
+            **kwargs,
+        )
 
     parameter_list = [
         "num_groups",
@@ -496,37 +484,6 @@ def network_properties(G: nx.Graph, **kwargs) -> pd.DataFrame:
 
     return parameters_df
 
-
-def parameters(
-    G: nx.Graph,
-    **kwargs,
-) -> pd.DataFrame:
-    """
-    Infer global parameters of the stochastic block model fitted to the network.
-    Returns a pandas DataFrame with the inferred parameters and their values, including those fixed by the chosen model.
-
-    Parameters
-    ----------
-
-    G : nx.Graph
-        NetworkX graph to find group structure of.
-    kwargs : optional
-        Additional keyword arguments to specify the model configuration or sampling. See `node_groups` and `sampling` for details.
-    """
-    # Check input validity
-    _check_input_validity(G=G, **kwargs)
-
-    # Get the samples for this model configuration (likely cached)
-    samples_df = samples(
-        G,
-        **kwargs,
-    )
-
-    # Get the means and standard deviations of each of the inferred global parameters
-
-    pass
-
-
 def mixing_matrix(
     G: nx.Graph,
     node_groups: pd.DataFrame,
@@ -535,7 +492,7 @@ def mixing_matrix(
     """
     Estimate the probability of connection between each pair of inferred groups in the network.
     Uses globally inferred parameters to adjust observed edge densities.
-    TODO: We could fix this to actually just sample the hyperparameters with these fixed group assignments.
+    TODO: We could fix this by actually sampling the hyperparameters with these fixed group assignments.
 
     Parameters
     ----------
@@ -558,12 +515,8 @@ def mixing_matrix(
             "num_groups parameter is ignored in mixing_matrix since groups are determined by node_groups.",
             UserWarning,
         )
-
-    # Get the parameters for this model configuration (likely cached)
-    parameters_df = parameters(
-        G,
-        **kwargs,
-    )
+    
+    
 
     # Count the number of edges between each pair of groups
     # This should be implemented in C++ since it will be needed by the predictive portion anyway.

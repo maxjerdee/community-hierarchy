@@ -21,3 +21,40 @@ Q: Does the fact that the meaning of the scores, stored in the [0,1] interval, c
 - Add some basic functionality tests (checks against exact Mathematica results)
 - Include versions of the model where the community and hierarchy can each (or both) be fixed, in case we are interested in how it might change due to some externally observed variable.
 - Add the consensus clustering code (in c++ since it can be pretty intensive)
+
+2/8/26:
+- DONE: Hosted on pypi with documentation
+- Add ability for the downstream functions like node_properties to take samples_df as an argument
+
+2/11/26:
+- Add a wrapper as an R package
+
+2/16/26:
+- Make sure that we raise an error if there are no edges, also convert multigraphs
+- DONE: Handle the case where nothing is recorded as dominant, default to this. 
+
+2/18/26:
+- DONE: _get_node_data() function, and take the group and hierarchy information, raise errors or return None
+- Make function to plot the status decomposition of the graph
+- Test against Mathematica for a multigraph
+- Change type -> interaction_type
+
+3/15/26:
+- STAN implementation of the fixed groups model gives different and more sensible results
+- Re-implement this STAN model using the form we have derived integrated over the community scores.
+- Debug the directedstructure implementation until the outcomes match
+- Test out a way to just use the g++ compiler directly to configure the sampling code
+- Send the new version of the code to Elizabeth along with requests of what should be installed
+- Note that make test on the current multigraph example results in a seg fault that we need to track down (should run this with valgrind and sort out the error)
+
+  Node 17 with weight 6.000000
+  Node 0 with weight 0.000000
+make: *** [Makefile:63: test] Segmentation fault (core dumped)
+
+3/10/26:
+- Found the gap between the STAN and c++ implementations for the ties
+- Want to implement the ability to pass fixed groups or scores
+- Set up the code such that it is possible to take an input and
+
+3/11/26:
+- Need to bring the stripped and original implementations into alignment. 

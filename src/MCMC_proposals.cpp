@@ -234,6 +234,8 @@ void MCMC::propose_score_move() {
     }
 
     double new_scaled_score = gaussian_proposal(old_scaled_score, proposal_mean, std::sqrt(proposal_variance), PARAMETER_PROPOSAL_STEP_SIZE);
+    // // Add a Gaussian random variable with the specified variance to the current scaled score
+    // double new_scaled_score = scaled_scores[node] + std::normal_distribution<double>(0, 0.001)(rng);
 
     if(verbose){
         print("Proposed new scaled score: " + std::to_string(new_scaled_score));
@@ -253,15 +255,15 @@ void MCMC::propose_score_move() {
         print("Old H_Adir_G_A_s_nu: " + std::to_string(H_Adir_G_A_s_nu));
     }
     for(const auto& [j, Adir_ij] : wins[node]){
-        double log_p_win_ij = scores[node] - log_sum_exp(std::vector<double>{scores[node], scores[j], std::log(ties_parameter)}); // P(node -> j|node - j)
+        double log_p_win_ij = scores[node] - log_sum_exp(std::vector<double>{scores[node], scores[j], std::log(ties_parameter) + scores[node]/2.0 + scores[j]/2.0}); // P(node -> j|node - j)
         H_Adir_G_A_s_nu -= 0.0 - Adir_ij * log_p_win_ij;
     }
     for(const auto& [j, Adir_ji] : losses[node]){
-        double log_p_win_ji = scores[j] - log_sum_exp(std::vector<double>{scores[j], scores[node], std::log(ties_parameter)}); // P(j -> node|j - node)
+        double log_p_win_ji = scores[j] - log_sum_exp(std::vector<double>{scores[j], scores[node], std::log(ties_parameter) + scores[j]/2.0 + scores[node]/2.0}); // P(j -> node|j - node)
         H_Adir_G_A_s_nu -= 0.0 - Adir_ji * log_p_win_ji;
     }
     for(const auto& [j, Aties_ij] : ties[node]){
-        double log_p_tie_ij = std::log(ties_parameter) - log_sum_exp(std::vector<double>{scores[node], scores[j], std::log(ties_parameter)}); // P(i <-> j|i - j)
+        double log_p_tie_ij = std::log(ties_parameter) + scores[node]/2.0 + scores[j]/2.0 - log_sum_exp(std::vector<double>{scores[node], scores[j], std::log(ties_parameter) + scores[node]/2.0 + scores[j]/2.0}); // P(i <-> j|i - j)
         H_Adir_G_A_s_nu -= 0.0 - Aties_ij * log_p_tie_ij;
     }
     if(verbose){
@@ -281,15 +283,15 @@ void MCMC::propose_score_move() {
     
     // H_Adir_G_A_s_nu, add terms
     for(const auto& [j, Adir_ij] : wins[node]){
-        double log_p_win_ij = scores[node] - log_sum_exp(std::vector<double>{scores[node], scores[j], std::log(ties_parameter)}); // P(node -> j|node - j)
+        double log_p_win_ij = scores[node] - log_sum_exp(std::vector<double>{scores[node], scores[j], std::log(ties_parameter) + scores[node]/2.0 + scores[j]/2.0}); // P(node -> j|node - j)
         H_Adir_G_A_s_nu += 0.0 - Adir_ij * log_p_win_ij;
     }
     for(const auto& [j, Adir_ji] : losses[node]){
-        double log_p_win_ji = scores[j] - log_sum_exp(std::vector<double>{scores[j], scores[node], std::log(ties_parameter)}); // P(j -> node|j - node)
+        double log_p_win_ji = scores[j] - log_sum_exp(std::vector<double>{scores[j], scores[node], std::log(ties_parameter) + scores[j]/2.0 + scores[node]/2.0}); // P(j -> node|j - node)
         H_Adir_G_A_s_nu += 0.0 - Adir_ji * log_p_win_ji;
     }
     for(const auto& [j, Aties_ij] : ties[node]){
-        double log_p_tie_ij = std::log(ties_parameter) - log_sum_exp(std::vector<double>{scores[node], scores[j], std::log(ties_parameter)}); // P(i <-> j|i - j)
+        double log_p_tie_ij = std::log(ties_parameter) + scores[node]/2.0 + scores[j]/2.0 - log_sum_exp(std::vector<double>{scores[node], scores[j], std::log(ties_parameter) + scores[node]/2.0 + scores[j]/2.0}); // P(i <-> j|i - j)
         H_Adir_G_A_s_nu += 0.0 - Aties_ij * log_p_tie_ij;
     }
     if(verbose){
@@ -298,6 +300,7 @@ void MCMC::propose_score_move() {
 
     // Metropolis-Hastings acceptance
     double delta_H = H_Adir_G_A_s_nu - H_Adir_G_A_s_nu_old; // Only accept/reject on the change in the Adir term, the change to H_s_G_b_depths is built into the proposal distribution.
+    // double delta_H = H_s_G_b_depths - H_s_G_b_depths_old + H_Adir_G_A_s_nu - H_Adir_G_A_s_nu_old;
     double acceptance_prob = std::exp(-beta * delta_H);
     if (uniform_random(rng) < acceptance_prob) {
         // Accept
@@ -373,7 +376,7 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     }
     
     // Check if this move will empty the old group
-    bool empty_old_group = (node_counts[old_group] == filtered_nodes.size());
+    bool empty_old_group = (node_counts[old_group] == static_cast<int>(filtered_nodes.size()));
 
     // === Identify impacted groups ===
     // Initial: groups affected in the current partition
@@ -427,6 +430,14 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         print("H_M: " + std::to_string(H_M));
         print("H_A_G_k_M_b: " + std::to_string(H_A_G_k_M_b));
         print("H_A_G_b: " + std::to_string(H_A_G_b));
+    }
+
+    if(verbose){
+        // Check if neighbors[96] has an entry for 0, if so print it
+        print("Neighbors of node 96:");
+        for(const auto& [j, weight] : neighbors[96]){
+            print("  Node " + std::to_string(j) + " with weight " + std::to_string(weight));
+        }
     }
 
     /* === PHASE 1: Remove entropy terms from initial configuration === */
@@ -539,6 +550,15 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         node_counts_norm_2scaling_plus_2 -= std::pow(node_counts[r],2*mean_degree_scaling + 2);
     }
 
+    if(verbose){
+        print("Entropies after removing initial configuration terms:");
+        print("H_b: " + std::to_string(H_b));
+        print("H_k: " + std::to_string(H_k));
+        print("H_M: " + std::to_string(H_M));
+        print("H_A_G_k_M_b: " + std::to_string(H_A_G_k_M_b));
+        print("H_s_G_b_depths: " + std::to_string(H_s_G_b_depths));
+    }
+
     /* === PHASE 2: Update partition and bookkeeping === */
     for(int node: filtered_nodes){
         partition[node] = new_group;
@@ -551,9 +571,21 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         group_members[old_group].pop_back();  // Remove duplicate at end
         node_indices_in_groups[old_group].erase(node);  // Remove node from index map
         node_counts[old_group]--;
-        
+
+        if(verbose){
+            // Check if neighbors[96] has an entry for 0, if so print it
+            print("Neighbors of node 96:");
+            for(const auto& [j, weight] : neighbors[96]){
+                print("  Node " + std::to_string(j) + " with weight " + std::to_string(weight));
+            }
+        }
+
         // Update edge counts: subtract edges from old_group
         for(const auto& [j, A_ij] : neighbors[node]){
+            if(verbose){
+                print("Updating edge counts for neighbor " + std::to_string(j) + " of node " + std::to_string(node) + " with A_ij = " + std::to_string(A_ij));
+                print(static_cast<int>(neighbors[node].size()));
+            }
             int neighbor_group = partition[j];
             edge_counts[old_group][neighbor_group] -= A_ij;
             edge_counts[neighbor_group][old_group] -= A_ij;
@@ -613,6 +645,16 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         }
         group_scaled_score_sums.pop_back();
         num_groups -= 1;
+    }
+
+    if(verbose){
+        print("Updated partition:");
+        for (int i = 0; i < partition.size(); i++) {
+            printf("%d ", partition[i]);
+        }
+        print("");
+        print("Updated M: ");
+        print(edge_counts);
     }
 
     /* === PHASE 3: Add entropy terms from final configuration === */
@@ -776,6 +818,14 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
             printf("%d ", partition[i]);
         }
         print("");
+    }
+
+    if(verbose){
+        // Check if neighbors[96] has an entry for 0, if so print it
+        print("Neighbors of node 96:");
+        for(const auto& [j, weight] : neighbors[96]){
+            print("  Node " + std::to_string(j) + " with weight " + std::to_string(weight));
+        }
     }
 }
 

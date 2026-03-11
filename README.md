@@ -31,7 +31,12 @@ We model community structure using a stochastic block model, hierarchy structure
 
 ## Installation
 
-`directedstructure` can be built locally by cloning this repository and running
+`directedstructure` can be installed using 
+```bash
+pip install directedstructure
+```
+
+or built locally by cloning this repository and running
 
 ```bash
 pip install .
@@ -52,7 +57,7 @@ import networkx as nx
 import pandas as pd
 
 # Load a network using NetworkX (this can also be read from an edgelist or other format)
-G = nx.read_gml("examples/data/friends.gml")
+G = nx.read_gml("examples/data/networks/friends.gml")
 ```
 
 ### Infer node properties
@@ -67,6 +72,19 @@ network_properties_df = ds.network_properties(G) # pandas DataFrame of network p
 
 ```
 
+### Visualization
+Plot the inferred community and hiearchy of the nodes
+```python
+import matplotlib.pyplot as plt
+
+ds.plot_node_properties(G) 
+plt.savefig("examples/data/figures/friends.png")
+```
+
+To plot the network itself we recommend first saving it along with the inferences as attributes and using dedicated network visualization software like [Gephi](https://gephi.org/).
+```python 
+ds.write_gml_with_inferences(G) # Saves inferred attributes like groups to a .gml file that can be accessed by other software
+```
 
 
 ### Full samples

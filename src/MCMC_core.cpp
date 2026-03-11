@@ -31,10 +31,12 @@ namespace py = pybind11;
  * @param *_fixed: Flags for fixed (not inferred) parameters
  * @param seed: Random seed for reproducibility
  */
-MCMC::MCMC(std::vector<std::unordered_map<int, double>> wins,
-           std::vector<std::unordered_map<int, double>> ties,
-           std::vector<int> partition,
-           std::vector<double> scores,
+MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
+           const std::vector<std::unordered_map<int, double>>& ties,
+           const std::vector<int>& partition,
+           const bool& partition_fixed,
+           const std::vector<double>& scores,
+           const bool& scores_fixed,
            int num_groups,
            const bool& num_groups_fixed,
            const bool& assortative,
@@ -55,25 +57,27 @@ MCMC::MCMC(std::vector<std::unordered_map<int, double>> wins,
            int seed)
     : n(0),
       m(0),
-      wins(std::move(wins)),  // Move wins adjacency list (avoid copy)
+      wins(wins),  // Copy wins adjacency list from const reference
       losses(),
-      ties(std::move(ties)),  // Move ties adjacency list (avoid copy)
+      ties(ties),  // Copy ties adjacency list from const reference
       neighbors(),
       free_parameters(),
       beta(0.0),  // Inverse temperature (set during MCMC_sweep)
       merge_split_enabled(true),
       proposal_weights(),
-      partition(std::move(partition)),  // Move initial partition (avoid copy)
-      scores(std::move(scores)), // Move initial scores (avoid copy)
-      scaled_scores(), // Scores divided by the individual depth. MCMC moves are proposed according to these for better ergodicity.
-      variation_in(variation_in),  // Copy variation parameters (stored as values)
-      variation_out(variation_out),
-      degree_correction(degree_correction),
-      mean_degree_scaling(mean_degree_scaling),
-      weight_in(0.0),  // Computed during initial bookkeeping
-      weight_out(0.0),
-      variation_in_fixed(variation_in_fixed),
-      variation_out_fixed(variation_out_fixed),
+      partition(partition),  // Copy initial partition from const reference
+      partition_fixed(partition_fixed),
+      scores(scores), // Copy initial scores from const reference
+      scores_fixed(scores_fixed),
+    scaled_scores(), // Scores divided by the individual depth. MCMC moves are proposed according to these for better ergodicity.
+    variation_in(variation_in),  // Copy variation parameters (stored as values)
+    variation_out(variation_out),
+    degree_correction(degree_correction),
+    mean_degree_scaling(mean_degree_scaling),
+    weight_in(0.0),  // Computed during initial bookkeeping
+    weight_out(0.0),
+    variation_in_fixed(variation_in_fixed),
+    variation_out_fixed(variation_out_fixed),
       degree_correction_fixed(degree_correction_fixed),
       mean_degree_scaling_fixed(mean_degree_scaling_fixed),
       individual_depth(individual_depth),
@@ -135,6 +139,7 @@ MCMC::MCMC(std::vector<std::unordered_map<int, double>> wins,
       accepted_variation_out_proposals(0),
       mean_degree_scaling_proposals(0),
       accepted_mean_degree_scaling_proposals(0) {
+
     
     // Seed random number generator for reproducibility
     rng.seed(seed);
@@ -164,17 +169,89 @@ MCMC::MCMC(std::vector<std::unordered_map<int, double>> wins,
         }
     }
 
-    // // Print neighbors for debugging
-    // for(int i = 0; i < n; i++){
-    //     print("Neighbors of node " + std::to_string(i) + ":");
-    //     for(const auto& [j, weight] : neighbors[i]){
-    //         print("  Node " + std::to_string(j) + " with weight " + std::to_string(weight));
-    //     }
-    //     print("Wins of node " + std::to_string(i) + ":");
-    //     for(const auto& [j, weight] : wins[i]){
-    //         print("  Wins against node " + std::to_string(j) + " with weight " + std::to_string(weight));
-    //     }
-    // }
+    if(verbose){
+        for(int i = 0; i < n; i++){
+            // Updating edge counts for neighbor 0 of node 96 with A_ij = 0.000000
+            print("Neighbors of node " + std::to_string(i) + ":");
+            for(const auto& [j, weight] : neighbors[i]){
+                print("  Node " + std::to_string(j) + " with weight " + std::to_string(weight));
+            }
+            print("Wins of node " + std::to_string(i) + ":");
+            for(const auto& [j, weight] : wins[i]){
+                print("  Wins against node " + std::to_string(j) + " with weight " + std::to_string(weight));
+            }
+            print("Ties of node " + std::to_string(i) + ":");
+            for(const auto& [j, weight] : ties[i]){
+                print("  Ties with node " + std::to_string(j) + " with weight " + std::to_string(weight));
+            }
+            print("Losses of node " + std::to_string(i) + ":");
+            for(const auto& [j, weight] : losses[i]){
+                print("  Loses to node " + std::to_string(j) + " with weight " + std::to_string(weight));
+            }
+            if(i == 96){
+                print(static_cast<int>(neighbors[i].size()));
+                // exit(1);
+            }
+        }
+    }
+
+    /*
+    Node 108 with weight 2.000000
+    Node 60 with weight 1.000000
+    Node 58 with weight 1.000000
+    Node 56 with weight 3.000000
+    Node 24 with weight 2.000000
+    Node 53 with weight 1.000000
+    Node 23 with weight 2.000000
+    Node 52 with weight 1.000000
+    Node 22 with weight 1.000000
+    Node 51 with weight 8.000000
+    Node 80 with weight 5.000000
+    Node 21 with weight 3.000000
+    Node 76 with weight 1.000000
+    Node 17 with weight 6.000000
+    Node 12 with weight 1.000000
+    Node 41 with weight 2.000000
+    Node 20 with weight 5.000000
+    Node 7 with weight 1.000000
+    Node 19 with weight 1.000000
+    Node 48 with weight 2.000000
+    Node 6 with weight 3.000000
+    Node 16 with weight 1.000000
+    Node 3 with weight 1.000000
+    Node 61 with weight 1.000000
+    Node 2 with weight 2.000000
+    Node 25 with weight 1.000000
+    Node 54 with weight 1.000000
+    Node 26 with weight 2.000000
+    Node 86 with weight 1.000000
+    Node 27 with weight 2.000000
+    Node 28 with weight 1.000000
+    Node 30 with weight 5.000000
+    Node 34 with weight 1.000000
+    Node 38 with weight 1.000000
+    Node 39 with weight 1.000000
+    Node 103 with weight 2.000000
+    Node 44 with weight 3.000000
+    Node 106 with weight 1.000000
+    Node 47 with weight 1.000000
+
+    Node 108 with weight 2.000000
+  Node 60 with weight 1.000000
+  Node 58 with weight 1.000000
+  Node 56 with weight 3.000000
+  Node 24 with weight 2.000000
+  Node 53 with weight 1.000000
+  Node 23 with weight 2.000000
+  Node 52 with weight 1.000000
+  Node 22 with weight 1.000000
+  Node 51 with weight 8.000000
+  Node 80 with weight 5.000000
+  Node 21 with weight 3.000000
+  Node 76 with weight 1.000000
+  Node 17 with weight 6.000000
+  Node 0 with weight 0.000000
+    */
 
     m = 0; // Number of edges (will be computed from adjacency list)
     for (const auto& node_neighbors : this->neighbors) {
@@ -265,14 +342,18 @@ void MCMC::MCMC_sweep(double beta, bool merge_split_enabled, double wang_landau_
 
     // Set proposal weights based on enabled moves
     proposal_weights = {
-        {"single_site_move", static_cast<double>(n)},
-        {"score_move", static_cast<double>(n)},
         {"parameter_move", static_cast<double>(free_parameters.size())}
     };
-    if(merge_split_enabled){
-        proposal_weights["merge_move"] = 1.0;
-        proposal_weights["split_move"] = 1.0;
-    };
+    if(!partition_fixed){ // Infer partition only if it's not fixed
+        proposal_weights["single_site_move"] = static_cast<double>(n);
+        if(merge_split_enabled){
+            proposal_weights["merge_move"] = 1.0;
+            proposal_weights["split_move"] = 1.0;
+        };
+    }
+    if(!scores_fixed){ // Infer scores only if they're not fixed
+        proposal_weights["score_move"] = static_cast<double>(n);
+    }
 
     // // Testing just the score distribution move
     // proposal_weights = {{"score_move", 1.0}};
@@ -636,7 +717,9 @@ PYBIND11_MODULE(MCMC_core, m) {
                  std::vector<std::unordered_map<int, double>>,
                  std::vector<std::unordered_map<int, double>>,
                  std::vector<int>,
+                 const bool&,
                  std::vector<double>,
+                 const bool&,
                  int,
                  const bool&,
                  const bool&,
@@ -658,7 +741,9 @@ PYBIND11_MODULE(MCMC_core, m) {
              py::arg("wins"),
              py::arg("ties"),
              py::arg("partition"),
+             py::arg("partition_fixed") = false,
              py::arg("scores"),
+             py::arg("scores_fixed") = false,
              py::arg("num_groups"),
              py::arg("num_groups_fixed") = false,
              py::arg("assortative") = true,

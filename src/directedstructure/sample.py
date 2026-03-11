@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def _gen_initial_partition(
-    G_wins: nx.DiGraph, G_ties: nx.Graph, num_groups: int | None
+    G_wins: nx.MultiDiGraph, G_ties: nx.MultiGraph, num_groups: int | None
 ) -> List[int]:
     # Generate an initial partition for the MCMC sampler using greedy modularity maximization on the undirected version of the graph.
 
@@ -52,7 +52,7 @@ def _gen_initial_partition(
     return partition
 
 
-def _gen_initial_scores(G_wins: nx.DiGraph, G_ties: nx.Graph) -> List[float]:
+def _gen_initial_scores(G_wins: nx.MultiDiGraph, G_ties: nx.MultiGraph) -> List[float]:
     # Generate initial scores for the MCMC sampler using win percentages. This is a simple heuristic that can help the sampler converge faster.
 
     node_to_index_dict = {node: i for i, node in enumerate(G_wins.nodes())}
@@ -87,7 +87,9 @@ def _samples_cached(
     ties_parameter,
     num_groups,
     initial_partition_tuple,
+    partition_fixed,
     initial_scores_tuple,
+    scores_fixed,
     seed,
     num_samples: int,
     sweeps_per_sample: int,
@@ -251,7 +253,9 @@ def _samples_cached(
             wins,
             ties,
             initial_partition,
+            bool(partition_fixed),
             initial_scores,
+            bool(scores_fixed),
             int(initial_num_groups),
             bool(num_groups_fixed),
             bool(assortative),
@@ -300,18 +304,18 @@ def _samples_cached(
             # Record the state variables for this beta
             for variable_name in variable_names_no_groups_no_beta:
                 samples_df.at[len(samples_df) - 1, variable_name] = getattr(
-                    MCMC_states[beta], variable_name
+                    MCMC_states[chain_beta], variable_name
                 )
 
             # Record the group assignments for each node, this is done all at once for efficiency
             samples_df.loc[len(samples_df) - 1, group_column_names] = getattr(
-                MCMC_states[beta], "partition"
+                MCMC_states[chain_beta], "partition"
             )
             # TODO: Check if splitting the group assignments into separate columns is efficient, or if storing as a list in one column is better
 
             # Record the inferred scores for each node, this is done all at once for efficiency
             samples_df.loc[len(samples_df) - 1, score_column_names] = getattr(
-                MCMC_states[beta], "scores"
+                MCMC_states[chain_beta], "scores"
             )
 
         # Propose thermal swaps between neighboring betas if more than one temperature is being used (parallel tempering)

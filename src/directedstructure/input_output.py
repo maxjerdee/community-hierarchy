@@ -2,11 +2,49 @@
 
 import networkx as nx
 import pandas as pd
-from typing import Optional, Iterable
+import matplotlib.pyplot as plt
+from typing import Optional, Iterable, Any
 import warnings
 
 # Sentinel for unset parameters
 _UNSET = object()
+
+
+def _to_gml_safe_value(value: Any) -> Any:
+    """Recursively convert values to NetworkX GML-compatible Python types."""
+    if isinstance(value, dict):
+        return {str(k): _to_gml_safe_value(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_to_gml_safe_value(v) for v in value]
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+
+    item_method = getattr(value, "item", None)
+    if callable(item_method):
+        try:
+            return _to_gml_safe_value(item_method())
+        except (TypeError, ValueError):
+            pass
+
+    return str(value)
+
+
+def _sanitize_graph_attributes_for_gml(G: nx.Graph) -> None:
+    """Normalize graph, node, and edge attributes in-place for GML serialization."""
+    graph_attrs = {str(k): _to_gml_safe_value(v) for k, v in G.graph.items()}
+    G.graph.clear()
+    G.graph.update(graph_attrs)
+
+    for node in G.nodes:
+        attrs = G.nodes[node]
+        sanitized = {str(k): _to_gml_safe_value(v) for k, v in attrs.items()}
+        attrs.clear()
+        attrs.update(sanitized)
+
+    for _, _, attrs in G.edges(data=True):
+        sanitized = {str(k): _to_gml_safe_value(v) for k, v in attrs.items()}
+        attrs.clear()
+        attrs.update(sanitized)
 
 
 # Check that the arguments passed to the function are valid, if not raise an error
@@ -14,6 +52,8 @@ def _check_input_validity(
     G: nx.Graph,
     node_groups: Optional[pd.DataFrame] = None,
     *,
+    group_attribute: Optional[str] = None,
+    hierarchy_attribute: Optional[str] = None,
     groups_model: str = "general_canonical",
     hierarchy_model: str = _UNSET,
     interaction: str = "coupled",
@@ -46,11 +86,36 @@ def _check_input_validity(
     """
 
     # Graph checks
-    if not isinstance(G, nx.DiGraph):
-        raise TypeError("G must be a NetworkX DiGraph object.")
+    if not isinstance(G, nx.Graph):
+        raise TypeError("G must be a NetworkX graph object.")
+    if not G.is_directed():
+        raise TypeError(
+            "G must be a directed NetworkX graph (e.g., nx.DiGraph or nx.MultiDiGraph)."
+        )
 
-    # Check whether any of the nodes have type data
-    # If any one does, they must all have type data and is should be either "dominant" or "neutral"
+    # Node attribute name checks
+    for attr_name, attr_value in (
+        ("group_attribute", group_attribute),
+        ("hierarchy_attribute", hierarchy_attribute),
+    ):
+        if attr_value is not None:
+            if not isinstance(attr_value, str):
+                raise TypeError(f"{attr_name} must be a string or None.")
+            if not attr_value:
+                raise ValueError(f"{attr_name} must be a non-empty string or None.")
+    
+    # Warn if group_attribute is provided alongside a non-default groups_model
+    if group_attribute is not None and groups_model != "general_canonical":
+        warnings.warn(
+            f"group_attribute '{group_attribute}' was provided alongside groups_model '{groups_model}'. "
+            "The group_attribute will be used for model initialization, but the specified model type will still be applied. "
+            "To avoid confusion, consider using the default groups_model when providing node attributes.",
+            UserWarning,
+        )
+    
+
+    # Check whether any of the edges have type data
+    # If any one does, they must all have type data and it should be either "dominant" or "neutral"
     type_found = False
     neutral_type_found = False
     for u, v, data in G.edges(data=True):
@@ -70,6 +135,12 @@ def _check_input_validity(
                 raise ValueError(
                     f"Edge ({u}, {v}) is missing 'type' attribute while other edges have it."
                 )
+        
+    # Check that the graph is not empty
+    if G.number_of_nodes() == 0:
+        raise ValueError("Graph G must have at least one node.")
+    if G.number_of_edges() == 0:
+        raise ValueError("Graph G must have at least one edge.")
 
     # groups_model
     valid_models = [
@@ -88,11 +159,21 @@ def _check_input_validity(
         )
 
     # hierarchy_model
+    original_hierarchy_model = hierarchy_model  # Store original value before defaulting
     if hierarchy_model is _UNSET:
         if neutral_type_found:
             hierarchy_model = "bradley_terry_ties"  # Default when ties are present
         else:
             hierarchy_model = "bradley_terry"  # Default when no ties
+
+    # Warn if hierarchy_attribute is provided alongside an explicitly-provided hierarchy_model
+    if hierarchy_attribute is not None and original_hierarchy_model != _UNSET:
+        warnings.warn(
+            f"hierarchy_attribute '{hierarchy_attribute}' was provided alongside hierarchy_model '{original_hierarchy_model}'. "
+            "The hierarchy_attribute will be used for model initialization, but the specified model type will still be applied. "
+            "To avoid confusion, consider using the default hierarchy_model when providing node attributes.",
+            UserWarning,
+        )
 
     # Warning, neutral edges will be ignored by bradley_terry model
     if hierarchy_model == "bradley_terry" and neutral_type_found:
@@ -269,8 +350,101 @@ def _check_input_validity(
     # Passes all checks
     return None
 
+def _get_node_data(
+    G: nx.Graph,
+    *,
+    group_attribute: str | None = None,
+    hierarchy_attribute: str | None = None,
+) -> tuple[list[int] | None, list[str] | None, list[float] | None]:
+    """
+    Extract node data from the graph and return as lists.
+    Attributes are read only when their corresponding attribute-name argument is provided.
+    If an attribute name is None, that property is treated as unspecified and should be inferred.
+    Raises error if requested attributes are missing for some nodes but not others, or if they are not in the correct format.
 
-# assortative, mixing_variation, variation_in, variation_out, degree_correction, mean_degree_scaling, individual_depth, group_depth, ties_parameter, num_groups = _set_model_parameters(groups_model, hierarchy_model, interaction, assortative, mixing_variation, variation_in, variation_out, degree_correction, mean_degree_scaling, individual_depth, group_depth, ties_parameter, num_groups)
+    Parameters
+    ----------
+    G : nx.Graph
+        NetworkX graph to extract node data from.
+    group_attribute : str or None
+        Node attribute name to read fixed groups from. If None, groups are not read from node attributes.
+    hierarchy_attribute : str or None
+        Node attribute name to read fixed hierarchy scores from. If None, scores are not read from node attributes.
+
+    Returns
+    -------
+    node_group_list : list[int] or None
+        List of group labels for each node, or None if no group data is present.
+    node_group_name_list : list[str] or None
+        List of group names that correspond to each integer, or None if no group data is present.
+    node_score_list : list[float] or None
+        List of hierarchy scores for each node, or None if no hierarchy data is present.
+    """
+
+    node_to_index_dict = {node: i for i, node in enumerate(G.nodes)}
+
+    # Check whether any of the nodes have requested group/score data.
+    # If any one does, they must all have that data and it should be of the correct format.
+    group_data_found = False
+    score_data_found = False
+    node_group_list = [0] * G.number_of_nodes()  # Default group assignment if no group data is found
+    node_group_name_list = []
+    node_score_list = [0.0] * G.number_of_nodes()  # Default scores if no score data is found
+    
+    for i, data in G.nodes(data=True):
+        if group_attribute is not None and group_attribute in data:
+            group_data_found = True
+            group_val = data[group_attribute]
+            # If this is a new group value we haven't seen before, add it to the list of group names
+            if group_val not in node_group_name_list:
+                node_group_name_list.append(group_val)
+
+            # Add the group label (as an integer index corresponding to the group name) to the node_group_list
+            node_group_list[node_to_index_dict[i]] = node_group_name_list.index(group_val)
+
+        if hierarchy_attribute is not None and hierarchy_attribute in data:
+            score_data_found = True
+            score_val = data[hierarchy_attribute]
+            if not isinstance(score_val, (int, float)):
+                raise ValueError(
+                    f"Node {i} has invalid score value '{score_val}'. Must be a numeric value."
+                )
+            node_score_list[node_to_index_dict[i]] = float(score_val)
+
+    for i, data in G.nodes(data=True):
+        if group_attribute is not None and group_data_found and group_attribute not in data:
+            raise ValueError(
+                f"Node {i} is missing '{group_attribute}' attribute while other nodes have it."
+            )
+        if (
+            hierarchy_attribute is not None
+            and score_data_found
+            and hierarchy_attribute not in data
+        ):
+            raise ValueError(
+                f"Node {i} is missing '{hierarchy_attribute}' attribute while other nodes have it."
+            )
+    
+    # If an attribute name was explicitly provided but not found on any nodes, raise an error
+    if group_attribute is not None and not group_data_found:
+        raise ValueError(
+            f"group_attribute '{group_attribute}' was specified but not found on any nodes."
+        )
+    if hierarchy_attribute is not None and not score_data_found:
+        raise ValueError(
+            f"hierarchy_attribute '{hierarchy_attribute}' was specified but not found on any nodes."
+        )
+
+    if not group_data_found:
+        node_group_list = None
+        node_group_name_list = None
+    if not score_data_found:
+        node_score_list = None
+
+    return node_group_list, node_group_name_list, node_score_list
+
+
+
 def _set_model_parameters(
     groups_model: str,
     hierarchy_model: str,
@@ -423,28 +597,92 @@ def _set_model_parameters(
     )
 
 
-# Plot the groups on the network
-def plot_groups(G: nx.Graph, node_groups: pd.DataFrame, **kwargs) -> None:
-    pass
+def write_gml_with_inferences(
+    G: nx.Graph | str,
+    output_filename: str | nx.Graph,
+    network_properties_df: Optional[pd.DataFrame] = None,
+    node_properties_df: Optional[pd.DataFrame] = None,
+    **kwargs: Any,
+) -> None:
+    """
+    Write the GML with inferred attributes
 
-
-def add_node_group_attribute(G: nx.Graph, node_groups: pd.DataFrame) -> None:
+    Parameters
+    ----------
+    G : nx.Graph
+        Input network. For backward compatibility, this function also accepts
+        the legacy argument order ``(output_filename, G, ...)``.
+    output_filename : str
+        Filename to save the GML.
+    network_properties_df : pd.DataFrame, optional
+        DataFrame containing network properties. If not provided, properties will be inferred.
+    node_properties_df : pd.DataFrame, optional
+        DataFrame containing node properties. If not provided, properties will be inferred.
+    kwargs : Any
+        Additional keyword arguments, see :func:`directedstructure.core.samples` for details.
     """
 
+    # Support both write_gml_with_inferences(G, output_filename, ...)
+    # and the legacy write_gml_with_inferences(output_filename, G, ...).
+    if isinstance(G, str) and isinstance(output_filename, nx.Graph):
+        warnings.warn(
+            "Calling write_gml_with_inferences(output_filename, G, ...) is deprecated. "
+            "Use write_gml_with_inferences(G, output_filename, ...) instead.",
+            DeprecationWarning,
+        )
+        G, output_filename = output_filename, G
 
-    :param G: Description
-    :type G: nx.Graph
-    :param node_groups: Description
-    :type node_groups: pd.DataFrame
-    :return: Description
-    :rtype: Graph
-    """
-    pass
+    if not isinstance(G, nx.Graph):
+        raise TypeError(
+            "write_gml_with_inferences expected a NetworkX graph as its first argument "
+            "and an output filename as its second argument."
+        )
+    if not isinstance(output_filename, str):
+        raise TypeError("output_filename must be a string path.")
 
+    # If properties are not provided, infer them
+    if network_properties_df is None:
+        from .core import network_properties
+        network_properties_df = network_properties(G, **kwargs)
+        if node_properties_df is not None:
+            warnings.warn(
+                "network_properties_df was not provided and has been inferred, but node_properties_df was provided. This may lead to inconsistencies between the two dataframes.",
+                UserWarning,
+            )
+    
+    if node_properties_df is None:
+        from .core import node_properties
+        node_properties_df = node_properties(G, **kwargs)
+        if network_properties_df is not None:
+            warnings.warn(
+                "node_properties_df was not provided and has been inferred, but network_properties_df was provided. This may lead to inconsistencies between the two dataframes.",
+                UserWarning,
+            )
+    
 
-# Write the GML with a new "group" attribute so external tools (e.g., Gephi) can color by group
-def write_gml(G: nx.Graph, node_groups: pd.DataFrame, path: str) -> None:
-    pass
+    # Create a copy of the graph to add node attributes without modifying the original graph
+    G_copy = G.copy()
+    for node in G_copy.nodes():
+        node_idx = list(G_copy.nodes()).index(node)
+        if node_idx < len(node_properties_df):
+            group = node_properties_df["consensus_group"].iloc[node_idx]
+            score_mean = node_properties_df["score_mean"].iloc[node_idx]
+            score_std = node_properties_df["score_std"].iloc[node_idx]
+            G_copy.nodes[node]["inferred_group"] = group
+            G_copy.nodes[node]["inferred_score_mean"] = score_mean
+            G_copy.nodes[node]["inferred_score_std"] = score_std
+
+    # Write the network attributes
+    for _, row in network_properties_df.iterrows():
+        parameter = row["parameter"]
+        mean = row["mean"]
+        std = row["std"]
+        G_copy.graph[f"inferred_{parameter}_mean"] = mean
+        G_copy.graph[f"inferred_{parameter}_std"] = std
+
+    _sanitize_graph_attributes_for_gml(G_copy)
+    nx.write_gml(G_copy, output_filename)
+    
 
 
 def get_neighbors(G: nx.DiGraph | nx.Graph) -> Iterable[dict]:
@@ -452,37 +690,119 @@ def get_neighbors(G: nx.DiGraph | nx.Graph) -> Iterable[dict]:
     Return the out-neighbors in a directed graph or neighbors in an undirected graph in formats that can be used by the MCMC algorithm
     neighbors_list[i] is a dictionary where the keys are the indices of the neighbors of node i
     and the values are the edge weights.
+    
+    Edge weights are stored in the 'weight' attribute; if not present, default to 1.0.
 
     Parameters
     ----------
-    G : nx.DiGraph
+    G : nx.DiGraph | nx.Graph
         NetworkX graph to get neighbors for.
     """
     node_to_index_dict = {node: i for i, node in enumerate(G.nodes)}
-
-    neighbors_labels = nx.to_dict_of_lists(G)
+    
     neighbors_list = []
-    for i in range(len(neighbors_labels)):
+    for i in range(len(node_to_index_dict)):
         neighbors_list.append({})
-
-    # TODO: Allow this to handle weighted graphs and multigraphs
-
-    for node, neighbors in neighbors_labels.items():
-        for neighbor in neighbors:
-            neighbors_list[node_to_index_dict[node]][node_to_index_dict[neighbor]] = 1.0
-            if not G.is_directed():
-                neighbors_list[node_to_index_dict[neighbor]][
-                    node_to_index_dict[node]
-                ] = 1.0
+    
+    # Iterate over all edges and extract weights
+    for u, v, data in G.edges(data=True):
+        u_idx = node_to_index_dict[u]
+        v_idx = node_to_index_dict[v]
+        
+        # Get weight from edge data, default to 1.0
+        weight = data.get('weight', 1.0)
+        
+        # Add to the neighbors dictionary for u -> v
+        neighbors_list[u_idx][v_idx] = weight
+        
+        # For undirected graphs, also add the reverse direction
+        if not G.is_directed():
+            neighbors_list[v_idx][u_idx] = weight
 
     return neighbors_list
 
 
-"""
-[{}, {}, {}, {8: 1.0}, {}, {}, {263: 1.0}, {}, {3: 1.0}, {11: 1.0, 230: 1.0}, {12: 1.0, 13: 1.0, 16: 1.0}, {9: 1.0, 13: 1.0, 176: 1.0}, {10: 1.0}, {10: 1.0, 11: 1.0}, {}, {}, {10: 1.0, 58: 1.0, 30: 1.0, 19: 1.0}, {321: 1.0}, {}, {16: 1.0}, {21: 1.0}, {20: 1.0}, {}, {}, {26: 1.0, 27: 1.0}, {27: 1.0}, {24: 1.0, 179: 1.0}, {24: 1.0, 25: 1.0, 141: 1.0}, {}, {}, {16: 1.0, 42: 1.0, 57: 1.0, 58: 1.0, 45: 1.0, 296: 1.0, 269: 1.0}, {32: 1.0, 34: 1.0, 35: 1.0}, {31: 1.0, 35: 1.0}, {}, {31: 1.0}, {31: 1.0, 32: 1.0}, {37: 1.0, 38: 1.0}, {36: 1.0, 79: 1.0, 80: 1.0, 82: 1.0, 84: 1.0}, {36: 1.0, 226: 1.0, 239: 1.0, 227: 1.0, 228: 1.0}, {40: 1.0}, {39: 1.0}, {42: 1.0, 43: 1.0, 47: 1.0}, {30: 1.0, 41: 1.0, 101: 1.0}, {41: 1.0, 47: 1.0}, {45: 1.0}, {30: 1.0, 44: 1.0, 86: 1.0, 269: 1.0}, {}, {41: 1.0, 43: 1.0}, {}, {51: 1.0, 52: 1.0, 54: 1.0}, {85: 1.0, 57: 1.0}, {49: 1.0, 76: 1.0, 86: 1.0, 54: 1.0}, {49: 1.0, 222: 1.0, 212: 1.0, 215: 1.0}, {}, {49: 1.0, 51: 1.0, 86: 1.0}, {}, {}, {30: 1.0, 50: 1.0, 73: 1.0, 85: 1.0}, {16: 1.0, 30: 1.0, 112: 1.0, 133: 1.0}, {}, {180: 1.0, 147: 1.0, 181: 1.0}, {}, {}, {}, {}, {}, {67: 1.0}, {66: 1.0}, {}, {70: 1.0, 72: 1.0}, {69: 1.0, 180: 1.0, 181: 1.0}, {}, {69: 1.0, 73: 1.0}, {57: 1.0, 72: 1.0}, {}, {291: 1.0}, {51: 1.0, 78: 1.0}, {}, {76: 1.0, 139: 1.0, 309: 1.0}, {37: 1.0, 80: 1.0, 82: 1.0, 96: 1.0}, {37: 1.0, 79: 1.0, 81: 1.0, 82: 1.0, 225: 1.0, 84: 1.0}, {80: 1.0}, {37: 1.0, 79: 1.0, 80: 1.0, 96: 1.0}, {}, {37: 1.0, 80: 1.0, 225: 1.0}, {50: 1.0, 57: 1.0}, {45: 1.0, 51: 1.0, 54: 1.0, 269: 1.0}, {88: 1.0}, {87: 1.0, 204: 1.0}, {92: 1.0}, {}, {}, {89: 1.0}, {95: 1.0}, {}, {93: 1.0, 136: 1.0}, {79: 1.0, 82: 1.0}, {}, {}, {}, {}, {42: 1.0}, {}, {}, {}, {}, {}, {}, {109: 1.0, 110: 1.0}, {108: 1.0}, {108: 1.0}, {133: 1.0, 292: 1.0}, {58: 1.0, 113: 1.0, 115: 1.0}, {112: 1.0}, {}, {112: 1.0, 197: 1.0}, {}, {118: 1.0}, {117: 1.0, 194: 1.0}, {}, {122: 1.0}, {122: 1.0}, {120: 1.0, 121: 1.0}, {124: 1.0}, {123: 1.0, 240: 1.0}, {241: 1.0}, {}, {}, {180: 1.0}, {130: 1.0}, {129: 1.0}, {}, {147: 1.0}, {58: 1.0, 111: 1.0, 184: 1.0, 186: 1.0}, {187: 1.0, 254: 1.0}, {184: 1.0}, {95: 1.0}, {}, {}, {78: 1.0, 266: 1.0, 267: 1.0}, {304: 1.0}, {27: 1.0}, {}, {145: 1.0}, {237: 1.0, 265: 1.0, 252: 1.0}, {143: 1.0}, {}, {60: 1.0, 132: 1.0, 203: 1.0}, {}, {}, {}, {}, {}, {}, {199: 1.0}, {}, {}, {}, {}, {}, {}, {186: 1.0}, {}, {}, {}, {}, {167: 1.0}, {166: 1.0, 176: 1.0}, {}, {229: 1.0}, {}, {}, {208: 1.0}, {}, {}, {}, {11: 1.0, 167: 1.0}, {}, {}, {26: 1.0}, {60: 1.0, 70: 1.0, 128: 1.0}, {60: 1.0, 70: 1.0}, {}, {}, {133: 1.0, 135: 1.0, 185: 1.0}, {184: 1.0}, {133: 1.0, 161: 1.0}, {134: 1.0}, {}, {}, {}, {}, {}, {276: 1.0, 225: 1.0}, {118: 1.0, 197: 1.0, 198: 1.0}, {}, {}, {115: 1.0, 194: 1.0, 198: 1.0}, {194: 1.0, 197: 1.0}, {154: 1.0}, {}, {}, {}, {147: 1.0}, {88: 1.0, 205: 1.0}, {204: 1.0}, {}, {208: 1.0}, {172: 1.0, 207: 1.0}, {}, {}, {}, {52: 1.0, 215: 1.0}, {}, {}, {52: 1.0, 212: 1.0, 222: 1.0}, {}, {}, {}, {}, {}, {}, {52: 1.0, 215: 1.0}, {}, {}, {80: 1.0, 84: 1.0, 193: 1.0, 276: 1.0}, {38: 1.0, 228: 1.0}, {38: 1.0}, {38: 1.0, 226: 1.0}, {169: 1.0}, {9: 1.0, 234: 1.0}, {}, {}, {}, {230: 1.0, 341: 1.0}, {}, {}, {144: 1.0, 238: 1.0}, {237: 1.0}, {38: 1.0, 274: 1.0}, {124: 1.0}, {125: 1.0}, {}, {}, {}, {301: 1.0}, {}, {}, {249: 1.0}, {248: 1.0}, {}, {}, {144: 1.0}, {295: 1.0, 346: 1.0}, {134: 1.0}, {}, {}, {292: 1.0}, {}, {}, {}, {}, {263: 1.0}, {6: 1.0, 262: 1.0}, {}, {144: 1.0}, {139: 1.0}, {139: 1.0}, {}, {30: 1.0, 45: 1.0, 86: 1.0}, {}, {}, {}, {}, {239: 1.0, 275: 1.0}, {274: 1.0}, {193: 1.0, 225: 1.0}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {291: 1.0}, {}, {75: 1.0, 289: 1.0}, {111: 1.0, 257: 1.0}, {}, {}, {253: 1.0}, {30: 1.0}, {}, {}, {}, {}, {245: 1.0}, {}, {}, {140: 1.0}, {}, {}, {}, {}, {78: 1.0}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {17: 1.0}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {234: 1.0}, {}, {}, {}, {}, {253: 1.0, 349: 1.0}, {}, {}, {346: 1.0}, {}, {}]
+def plot_node_properties(
+    G: nx.Graph,
+    *,
+    output_filename: Optional[str] = None,
+    **kwargs: Any,
+):
+    """
+    Infer node properties and plot individual scores against group scores.
 
-Win: 348 -> 60 (weight 1)
-Tie: 349 <-> 346 (weight 1)
-Win: 351 -> 269 (weight 1)
+    Parameters
+    ----------
+    G : nx.Graph
+        Input network.
+    output_filename : str, optional
+        Filename to save the plot. If None, the figure is not saved.
+    kwargs : Any
+        Additional keyword arguments, see :func:`directedstructure.core.node_properties`
+        and :func:`directedstructure.core.samples` for details.
+    """
+    from .core import node_properties
 
-"""
+    node_properties_df = node_properties(G, **kwargs)
+    group_col = "consensus_group"
+    show_legend = kwargs.get("group_attribute") is not None
+
+    group_order = (
+        node_properties_df[[group_col, "group_score_mean"]]
+        .drop_duplicates()
+        .sort_values("group_score_mean", ascending=False)
+    )
+    sorted_groups = group_order[group_col].to_list()
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    cmap = plt.get_cmap("tab10")
+    for idx, group in enumerate(sorted_groups):
+        group_df = node_properties_df[node_properties_df[group_col] == group]
+        group_score_mean = group_df["group_score_mean"].iloc[0]
+        individual_score_means = group_df["score_mean"].to_list()
+        ax.scatter(
+            [group_score_mean] * len(individual_score_means),
+            individual_score_means,
+            color=cmap(idx % 10),
+            label=str(group),
+        )
+
+    ax.set_xlabel("Group Score")
+    ax.set_ylabel("Node Score")
+    ax.set_title("Node Scores vs Group Scores")
+
+    handles, _ = ax.get_legend_handles_labels()
+    if show_legend and handles:
+        ax.legend(loc="lower right")
+
+    if output_filename is not None:
+        fig.savefig(output_filename)
+
+    return node_properties_df, fig, ax
+
+
+def plot_MCMC_entropy(
+    G: nx.Graph,
+    *,
+    output_filename: Optional[str] = None,
+    **kwargs: Any,
+):
+    """Plot total entropy over MCMC samples to inspect convergence."""
+    from .core import samples
+
+    samples_df = samples(G, **kwargs)
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(
+        samples_df["H_A_b"]
+        + samples_df["H_Adir_G_A_s_nu"]
+        + samples_df["H_s_G_b_depths"]
+    )
+    ax.set_xlabel("Sample index")
+    ax.set_ylabel("H_A_b + H_Adir_G_A_s_nu + H_s_G_b_depths")
+    ax.set_title("Convergence of MCMC")
+
+    if output_filename is not None:
+        fig.savefig(output_filename)
+
+    return samples_df, fig, ax
+
