@@ -59,3 +59,11 @@ make: *** [Makefile:63: test] Segmentation fault (core dumped)
 3/11/26:
 - Need to bring the stripped and original implementations into alignment. 
 - For some reason I'm now seeing that the c++ testing script is not exploring possible community structures at all while the python wrapped version seemingly is. 
+
+3/12/26:
+- Throw error when the input graph has no edges
+- Consider renaming interaction -> type
+
+3/20/26:
+- Run the package on the synthetic network examples
+- Debug why snr150_sigC5_rep09.gml, even in independent mode, is generating way too many communities. 

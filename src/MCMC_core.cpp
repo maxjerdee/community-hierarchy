@@ -154,7 +154,9 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
     // Process wins: wins[i][j] means i dominates j
     // This creates a loss for j: losses[j][i]
     for(int i = 0; i < n; i++){
-        for(const auto& [j, weight] : this->wins[i]){
+        for(const auto& edge : this->wins[i]){
+            int j = edge.first;
+            double weight = edge.second;
             neighbors[i][j] += weight; // Add to undirected neighbors
             neighbors[j][i] += weight; // Add to undirected neighbors
             losses[j][i] += weight; // j loses to i
@@ -163,7 +165,9 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
     
     // Process ties: symmetric edges
     for(int i = 0; i < n; i++){
-        for(const auto& [j, weight] : this->ties[i]){
+        for(const auto& edge : this->ties[i]){
+            int j = edge.first;
+            double weight = edge.second;
             neighbors[i][j] += weight; // Add to undirected neighbors (other direction will be present)
             // Ties don't contribute to wins/losses asymmetry
         }
@@ -173,19 +177,27 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
         for(int i = 0; i < n; i++){
             // Updating edge counts for neighbor 0 of node 96 with A_ij = 0.000000
             print("Neighbors of node " + std::to_string(i) + ":");
-            for(const auto& [j, weight] : neighbors[i]){
+            for(const auto& edge : neighbors[i]){
+                int j = edge.first;
+                double weight = edge.second;
                 print("  Node " + std::to_string(j) + " with weight " + std::to_string(weight));
             }
             print("Wins of node " + std::to_string(i) + ":");
-            for(const auto& [j, weight] : wins[i]){
+            for(const auto& edge : wins[i]){
+                int j = edge.first;
+                double weight = edge.second;
                 print("  Wins against node " + std::to_string(j) + " with weight " + std::to_string(weight));
             }
             print("Ties of node " + std::to_string(i) + ":");
-            for(const auto& [j, weight] : ties[i]){
+            for(const auto& edge : ties[i]){
+                int j = edge.first;
+                double weight = edge.second;
                 print("  Ties with node " + std::to_string(j) + " with weight " + std::to_string(weight));
             }
             print("Losses of node " + std::to_string(i) + ":");
-            for(const auto& [j, weight] : losses[i]){
+            for(const auto& edge : losses[i]){
+                int j = edge.first;
+                double weight = edge.second;
                 print("  Loses to node " + std::to_string(j) + " with weight " + std::to_string(weight));
             }
             if(i == 96){

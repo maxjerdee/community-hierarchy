@@ -6,12 +6,13 @@ import matplotlib.pyplot as plt
 
 # Read gml file
 # G = nx.read_gml("examples/data/networks/highschool_51.gml")
-G = nx.read_gml("examples/data/networks/highschool_84.gml")
+# G = nx.read_gml("examples/data/networks/highschool_84.gml")
+G = nx.read_gml("examples/data/networks/english-football-2025.gml")
 # G = nx.read_gml("examples/data/networks/friends.gml")
 
-# Take the "race" data and write to the "group" data for each node, since the "traditional_DCSBM" model will look for "group" data to initialize the partition.
+# # Take the "race" data and write to the "group" data for each node, since the "traditional_DCSBM" model will look for "group" data to initialize the partition.
 for node in G.nodes():
-    G.nodes[node]["group"] = G.nodes[node]["race"]
+    G.nodes[node]["group"] = G.nodes[node]["league"]
 
 model_settings_dict = {
     "groups_model": "traditional_DCSBM",

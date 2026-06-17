@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <unordered_map>
 
@@ -40,7 +41,8 @@ std::vector<int> ConsensusClustering::consensus_clustering(
         }
         
         // For each group, increment matrix entries only for members of that group
-        for (const auto& [group_id, members] : groups) {
+        for (std::unordered_map<int, std::vector<int>>::const_iterator it = groups.begin(); it != groups.end(); ++it) {
+            const std::vector<int>& members = it->second;
             // // Print group members for debugging
             // std::cout << "Clustering group " << group_id << " members: ";
             // for (int node : members) {
@@ -93,7 +95,8 @@ std::vector<int> ConsensusClustering::consensus_clustering(
         double distance = base_distance;
         
         // Adjust for within-group pairs (should be 1.0, not 0.0)
-        for (const auto& [group_id, members] : groups) {
+        for (std::unordered_map<int, std::vector<int>>::const_iterator it = groups.begin(); it != groups.end(); ++it) {
+            const std::vector<int>& members = it->second;
             for (int i : members) {
                 for (int j : members) {
                     double val = aggregate_matrix[i][j];

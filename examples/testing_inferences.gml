@@ -1,7490 +1,3823 @@
 graph [
   directed 1
-  inferred_num_groups_mean 5.345736434108527
-  inferred_num_groups_std 1.0028271592222784
-  inferred_density_in_mean 0.021904530478184213
-  inferred_density_in_std 0.007518309941022481
-  inferred_density_out_mean 0.021904530478184213
-  inferred_density_out_std 0.007518309941022481
+  inferred_num_groups_mean 12.0
+  inferred_num_groups_std NAN
+  inferred_density_in_mean 0.03547404148244134
+  inferred_density_in_std NAN
+  inferred_density_out_mean 0.03547404148244134
+  inferred_density_out_std NAN
   inferred_variation_in_mean 0.5
-  inferred_variation_in_std 0.0
+  inferred_variation_in_std NAN
   inferred_variation_out_mean 0.5
-  inferred_variation_out_std 0.0
+  inferred_variation_out_std NAN
   inferred_degree_correction_mean 0.5
-  inferred_degree_correction_std 0.0
+  inferred_degree_correction_std NAN
   inferred_mean_degree_scaling_mean 0.0
-  inferred_mean_degree_scaling_std 0.0
-  inferred_individual_depth_mean 3.8112055025604334
-  inferred_individual_depth_std 0.5110151907199859
-  inferred_group_depth_mean 0.7345393914926336
-  inferred_group_depth_std 0.5031077973497189
-  inferred_ties_parameter_mean 1.1163452744901134
-  inferred_ties_parameter_std 0.15234563379145183
+  inferred_mean_degree_scaling_std NAN
+  inferred_individual_depth_mean 0.5391428586833966
+  inferred_individual_depth_std NAN
+  inferred_group_depth_mean 0.0
+  inferred_group_depth_std NAN
+  inferred_ties_parameter_mean 0.0
+  inferred_ties_parameter_std NAN
   node [
     id 0
-    label "1"
-    community 0
-    race "hispanic"
-    sex "male"
-    grade 12
-    inferred_group 2
-    inferred_score_mean 2.9336656953192746
-    inferred_score_std 1.7229591980864656
+    label "0"
+    group 0
+    status -5.912467
+    inferred_group 3
+    inferred_score_mean 1.051287273992671
+    inferred_score_std NAN
   ]
   node [
     id 1
-    label "191"
-    community 0
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 5.326884515051297
-    inferred_score_std 1.9983979396088098
+    label "1"
+    group 0
+    status -7.977583
+    inferred_group 7
+    inferred_score_mean -0.5428784082802305
+    inferred_score_std NAN
   ]
   node [
     id 2
-    label "285"
-    community 0
-    race "black"
-    sex "male"
-    grade 12
-    inferred_group 2
-    inferred_score_mean 5.305754542381983
-    inferred_score_std 1.859178910700529
+    label "2"
+    group 0
+    status -5.876149
+    inferred_group 1
+    inferred_score_mean -0.3463647964020342
+    inferred_score_std NAN
   ]
   node [
     id 3
     label "3"
-    community 0
-    race "black"
-    sex "female"
-    grade 10
-    inferred_group 3
-    inferred_score_mean -2.757928360955836
-    inferred_score_std 1.6569624606617783
+    group 0
+    status -7.151906
+    inferred_group 0
+    inferred_score_mean -0.33608078761424015
+    inferred_score_std NAN
   ]
   node [
     id 4
-    label "65"
-    community 0
-    race "black"
-    sex "missing"
-    grade 12
-    inferred_group 3
-    inferred_score_mean 1.8481501093442394
-    inferred_score_std 2.184431065620694
+    label "4"
+    group 0
+    status -7.608913
+    inferred_group 1
+    inferred_score_mean -0.5442087503383989
+    inferred_score_std NAN
   ]
   node [
     id 5
-    label "111"
-    community 0
-    race "black"
-    sex "female"
-    grade 9
-    inferred_group 3
-    inferred_score_mean 1.9976541896474889
-    inferred_score_std 1.7633093972002485
+    label "5"
+    group 0
+    status -6.37279
+    inferred_group 1
+    inferred_score_mean -0.18764267778369192
+    inferred_score_std NAN
   ]
   node [
     id 6
-    label "223"
-    community 1
-    race "black"
-    sex "female"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -1.6420631893179187
-    inferred_score_std 2.1384611829122995
+    label "6"
+    group 0
+    status -6.971672
+    inferred_group 7
+    inferred_score_mean 0.35512137660953935
+    inferred_score_std NAN
   ]
   node [
     id 7
-    label "260"
-    community 0
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 3
-    inferred_score_mean 3.1419173330274486
-    inferred_score_std 2.2517842199067717
+    label "7"
+    group 0
+    status -6.44979
+    inferred_group 5
+    inferred_score_mean -0.6364498701910918
+    inferred_score_std NAN
   ]
   node [
     id 8
-    label "379"
-    community 0
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 1.1584825129053906
-    inferred_score_std 1.6195679548621142
+    label "8"
+    group 0
+    status -8.175132
+    inferred_group 1
+    inferred_score_mean -0.6665932784394764
+    inferred_score_std NAN
   ]
   node [
     id 9
-    label "423"
-    community 2
-    race "mixed"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean 0.8257312860842455
-    inferred_score_std 1.5119998608516778
+    label "9"
+    group 0
+    status -7.082774
+    inferred_group 1
+    inferred_score_mean -0.8235835390122649
+    inferred_score_std NAN
   ]
   node [
     id 10
-    label "4"
-    community 0
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -1.1969735911116046
-    inferred_score_std 1.0420453835247567
+    label "10"
+    group 0
+    status -6.253578
+    inferred_group 5
+    inferred_score_mean -0.8736279620882946
+    inferred_score_std NAN
   ]
   node [
     id 11
-    label "91"
-    community 0
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 1.6994006970754827
-    inferred_score_std 1.0608190970006144
+    label "11"
+    group 0
+    status -6.351536
+    inferred_group 0
+    inferred_score_mean -0.668403980734504
+    inferred_score_std NAN
   ]
   node [
     id 12
-    label "119"
-    community 0
-    race "black"
-    sex "male"
-    grade 12
-    inferred_group 2
-    inferred_score_mean -0.739551466844958
-    inferred_score_std 2.0806337956942413
+    label "12"
+    group 0
+    status -7.224393
+    inferred_group 10
+    inferred_score_mean -0.006883970032824569
+    inferred_score_std NAN
   ]
   node [
     id 13
-    label "170"
-    community 0
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 3.1604999580153863
-    inferred_score_std 1.163174049506325
+    label "13"
+    group 0
+    status -5.906595
+    inferred_group 1
+    inferred_score_mean 0.2741815122196325
+    inferred_score_std NAN
   ]
   node [
     id 14
-    label "174"
-    community 0
-    race "black"
-    sex "male"
-    grade 11
+    label "14"
+    group 0
+    status -6.94562
     inferred_group 2
-    inferred_score_mean 2.3336765172614626
-    inferred_score_std 1.795418610444021
+    inferred_score_mean -0.49369489306782527
+    inferred_score_std NAN
   ]
   node [
     id 15
-    label "193"
-    community 0
-    race "hispanic"
-    sex "female"
-    grade 11
+    label "15"
+    group 0
+    status -5.713553
     inferred_group 2
-    inferred_score_mean 2.5833205977484495
-    inferred_score_std 2.0815487867032814
+    inferred_score_mean -0.17649249092362698
+    inferred_score_std NAN
   ]
   node [
     id 16
-    label "212"
-    community 0
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 1.2047925007921334
-    inferred_score_std 1.1856302919966206
+    label "16"
+    group 0
+    status -6.623593
+    inferred_group 0
+    inferred_score_mean -1.2958921101838343
+    inferred_score_std NAN
   ]
   node [
     id 17
-    label "395"
-    community 0
-    race "black"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 1.9180036443640547
-    inferred_score_std 1.0314104426487438
+    label "17"
+    group 0
+    status -6.279844
+    inferred_group 5
+    inferred_score_mean -0.34311240282347577
+    inferred_score_std NAN
   ]
   node [
     id 18
-    label "438"
-    community 0
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 3.59261620797922
-    inferred_score_std 1.5743289586543554
+    label "18"
+    group 0
+    status -6.285034
+    inferred_group 3
+    inferred_score_mean -0.909833138613321
+    inferred_score_std NAN
   ]
   node [
     id 19
-    label "444"
-    community 0
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 1.1332482622639337
-    inferred_score_std 1.1311366049279001
+    label "19"
+    group 0
+    status -7.970233
+    inferred_group 5
+    inferred_score_mean -0.38047670389650284
+    inferred_score_std NAN
   ]
   node [
     id 20
-    label "5"
-    community 0
-    race "hispanic"
-    sex "male"
-    grade 10
-    inferred_group 0
-    inferred_score_mean 1.6058759594625276
-    inferred_score_std 1.7954812875615647
+    label "20"
+    group 0
+    status -6.789833
+    inferred_group 1
+    inferred_score_mean -0.25779114726192387
+    inferred_score_std NAN
   ]
   node [
     id 21
-    label "263"
-    community 0
-    race "white"
-    sex "female"
-    grade 12
-    inferred_group 0
-    inferred_score_mean -0.6298375029640786
-    inferred_score_std 1.481477339701417
+    label "21"
+    group 0
+    status -6.227224
+    inferred_group 1
+    inferred_score_mean 0.3697347011231777
+    inferred_score_std NAN
   ]
   node [
     id 22
-    label "6"
-    community 3
-    race "white"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -0.27623321683445207
-    inferred_score_std 1.9983650189386164
+    label "22"
+    group 0
+    status -6.448679
+    inferred_group 0
+    inferred_score_mean -0.3182719813483397
+    inferred_score_std NAN
   ]
   node [
     id 23
-    label "400"
-    community 3
-    race "mixed"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean 2.5093522833722903
-    inferred_score_std 2.2622377867984356
+    label "23"
+    group 0
+    status -7.130573
+    inferred_group 0
+    inferred_score_mean -0.1574406384641172
+    inferred_score_std NAN
   ]
   node [
     id 24
-    label "7"
-    community 3
-    race "white"
-    sex "female"
-    grade 9
-    inferred_group 0
-    inferred_score_mean 0.2766247918973458
-    inferred_score_std 1.7118478082330626
+    label "24"
+    group 0
+    status -7.164319
+    inferred_group 1
+    inferred_score_mean 0.8658906530871517
+    inferred_score_std NAN
   ]
   node [
     id 25
-    label "132"
-    community 3
-    race "white"
-    sex "female"
-    grade 11
-    inferred_group 0
-    inferred_score_mean -0.2637533618787479
-    inferred_score_std 1.4873483401692662
+    label "25"
+    group 0
+    status -6.375058
+    inferred_group 7
+    inferred_score_mean -0.32232473966192743
+    inferred_score_std NAN
   ]
   node [
     id 26
-    label "165"
-    community 3
-    race "white"
-    sex "female"
-    grade 10
-    inferred_group 0
-    inferred_score_mean 1.400921294230503
-    inferred_score_std 1.5497809419833
+    label "26"
+    group 0
+    status -7.217319
+    inferred_group 6
+    inferred_score_mean -0.37737740345203574
+    inferred_score_std NAN
   ]
   node [
     id 27
-    label "211"
-    community 3
-    race "white"
-    sex "female"
-    grade 10
-    inferred_group 0
-    inferred_score_mean 0.7212521704197631
-    inferred_score_std 1.0326984446829428
+    label "27"
+    group 0
+    status -8.332351
+    inferred_group 1
+    inferred_score_mean -0.7267045070091518
+    inferred_score_std NAN
   ]
   node [
     id 28
-    label "8"
-    community 0
-    race "white"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -2.424942127093758
-    inferred_score_std 1.4876450223513682
+    label "28"
+    group 0
+    status -8.414353
+    inferred_group 1
+    inferred_score_mean -0.3996982795692165
+    inferred_score_std NAN
   ]
   node [
     id 29
-    label "51"
-    community 0
-    race "asian"
-    sex "male"
-    grade 10
+    label "29"
+    group 0
+    status -6.806415
     inferred_group 2
-    inferred_score_mean -0.7154846297192586
-    inferred_score_std 1.3760824536508958
+    inferred_score_mean -0.7936205390037603
+    inferred_score_std NAN
   ]
   node [
     id 30
-    label "307"
-    community 4
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 1.4285829075661374
-    inferred_score_std 0.7481497915685114
+    label "30"
+    group 0
+    status -6.87171
+    inferred_group 1
+    inferred_score_mean -0.5850453476592932
+    inferred_score_std NAN
   ]
   node [
     id 31
-    label "9"
-    community 3
-    race "white"
-    sex "female"
-    grade 10
-    inferred_group 0
-    inferred_score_mean -1.697360691836539
-    inferred_score_std 1.4507610849950077
+    label "31"
+    group 0
+    status -5.606485
+    inferred_group 1
+    inferred_score_mean 0.12474354097554137
+    inferred_score_std NAN
   ]
   node [
     id 32
-    label "115"
-    community 3
-    race "white"
-    sex "female"
-    grade 10
-    inferred_group 0
-    inferred_score_mean -1.3738182997304587
-    inferred_score_std 2.0525051249567268
+    label "32"
+    group 0
+    status -6.716954
+    inferred_group 1
+    inferred_score_mean 0.30044019825815815
+    inferred_score_std NAN
   ]
   node [
     id 33
-    label "152"
-    community 3
-    race "white"
-    sex "male"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 0.10450488632234042
-    inferred_score_std 1.5402256157405747
+    label "33"
+    group 0
+    status -7.029621
+    inferred_group 5
+    inferred_score_mean -0.26031025879172837
+    inferred_score_std NAN
   ]
   node [
     id 34
-    label "264"
-    community 3
-    race "white"
-    sex "male"
-    grade 12
+    label "34"
+    group 0
+    status -5.582948
     inferred_group 0
-    inferred_score_mean -1.006441321141103
-    inferred_score_std 1.3306757518168015
+    inferred_score_mean -0.02468858563929644
+    inferred_score_std NAN
   ]
   node [
     id 35
-    label "280"
-    community 3
-    race "white"
-    sex "female"
-    grade 10
-    inferred_group 0
-    inferred_score_mean -2.612209695804046
-    inferred_score_std 1.732767661538798
+    label "35"
+    group 0
+    status -7.97288
+    inferred_group 1
+    inferred_score_mean -1.073352095094646
+    inferred_score_std NAN
   ]
   node [
     id 36
-    label "12"
-    community 5
-    race "mixed"
-    sex "female"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 1.5391888324961565
-    inferred_score_std 1.3386910483043293
+    label "36"
+    group 0
+    status -6.827481
+    inferred_group 0
+    inferred_score_mean -0.5296053878045188
+    inferred_score_std NAN
   ]
   node [
     id 37
-    label "29"
-    community 6
-    race "hispanic"
-    sex "female"
-    grade 9
+    label "37"
+    group 0
+    status -5.174945
     inferred_group 1
-    inferred_score_mean 0.6823616836212104
-    inferred_score_std 0.8286248796272461
+    inferred_score_mean 0.5331293256700361
+    inferred_score_std NAN
   ]
   node [
     id 38
-    label "210"
-    community 5
-    race "hispanic"
-    sex "female"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 1.599611627489564
-    inferred_score_std 1.1221219710262826
+    label "38"
+    group 0
+    status -6.070258
+    inferred_group 7
+    inferred_score_mean -0.7277831644690406
+    inferred_score_std NAN
   ]
   node [
     id 39
-    label "13"
-    community 0
-    race "black"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -1.0360784814019628
-    inferred_score_std 1.7814287909422992
+    label "39"
+    group 0
+    status -7.098433
+    inferred_group 7
+    inferred_score_mean -0.4991639556842695
+    inferred_score_std NAN
   ]
   node [
     id 40
-    label "129"
-    community 0
-    race "black"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -3.667896526721084
-    inferred_score_std 1.4117666074294213
+    label "40"
+    group 0
+    status -6.725263
+    inferred_group 1
+    inferred_score_mean 0.0
+    inferred_score_std NAN
   ]
   node [
     id 41
-    label "17"
-    community 4
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -0.39423071320173064
-    inferred_score_std 0.9048401025683832
+    label "41"
+    group 0
+    status -6.691625
+    inferred_group 1
+    inferred_score_mean -0.18634255908669337
+    inferred_score_std NAN
   ]
   node [
     id 42
-    label "44"
-    community 4
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 2.389148026552417
-    inferred_score_std 0.9649085769311516
+    label "42"
+    group 0
+    status -5.442719
+    inferred_group 0
+    inferred_score_mean -0.050479110849239346
+    inferred_score_std NAN
   ]
   node [
     id 43
-    label "143"
-    community 4
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -1.8322875973114694
-    inferred_score_std 1.215819078632527
+    label "43"
+    group 0
+    status -6.654165
+    inferred_group 1
+    inferred_score_mean -0.5638183611904058
+    inferred_score_std NAN
   ]
   node [
     id 44
-    label "241"
-    community 4
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 1.4092858128412178
-    inferred_score_std 1.149589541957192
+    label "44"
+    group 0
+    status -5.963629
+    inferred_group 7
+    inferred_score_mean 0.9982941691790352
+    inferred_score_std NAN
   ]
   node [
     id 45
-    label "270"
-    community 4
-    race "black"
-    sex "female"
-    grade 12
-    inferred_group 2
-    inferred_score_mean 1.3404354597176618
-    inferred_score_std 0.923476476590268
+    label "45"
+    group 0
+    status -7.426154
+    inferred_group 1
+    inferred_score_mean -1.12544341579223
+    inferred_score_std NAN
   ]
   node [
     id 46
-    label "344"
-    community 4
-    race "black"
-    sex "male"
-    grade 11
+    label "46"
+    group 0
+    status -7.204558
     inferred_group 2
-    inferred_score_mean 5.567976033095947
-    inferred_score_std 1.5364989571708145
+    inferred_score_mean 0.00034172173329549764
+    inferred_score_std NAN
   ]
   node [
     id 47
-    label "412"
-    community 4
-    race "black"
-    sex "male"
-    grade 11
+    label "47"
+    group 0
+    status -7.489326
     inferred_group 2
-    inferred_score_mean -1.7776273703025651
-    inferred_score_std 0.959680311653611
+    inferred_score_mean -0.3366805952019427
+    inferred_score_std NAN
   ]
   node [
     id 48
-    label "421"
-    community 1
-    race "hispanic"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 3.9338441936853834
-    inferred_score_std 1.858060420573638
+    label "48"
+    group 0
+    status -7.767146
+    inferred_group 11
+    inferred_score_mean -0.6681264592596903
+    inferred_score_std NAN
   ]
   node [
     id 49
-    label "18"
-    community 1
-    race "black"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 0.2709562984071153
-    inferred_score_std 0.9182287561068274
+    label "49"
+    group 0
+    status -6.39277
+    inferred_group 5
+    inferred_score_mean -0.2992500630312326
+    inferred_score_std NAN
   ]
   node [
     id 50
-    label "30"
-    community 4
-    race "hispanic"
-    sex "male"
-    grade 11
+    label "50"
+    group 1
+    status -2.277682
     inferred_group 2
-    inferred_score_mean -0.13876499654260568
-    inferred_score_std 0.8215630828832102
+    inferred_score_mean 0.014258469154023755
+    inferred_score_std NAN
   ]
   node [
     id 51
-    label "137"
-    community 1
-    race "black"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -0.2967227903716753
-    inferred_score_std 1.181093031884511
+    label "51"
+    group 1
+    status -2.092096
+    inferred_group 1
+    inferred_score_mean -0.35723000637017593
+    inferred_score_std NAN
   ]
   node [
     id 52
-    label "158"
-    community 1
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 3
-    inferred_score_mean -0.03663494735394711
-    inferred_score_std 0.7997028256744347
+    label "52"
+    group 1
+    status -2.09183
+    inferred_group 1
+    inferred_score_mean 0.29595174793953044
+    inferred_score_std NAN
   ]
   node [
     id 53
-    label "162"
-    community 1
-    race "hispanic"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 2.6716546116640774
-    inferred_score_std 1.761343721771988
+    label "53"
+    group 1
+    status -2.533765
+    inferred_group 5
+    inferred_score_mean 0.8953381367108759
+    inferred_score_std NAN
   ]
   node [
     id 54
-    label "429"
-    community 1
-    race "mixed"
-    sex "female"
-    grade 10
+    label "54"
+    group 1
+    status -0.025838
     inferred_group 2
-    inferred_score_mean -0.748857107225014
-    inferred_score_std 1.2075415545980974
+    inferred_score_mean -0.5941275239278003
+    inferred_score_std NAN
   ]
   node [
     id 55
-    label "19"
-    community 0
-    race "white"
-    sex "female"
-    grade 11
+    label "55"
+    group 1
+    status -2.528464
     inferred_group 0
-    inferred_score_mean -1.7830975138304985
-    inferred_score_std 1.2140427869948445
+    inferred_score_mean -0.5185655218364218
+    inferred_score_std NAN
   ]
   node [
     id 56
-    label "156"
-    community 0
-    race "mixed"
-    sex "male"
-    grade 12
-    inferred_group 0
-    inferred_score_mean 1.524805125703808
-    inferred_score_std 2.110339075424585
+    label "56"
+    group 1
+    status -2.449953
+    inferred_group 4
+    inferred_score_mean 0.47664641080540965
+    inferred_score_std NAN
   ]
   node [
     id 57
-    label "190"
-    community 4
-    race "asian"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -0.10908169711079724
-    inferred_score_std 0.9515467744610672
+    label "57"
+    group 1
+    status -2.894383
+    inferred_group 3
+    inferred_score_mean -0.3521636969547324
+    inferred_score_std NAN
   ]
   node [
     id 58
-    label "200"
-    community 0
-    race "white"
-    sex "female"
-    grade 9
-    inferred_group 0
-    inferred_score_mean 0.24864389807528717
-    inferred_score_std 1.300866396435759
+    label "58"
+    group 1
+    status -2.957673
+    inferred_group 4
+    inferred_score_mean -1.1661238992496867
+    inferred_score_std NAN
   ]
   node [
     id 59
-    label "205"
-    community 0
-    race "white"
-    sex "male"
-    grade 11
-    inferred_group 0
-    inferred_score_mean 3.8139995213846687
-    inferred_score_std 1.7202850001460848
+    label "59"
+    group 1
+    status -2.590456
+    inferred_group 6
+    inferred_score_mean -0.3332574018736581
+    inferred_score_std NAN
   ]
   node [
     id 60
-    label "430"
-    community 7
-    race "white"
-    sex "female"
-    grade 12
-    inferred_group 0
-    inferred_score_mean 1.3882217451211898
-    inferred_score_std 0.9369882350960755
+    label "60"
+    group 1
+    status -3.604925
+    inferred_group 4
+    inferred_score_mean -0.7030481471668306
+    inferred_score_std NAN
   ]
   node [
     id 61
-    label "20"
-    community 0
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -0.518539691893457
-    inferred_score_std 1.6486962604743993
+    label "61"
+    group 1
+    status -3.7369
+    inferred_group 0
+    inferred_score_mean -0.5045164952729607
+    inferred_score_std NAN
   ]
   node [
     id 62
-    label "126"
-    community 0
-    race "black"
-    sex "male"
-    grade 12
-    inferred_group 2
-    inferred_score_mean 2.4933241977648515
-    inferred_score_std 2.054458062427535
+    label "62"
+    group 1
+    status -2.258233
+    inferred_group 3
+    inferred_score_mean 0.13968013173233504
+    inferred_score_std NAN
   ]
   node [
     id 63
-    label "21"
-    community 0
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -2.0785454718583214
-    inferred_score_std 1.937511663572342
+    label "63"
+    group 1
+    status -2.259874
+    inferred_group 3
+    inferred_score_mean 0.003384444038874148
+    inferred_score_std NAN
   ]
   node [
     id 64
-    label "68"
-    community 0
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -0.5785716725870454
-    inferred_score_std 1.4032998428078705
+    label "64"
+    group 1
+    status -3.913765
+    inferred_group 9
+    inferred_score_mean -0.5468072845552115
+    inferred_score_std NAN
   ]
   node [
     id 65
-    label "289"
-    community 0
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 3.001383535135384
-    inferred_score_std 2.327230452029817
+    label "65"
+    group 1
+    status -1.105952
+    inferred_group 3
+    inferred_score_mean -0.7298648968843299
+    inferred_score_std NAN
   ]
   node [
     id 66
-    label "23"
-    community 2
-    race "black"
-    sex "female"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -0.7928109025171023
-    inferred_score_std 1.0200266950791246
+    label "66"
+    group 1
+    status -1.340082
+    inferred_group 8
+    inferred_score_mean 0.006352002322197473
+    inferred_score_std NAN
   ]
   node [
     id 67
-    label "227"
-    community 2
-    race "black"
-    sex "female"
-    grade 9
+    label "67"
+    group 1
+    status -2.431099
     inferred_group 3
-    inferred_score_mean -0.5983589627520092
-    inferred_score_std 0.9531686014073655
+    inferred_score_mean -0.8628941538467062
+    inferred_score_std NAN
   ]
   node [
     id 68
-    label "377"
-    community 2
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 3
-    inferred_score_mean 2.0537390107298688
-    inferred_score_std 1.516232835827656
+    label "68"
+    group 1
+    status -1.806354
+    inferred_group 0
+    inferred_score_mean -0.8310213459122887
+    inferred_score_std NAN
   ]
   node [
     id 69
-    label "24"
-    community 7
-    race "white"
-    sex "female"
-    grade 12
-    inferred_group 0
-    inferred_score_mean -0.5387062755842368
-    inferred_score_std 1.3063943784249632
+    label "69"
+    group 1
+    status -2.970382
+    inferred_group 4
+    inferred_score_mean -0.793107657723303
+    inferred_score_std NAN
   ]
   node [
     id 70
-    label "101"
-    community 7
-    race "white"
-    sex "female"
-    grade 12
-    inferred_group 0
-    inferred_score_mean -0.9618731044027945
-    inferred_score_std 1.3447088411490993
+    label "70"
+    group 1
+    status -2.067135
+    inferred_group 3
+    inferred_score_mean 0.6423341866863623
+    inferred_score_std NAN
   ]
   node [
     id 71
-    label "249"
-    community 7
-    race "mixed"
-    sex "male"
-    grade 12
-    inferred_group 0
-    inferred_score_mean 2.146706547918408
-    inferred_score_std 1.888428492134444
+    label "71"
+    group 1
+    status -2.121431
+    inferred_group 6
+    inferred_score_mean 0.5601628287858239
+    inferred_score_std NAN
   ]
   node [
     id 72
-    label "343"
-    community 7
-    race "white"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -0.03728588972563629
-    inferred_score_std 1.1838018111744089
+    label "72"
+    group 1
+    status -2.954646
+    inferred_group 7
+    inferred_score_mean -0.5995139342476696
+    inferred_score_std NAN
   ]
   node [
     id 73
-    label "25"
-    community 0
-    race "white"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -0.09649844711411862
-    inferred_score_std 1.131668265287549
+    label "73"
+    group 1
+    status -1.298305
+    inferred_group 0
+    inferred_score_mean -0.7488291642605135
+    inferred_score_std NAN
   ]
   node [
     id 74
-    label "100"
-    community 0
-    race "black"
-    sex "male"
-    grade 12
-    inferred_group 2
-    inferred_score_mean 3.5922089089082387
-    inferred_score_std 2.1298455338370514
+    label "74"
+    group 1
+    status -1.086994
+    inferred_group 3
+    inferred_score_mean 0.6073322245036216
+    inferred_score_std NAN
   ]
   node [
     id 75
-    label "342"
-    community 3
-    race "white"
-    sex "male"
-    grade 9
+    label "75"
+    group 1
+    status -1.290076
     inferred_group 0
-    inferred_score_mean 2.2624043680101007
-    inferred_score_std 1.5108230820543986
+    inferred_score_mean -0.4658083231305452
+    inferred_score_std NAN
   ]
   node [
     id 76
-    label "26"
-    community 1
-    race "black"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 0.1284585164659254
-    inferred_score_std 0.9385695974159763
+    label "76"
+    group 1
+    status -2.240053
+    inferred_group 3
+    inferred_score_mean -0.008000516155445208
+    inferred_score_std NAN
   ]
   node [
     id 77
-    label "184"
-    community 0
-    race "mixed"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 3.6474317953034414
-    inferred_score_std 1.7999278828713166
+    label "77"
+    group 1
+    status -1.018915
+    inferred_group 5
+    inferred_score_mean 0.8089910382498632
+    inferred_score_std NAN
   ]
   node [
     id 78
-    label "441"
-    community 1
-    race "black"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -0.6819234784198547
-    inferred_score_std 1.2189180599568206
+    label "78"
+    group 1
+    status -2.312774
+    inferred_group 5
+    inferred_score_mean -0.6847113559737428
+    inferred_score_std NAN
   ]
   node [
     id 79
-    label "127"
-    community 6
-    race "white"
-    sex "male"
-    grade 9
-    inferred_group 1
-    inferred_score_mean -0.08416999805346091
-    inferred_score_std 1.0929135237980807
+    label "79"
+    group 1
+    status -2.155243
+    inferred_group 0
+    inferred_score_mean -0.02554195573880153
+    inferred_score_std NAN
   ]
   node [
     id 80
-    label "196"
-    community 6
-    race "white"
-    sex "female"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 0.9688599057579973
-    inferred_score_std 0.9377657671158184
+    label "80"
+    group 1
+    status -2.340668
+    inferred_group 4
+    inferred_score_mean -0.6538677812254458
+    inferred_score_std NAN
   ]
   node [
     id 81
-    label "219"
-    community 6
-    race "white"
-    sex "male"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 0.3209989997045058
-    inferred_score_std 1.2919328944601054
+    label "81"
+    group 1
+    status -2.162311
+    inferred_group 4
+    inferred_score_mean 0.007422727856973382
+    inferred_score_std NAN
   ]
   node [
     id 82
-    label "248"
-    community 6
-    race "white"
-    sex "male"
-    grade 9
-    inferred_group 1
-    inferred_score_mean -1.1516510607459385
-    inferred_score_std 1.2404730248822302
+    label "82"
+    group 1
+    status -1.421173
+    inferred_group 5
+    inferred_score_mean 0.3490658426041012
+    inferred_score_std NAN
   ]
   node [
     id 83
-    label "322"
-    community 6
-    race "hispanic"
-    sex "male"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 4.2004988564026045
-    inferred_score_std 1.6873168134893377
+    label "83"
+    group 1
+    status -2.800069
+    inferred_group 3
+    inferred_score_mean -0.3935926143108013
+    inferred_score_std NAN
   ]
   node [
     id 84
-    label "440"
-    community 6
-    race "white"
-    sex "female"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 0.6838205178681489
-    inferred_score_std 1.126558853590873
+    label "84"
+    group 1
+    status -2.97309
+    inferred_group 0
+    inferred_score_mean 0.010609595810709624
+    inferred_score_std NAN
   ]
   node [
     id 85
-    label "149"
-    community 4
-    race "asian"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 0.461062063700289
-    inferred_score_std 1.4747821592842973
+    label "85"
+    group 1
+    status -2.842771
+    inferred_group 1
+    inferred_score_mean 0.054766441650715356
+    inferred_score_std NAN
   ]
   node [
     id 86
-    label "394"
-    community 4
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 0.6222335925580103
-    inferred_score_std 0.7305605203762406
+    label "86"
+    group 1
+    status -2.951847
+    inferred_group 3
+    inferred_score_mean 0.11226065010404279
+    inferred_score_std NAN
   ]
   node [
     id 87
-    label "31"
-    community 3
-    race "white"
-    sex "female"
-    grade 12
-    inferred_group 0
-    inferred_score_mean -0.5446903896253971
-    inferred_score_std 1.952282821677234
+    label "87"
+    group 1
+    status -2.515836
+    inferred_group 2
+    inferred_score_mean -0.013125538989089011
+    inferred_score_std NAN
   ]
   node [
     id 88
-    label "207"
-    community 3
-    race "white"
-    sex "female"
-    grade 10
-    inferred_group 0
-    inferred_score_mean -0.3698470435589664
-    inferred_score_std 1.563834916289307
+    label "88"
+    group 1
+    status -2.449677
+    inferred_group 5
+    inferred_score_mean -0.9932679326305547
+    inferred_score_std NAN
   ]
   node [
     id 89
-    label "37"
-    community 3
-    race "white"
-    sex "male"
-    grade 12
+    label "89"
+    group 1
+    status -3.025243
     inferred_group 0
-    inferred_score_mean 0.0808339434128676
-    inferred_score_std 1.7831011657490827
+    inferred_score_mean -0.014559859210984153
+    inferred_score_std NAN
   ]
   node [
     id 90
-    label "148"
-    community 3
-    race "white"
-    sex "male"
-    grade 12
-    inferred_group 0
-    inferred_score_mean 2.2974367530943214
-    inferred_score_std 2.149424384265405
+    label "90"
+    group 1
+    status -2.148587
+    inferred_group 3
+    inferred_score_mean -0.0014313964009207308
+    inferred_score_std NAN
   ]
   node [
     id 91
-    label "370"
-    community 3
-    race "white"
-    sex "male"
-    grade 12
-    inferred_group 0
-    inferred_score_mean 1.9448233654692197
-    inferred_score_std 2.18911889778864
+    label "91"
+    group 1
+    status -2.475411
+    inferred_group 8
+    inferred_score_mean 0.3137391520166599
+    inferred_score_std NAN
   ]
   node [
     id 92
-    label "387"
-    community 3
-    race "white"
-    sex "male"
-    grade 12
-    inferred_group 0
-    inferred_score_mean 0.9247952378724172
-    inferred_score_std 1.3065963263925406
+    label "92"
+    group 1
+    status -2.311981
+    inferred_group 3
+    inferred_score_mean -0.38482497951930633
+    inferred_score_std NAN
   ]
   node [
     id 93
-    label "39"
-    community 5
-    race "white"
-    sex "male"
-    grade 9
-    inferred_group 1
-    inferred_score_mean -1.3411951490081029
-    inferred_score_std 0.9656810181233338
+    label "93"
+    group 1
+    status -1.813785
+    inferred_group 5
+    inferred_score_mean 0.20595213780328178
+    inferred_score_std NAN
   ]
   node [
     id 94
-    label "128"
-    community 5
-    race "hispanic"
-    sex "male"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 3.6122011082126915
-    inferred_score_std 1.815680803152431
+    label "94"
+    group 1
+    status -2.978468
+    inferred_group 0
+    inferred_score_mean -0.2804475653521556
+    inferred_score_std NAN
   ]
   node [
     id 95
-    label "278"
-    community 5
-    race "mixed"
-    sex "male"
-    grade 9
-    inferred_group 1
-    inferred_score_mean -0.309727999992997
-    inferred_score_std 1.2737923945891134
+    label "95"
+    group 1
+    status -3.252418
+    inferred_group 0
+    inferred_score_mean -1.1835880852867888
+    inferred_score_std NAN
   ]
   node [
     id 96
-    label "396"
-    community 6
-    race "hispanic"
-    sex "male"
-    grade 9
-    inferred_group 1
-    inferred_score_mean -1.0782780062524504
-    inferred_score_std 1.011867569192355
+    label "96"
+    group 1
+    status -2.385011
+    inferred_group 0
+    inferred_score_mean 0.23198452622420218
+    inferred_score_std NAN
   ]
   node [
     id 97
-    label "404"
-    community 5
-    race "white"
-    sex "male"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 0.960517537037704
-    inferred_score_std 1.0555513349123136
+    label "97"
+    group 1
+    status -1.636105
+    inferred_group 0
+    inferred_score_mean -0.2995150838282207
+    inferred_score_std NAN
   ]
   node [
     id 98
-    label "41"
-    community 0
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 0
-    inferred_score_mean -2.3784720773718786
-    inferred_score_std 1.7541640154871854
+    label "98"
+    group 1
+    status -3.157217
+    inferred_group 3
+    inferred_score_mean -0.2771935007318313
+    inferred_score_std NAN
   ]
   node [
     id 99
-    label "138"
-    community 0
-    race "black"
-    sex "missing"
-    grade 9
+    label "99"
+    group 1
+    status -2.71386
     inferred_group 0
-    inferred_score_mean 1.2656759164545157
-    inferred_score_std 1.8862693166484563
+    inferred_score_mean -0.3279192268170699
+    inferred_score_std NAN
   ]
   node [
     id 100
-    label "427"
-    community 0
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 0
-    inferred_score_mean 3.0283536823668236
-    inferred_score_std 1.8595036322742389
+    label "100"
+    group 2
+    status 2.365046
+    inferred_group 5
+    inferred_score_mean 0.48943486130442876
+    inferred_score_std NAN
   ]
   node [
     id 101
-    label "69"
-    community 4
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 2.914023026834459
-    inferred_score_std 0.9544576505503566
+    label "101"
+    group 2
+    status 3.437846
+    inferred_group 4
+    inferred_score_mean -0.22290530641420392
+    inferred_score_std NAN
   ]
   node [
     id 102
-    label "47"
-    community 2
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -3.920142511264566
-    inferred_score_std 1.6931068071375206
+    label "102"
+    group 2
+    status 3.867809
+    inferred_group 0
+    inferred_score_mean 0.8521946662321558
+    inferred_score_std NAN
   ]
   node [
     id 103
-    label "125"
-    community 0
-    race "black"
-    sex "male"
-    grade 9
+    label "103"
+    group 2
+    status 1.533131
     inferred_group 2
-    inferred_score_mean -1.7085550102133396
-    inferred_score_std 1.6994050186313
+    inferred_score_mean -0.46463396639413995
+    inferred_score_std NAN
   ]
   node [
     id 104
-    label "142"
-    community 2
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean 2.413465544897616
-    inferred_score_std 1.7313372313897357
+    label "104"
+    group 2
+    status 4.025219
+    inferred_group 7
+    inferred_score_mean -0.0025231781666020013
+    inferred_score_std NAN
   ]
   node [
     id 105
-    label "367"
-    community 2
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean 0.23690265403208455
-    inferred_score_std 2.2065637994740532
+    label "105"
+    group 2
+    status 1.472356
+    inferred_group 2
+    inferred_score_mean 0.2856640757140188
+    inferred_score_std NAN
   ]
   node [
     id 106
-    label "425"
-    community 2
-    race "hispanic"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean 2.9821810742175052
-    inferred_score_std 2.127358343842133
+    label "106"
+    group 2
+    status 2.78103
+    inferred_group 7
+    inferred_score_mean 0.03269312474745451
+    inferred_score_std NAN
   ]
   node [
     id 107
-    label "432"
-    community 2
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean 2.7233039503705805
-    inferred_score_std 1.964835749845946
+    label "107"
+    group 2
+    status 1.387318
+    inferred_group 1
+    inferred_score_mean 0.19872038320716096
+    inferred_score_std NAN
   ]
   node [
     id 108
-    label "48"
-    community 8
-    race "white"
-    sex "male"
-    grade 11
-    inferred_group 0
-    inferred_score_mean 1.3475868149586017
-    inferred_score_std 1.4756193021687851
+    label "108"
+    group 2
+    status 2.673512
+    inferred_group 4
+    inferred_score_mean 0.17845520981622373
+    inferred_score_std NAN
   ]
   node [
     id 109
-    label "103"
-    community 8
-    race "white"
-    sex "male"
-    grade 11
-    inferred_group 0
-    inferred_score_mean 1.5480092684059172
-    inferred_score_std 1.5188176218782965
+    label "109"
+    group 2
+    status 2.899243
+    inferred_group 3
+    inferred_score_mean -1.0051780257336629
+    inferred_score_std NAN
   ]
   node [
     id 110
-    label "186"
-    community 8
-    race "white"
-    sex "male"
-    grade 9
-    inferred_group 0
-    inferred_score_mean 0.8707185565613961
-    inferred_score_std 1.5431317863619292
+    label "110"
+    group 2
+    status 2.895179
+    inferred_group 2
+    inferred_score_mean 0.32100664119823613
+    inferred_score_std NAN
   ]
   node [
     id 111
-    label "287"
-    community 8
-    race "missing"
-    sex "female"
-    grade 11
+    label "111"
+    group 2
+    status 2.319755
     inferred_group 0
-    inferred_score_mean 1.395251346840411
-    inferred_score_std 1.7549438850236685
+    inferred_score_mean -0.21013086695768354
+    inferred_score_std NAN
   ]
   node [
     id 112
-    label "49"
-    community 0
-    race "mixed"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -2.1216264745763946
-    inferred_score_std 1.0933591126270292
+    label "112"
+    group 2
+    status 2.201922
+    inferred_group 0
+    inferred_score_mean 0.16403643312663851
+    inferred_score_std NAN
   ]
   node [
     id 113
-    label "94"
-    community 0
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -1.719799596506923
-    inferred_score_std 1.3276420256529462
+    label "113"
+    group 2
+    status 0.542699
+    inferred_group 1
+    inferred_score_mean -0.7342872446469488
+    inferred_score_std NAN
   ]
   node [
     id 114
-    label "105"
-    community 0
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 0.46664579722463867
-    inferred_score_std 1.547869619810004
+    label "114"
+    group 2
+    status 2.767078
+    inferred_group 0
+    inferred_score_mean 0.8149733035009503
+    inferred_score_std NAN
   ]
   node [
     id 115
-    label "415"
-    community 0
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -0.9867271971206627
-    inferred_score_std 1.2054041511300184
+    label "115"
+    group 2
+    status 1.799604
+    inferred_group 6
+    inferred_score_mean -0.3357884838468818
+    inferred_score_std NAN
   ]
   node [
     id 116
-    label "67"
-    community 1
-    race "white"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -2.8476904615580168
-    inferred_score_std 1.216638551163124
+    label "116"
+    group 2
+    status 1.929059
+    inferred_group 0
+    inferred_score_mean -0.015731215302679968
+    inferred_score_std NAN
   ]
   node [
     id 117
-    label "52"
-    community 0
-    race "mixed"
-    sex "male"
-    grade 11
+    label "117"
+    group 2
+    status 2.31593
     inferred_group 2
-    inferred_score_mean 1.7542689000233171
-    inferred_score_std 1.6524376385512516
+    inferred_score_mean 0.3115521439701189
+    inferred_score_std NAN
   ]
   node [
     id 118
-    label "213"
-    community 0
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 1.3989117282302233
-    inferred_score_std 1.7050453360433038
+    label "118"
+    group 2
+    status 2.589732
+    inferred_group 1
+    inferred_score_mean 0.5424646326306586
+    inferred_score_std NAN
   ]
   node [
     id 119
-    label "383"
-    community 0
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 2.358975081552026
-    inferred_score_std 2.6272687236998786
+    label "119"
+    group 2
+    status 1.911377
+    inferred_group 7
+    inferred_score_mean 0.5322119237405566
+    inferred_score_std NAN
   ]
   node [
     id 120
-    label "53"
-    community 0
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -1.0541573265923454
-    inferred_score_std 1.5691621293126394
+    label "120"
+    group 2
+    status 3.140785
+    inferred_group 4
+    inferred_score_mean -1.248140043078508
+    inferred_score_std NAN
   ]
   node [
     id 121
-    label "157"
-    community 0
-    race "mixed"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 0.05921043424605033
-    inferred_score_std 1.6234508962032166
+    label "121"
+    group 2
+    status 1.771759
+    inferred_group 0
+    inferred_score_mean 0.34495421220368405
+    inferred_score_std NAN
   ]
   node [
     id 122
-    label "340"
-    community 0
-    race "black"
-    sex "male"
-    grade 9
+    label "122"
+    group 2
+    status 2.658332
     inferred_group 2
-    inferred_score_mean -1.1211516365356766
-    inferred_score_std 1.351638627063175
+    inferred_score_mean 0.22586002961050203
+    inferred_score_std NAN
   ]
   node [
     id 123
-    label "55"
-    community 3
-    race "white"
-    sex "female"
-    grade 9
-    inferred_group 0
-    inferred_score_mean 0.3845326799796897
-    inferred_score_std 1.2936680884950142
+    label "123"
+    group 2
+    status 2.309904
+    inferred_group 2
+    inferred_score_mean 0.17625836833159872
+    inferred_score_std NAN
   ]
   node [
     id 124
-    label "188"
-    community 3
-    race "white"
-    sex "female"
-    grade 9
+    label "124"
+    group 2
+    status 0.691748
     inferred_group 0
-    inferred_score_mean 1.0063217821814991
-    inferred_score_std 1.405479638893771
+    inferred_score_mean -0.21096572906455308
+    inferred_score_std NAN
   ]
   node [
     id 125
-    label "226"
-    community 3
-    race "white"
-    sex "male"
-    grade 12
+    label "125"
+    group 2
+    status 1.549766
     inferred_group 0
-    inferred_score_mean -1.0761495568010961
-    inferred_score_std 1.1350962517433127
+    inferred_score_mean -0.45096574454079275
+    inferred_score_std NAN
   ]
   node [
     id 126
-    label "56"
-    community 7
-    race "white"
-    sex "female"
-    grade 12
+    label "126"
+    group 2
+    status 1.473637
     inferred_group 0
-    inferred_score_mean 0.7180941530786161
-    inferred_score_std 1.348548719076526
+    inferred_score_mean 0.14843619777314299
+    inferred_score_std NAN
   ]
   node [
     id 127
-    label "141"
-    community 7
-    race "hispanic"
-    sex "male"
-    grade 11
-    inferred_group 0
-    inferred_score_mean 2.5830231909283765
-    inferred_score_std 1.3604440776943933
+    label "127"
+    group 2
+    status 1.944888
+    inferred_group 1
+    inferred_score_mean 0.17171742480672872
+    inferred_score_std NAN
   ]
   node [
     id 128
-    label "339"
-    community 7
-    race "asian"
-    sex "male"
-    grade 11
-    inferred_group 0
-    inferred_score_mean 0.47407550568911183
-    inferred_score_std 1.203019698080173
+    label "128"
+    group 2
+    status 1.87877
+    inferred_group 7
+    inferred_score_mean 0.5769417591572322
+    inferred_score_std NAN
   ]
   node [
     id 129
-    label "58"
-    community 0
-    race "black"
-    sex "female"
-    grade 12
-    inferred_group 2
-    inferred_score_mean 1.2705816941766788
-    inferred_score_std 1.3355153199179524
+    label "129"
+    group 2
+    status 2.13744
+    inferred_group 0
+    inferred_score_mean -0.003960904491808137
+    inferred_score_std NAN
   ]
   node [
     id 130
-    label "318"
-    community 0
-    race "black"
-    sex "female"
-    grade 12
-    inferred_group 2
-    inferred_score_mean 1.3828641882099246
-    inferred_score_std 1.5535493013428026
+    label "130"
+    group 2
+    status 1.050226
+    inferred_group 5
+    inferred_score_mean -0.6292572565347954
+    inferred_score_std NAN
   ]
   node [
     id 131
-    label "61"
-    community 8
-    race "white"
-    sex "female"
-    grade 10
-    inferred_group 0
-    inferred_score_mean -2.397646619118369
-    inferred_score_std 1.7577751700891413
+    label "131"
+    group 2
+    status 1.019435
+    inferred_group 2
+    inferred_score_mean -0.4844564743942064
+    inferred_score_std NAN
   ]
   node [
     id 132
-    label "71"
-    community 7
-    race "hispanic"
-    sex "female"
-    grade 12
+    label "132"
+    group 2
+    status 1.622967
     inferred_group 0
-    inferred_score_mean -1.3056924098014875
-    inferred_score_std 1.2674166493852463
+    inferred_score_mean 0.7638335125473725
+    inferred_score_std NAN
   ]
   node [
     id 133
-    label "268"
-    community 8
-    race "hispanic"
-    sex "male"
-    grade 10
+    label "133"
+    group 2
+    status 3.874555
     inferred_group 0
-    inferred_score_mean 1.6820637594745194
-    inferred_score_std 0.9061789592265413
+    inferred_score_mean 0.7249466996130985
+    inferred_score_std NAN
   ]
   node [
     id 134
-    label "269"
-    community 8
-    race "hispanic"
-    sex "female"
-    grade 10
-    inferred_group 0
-    inferred_score_mean 0.36209425648661503
-    inferred_score_std 1.3237477968800886
+    label "134"
+    group 2
+    status 2.404631
+    inferred_group 5
+    inferred_score_mean 0.3799612839179782
+    inferred_score_std NAN
   ]
   node [
     id 135
-    label "358"
-    community 8
-    race "white"
-    sex "male"
-    grade 10
-    inferred_group 0
-    inferred_score_mean 2.956653933411632
-    inferred_score_std 1.2780602046216867
+    label "135"
+    group 2
+    status 3.359531
+    inferred_group 1
+    inferred_score_mean 0.9115708935081834
+    inferred_score_std NAN
   ]
   node [
     id 136
-    label "63"
-    community 5
-    race "white"
-    sex "male"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 0.742912481445932
-    inferred_score_std 1.7051712272132402
+    label "136"
+    group 2
+    status 2.74391
+    inferred_group 8
+    inferred_score_mean -0.0011299448347607162
+    inferred_score_std NAN
   ]
   node [
     id 137
-    label "62"
-    community 2
-    race "hispanic"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean 3.7660920113666996
-    inferred_score_std 1.7247478056793375
+    label "137"
+    group 2
+    status 2.686954
+    inferred_group 0
+    inferred_score_mean -0.23887370119060408
+    inferred_score_std NAN
   ]
   node [
     id 138
-    label "90"
-    community 0
-    race "hispanic"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 0.9482099468066847
-    inferred_score_std 2.4385040058330683
+    label "138"
+    group 2
+    status 2.92203
+    inferred_group 6
+    inferred_score_mean -0.034216693060587104
+    inferred_score_std NAN
   ]
   node [
     id 139
-    label "234"
-    community 1
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 4
-    inferred_score_mean 1.6411770961744314
-    inferred_score_std 1.0221974712882336
+    label "139"
+    group 2
+    status 2.895688
+    inferred_group 3
+    inferred_score_mean 0.5301067967405447
+    inferred_score_std NAN
   ]
   node [
     id 140
-    label "303"
-    community 0
-    race "asian"
-    sex "male"
-    grade 10
+    label "140"
+    group 2
+    status 1.390878
     inferred_group 2
-    inferred_score_mean -1.9533871904686881
-    inferred_score_std 1.4376383123257956
+    inferred_score_mean -0.848604754352304
+    inferred_score_std NAN
   ]
   node [
     id 141
-    label "445"
-    community 3
-    race "white"
-    sex "female"
-    grade 10
-    inferred_group 0
-    inferred_score_mean -0.9921664070667191
-    inferred_score_std 1.4135598392555366
+    label "141"
+    group 2
+    status 3.467273
+    inferred_group 2
+    inferred_score_mean -0.32798115176866394
+    inferred_score_std NAN
   ]
   node [
     id 142
-    label "364"
-    community 0
-    race "mixed"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -0.5921485752968629
-    inferred_score_std 1.6987471741152962
+    label "142"
+    group 2
+    status 2.35089
+    inferred_group 0
+    inferred_score_mean 0.22634807021240072
+    inferred_score_std NAN
   ]
   node [
     id 143
-    label "70"
-    community 5
-    race "white"
-    sex "male"
-    grade 9
-    inferred_group 1
-    inferred_score_mean -2.325209258792349
-    inferred_score_std 1.4031091192639327
+    label "143"
+    group 2
+    status 2.491122
+    inferred_group 8
+    inferred_score_mean 0.002876793299905947
+    inferred_score_std NAN
   ]
   node [
     id 144
-    label "240"
-    community 5
-    race "white"
-    sex "female"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 0.2019964916683952
-    inferred_score_std 1.0140706193054096
+    label "144"
+    group 2
+    status 2.012917
+    inferred_group 0
+    inferred_score_mean 1.0827715647165166
+    inferred_score_std NAN
   ]
   node [
     id 145
-    label "402"
-    community 5
-    race "mixed"
-    sex "male"
-    grade 9
-    inferred_group 1
-    inferred_score_mean -1.4954627010649189
-    inferred_score_std 1.1870159105649276
+    label "145"
+    group 2
+    status 2.663796
+    inferred_group 0
+    inferred_score_mean 0.0009896903025059895
+    inferred_score_std NAN
   ]
   node [
     id 146
-    label "27"
-    community 7
-    race "hispanic"
-    sex "male"
-    grade 12
-    inferred_group 0
-    inferred_score_mean 4.916899539348028
-    inferred_score_std 1.5386282937606597
+    label "146"
+    group 2
+    status 2.670229
+    inferred_group 2
+    inferred_score_mean 0.055881870063308685
+    inferred_score_std NAN
   ]
   node [
     id 147
-    label "215"
-    community 7
-    race "mixed"
-    sex "female"
-    grade 12
+    label "147"
+    group 2
+    status 2.945007
     inferred_group 0
-    inferred_score_mean -0.24048380523379687
-    inferred_score_std 1.1447267477288732
+    inferred_score_mean 0.19270524342287154
+    inferred_score_std NAN
   ]
   node [
     id 148
-    label "72"
-    community 2
-    race "black"
-    sex "female"
-    grade 9
+    label "148"
+    group 2
+    status 1.352797
     inferred_group 3
-    inferred_score_mean 2.7577295534338595
-    inferred_score_std 1.4634455106502802
+    inferred_score_mean -0.3183546336449146
+    inferred_score_std NAN
   ]
   node [
     id 149
-    label "253"
-    community 0
-    race "black"
-    sex "male"
-    grade 12
-    inferred_group 3
-    inferred_score_mean 2.931529364842652
-    inferred_score_std 2.0328602852789763
+    label "149"
+    group 2
+    status 0.617751
+    inferred_group 4
+    inferred_score_mean -0.3275948840373923
+    inferred_score_std NAN
   ]
   node [
     id 150
-    label "73"
-    community 0
-    race "black"
-    sex "female"
-    grade 12
-    inferred_group 2
-    inferred_score_mean -0.4245010889110824
-    inferred_score_std 1.84692687665573
+    label "150"
+    group 3
+    status 7.049964
+    inferred_group 0
+    inferred_score_mean 0.9895514714723546
+    inferred_score_std NAN
   ]
   node [
     id 151
-    label "298"
-    community 0
-    race "black"
-    sex "male"
-    grade 11
+    label "151"
+    group 3
+    status 6.050036
     inferred_group 2
-    inferred_score_mean 1.8238389016526022
-    inferred_score_std 2.225143461708207
+    inferred_score_mean -0.0008433277184359025
+    inferred_score_std NAN
   ]
   node [
     id 152
-    label "351"
-    community 0
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 1.893985649068955
-    inferred_score_std 1.457873464183913
+    label "152"
+    group 3
+    status 6.781569
+    inferred_group 4
+    inferred_score_mean -0.0013129407290099976
+    inferred_score_std NAN
   ]
   node [
     id 153
-    label "76"
-    community 0
-    race "white"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -1.2174091610358964
-    inferred_score_std 1.48430170634159
+    label "153"
+    group 3
+    status 7.38117
+    inferred_group 4
+    inferred_score_mean 0.9732588785256603
+    inferred_score_std NAN
   ]
   node [
     id 154
-    label "313"
-    community 0
-    race "black"
-    sex "male"
-    grade 12
-    inferred_group 2
-    inferred_score_mean 1.5070834759176748
-    inferred_score_std 1.7946442947246122
+    label "154"
+    group 3
+    status 7.035542
+    inferred_group 4
+    inferred_score_mean 0.9470673555119564
+    inferred_score_std NAN
   ]
   node [
     id 155
-    label "78"
-    community 0
-    race "black"
-    sex "female"
-    grade 12
-    inferred_group 2
-    inferred_score_mean -2.7969862587925607
-    inferred_score_std 1.5602048597731424
+    label "155"
+    group 3
+    status 5.693258
+    inferred_group 3
+    inferred_score_mean -0.12378584123116886
+    inferred_score_std NAN
   ]
   node [
     id 156
-    label "380"
-    community 0
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 4.319258227886148
-    inferred_score_std 1.6683537375408983
+    label "156"
+    group 3
+    status 7.205416
+    inferred_group 6
+    inferred_score_mean 0.8234681085887434
+    inferred_score_std NAN
   ]
   node [
     id 157
-    label "79"
-    community 0
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -1.841997848357222
-    inferred_score_std 2.4563141701879987
+    label "157"
+    group 3
+    status 7.792808
+    inferred_group 0
+    inferred_score_mean 0.6748520810132546
+    inferred_score_std NAN
   ]
   node [
     id 158
-    label "102"
-    community 0
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 1.9045458847302421
-    inferred_score_std 1.9972994379693831
+    label "158"
+    group 3
+    status 7.349058
+    inferred_group 3
+    inferred_score_mean 0.8861734366874681
+    inferred_score_std NAN
   ]
   node [
     id 159
-    label "80"
-    community 0
-    race "black"
-    sex "male"
-    grade 11
+    label "159"
+    group 3
+    status 6.617132
     inferred_group 2
-    inferred_score_mean -3.7212099727564887
-    inferred_score_std 1.755331500616716
+    inferred_score_mean 0.48432291959460866
+    inferred_score_std NAN
   ]
   node [
     id 160
-    label "22"
-    community 0
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 2.369318710745759
-    inferred_score_std 2.334388759010866
+    label "160"
+    group 3
+    status 6.866812
+    inferred_group 4
+    inferred_score_mean 0.15881439547278042
+    inferred_score_std NAN
   ]
   node [
     id 161
-    label "254"
-    community 8
-    race "missing"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -1.361174981998474
-    inferred_score_std 1.2635147722048334
+    label "161"
+    group 3
+    status 6.483863
+    inferred_group 6
+    inferred_score_mean 0.5127447370636741
+    inferred_score_std NAN
   ]
   node [
     id 162
-    label "81"
-    community 2
-    race "black"
-    sex "female"
-    grade 9
-    inferred_group 3
-    inferred_score_mean 0.5212267142194636
-    inferred_score_std 1.9888095045912577
+    label "162"
+    group 3
+    status 6.206881
+    inferred_group 6
+    inferred_score_mean 0.36058892886131055
+    inferred_score_std NAN
   ]
   node [
     id 163
-    label "274"
-    community 2
-    race "black"
-    sex "female"
-    grade 9
-    inferred_group 3
-    inferred_score_mean 1.1367195729025887
-    inferred_score_std 2.8566445876136783
+    label "163"
+    group 3
+    status 6.687084
+    inferred_group 4
+    inferred_score_mean 0.4724224028462357
+    inferred_score_std NAN
   ]
   node [
     id 164
-    label "83"
-    community 0
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -0.9835025911719755
-    inferred_score_std 1.8757530498736426
+    label "164"
+    group 3
+    status 6.265629
+    inferred_group 6
+    inferred_score_mean 0.589427279390969
+    inferred_score_std NAN
   ]
   node [
     id 165
-    label "282"
-    community 0
-    race "hispanic"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 0.8629476617766795
-    inferred_score_std 2.0435077739891985
+    label "165"
+    group 3
+    status 8.137568
+    inferred_group 3
+    inferred_score_mean 0.5751511093633954
+    inferred_score_std NAN
   ]
   node [
     id 166
-    label "84"
-    community 0
-    race "black"
-    sex "male"
-    grade 12
-    inferred_group 2
-    inferred_score_mean -1.6358876003962293
-    inferred_score_std 1.9232925262984097
+    label "166"
+    group 3
+    status 7.151156
+    inferred_group 1
+    inferred_score_mean 0.609890396634704
+    inferred_score_std NAN
   ]
   node [
     id 167
-    label "356"
-    community 0
-    race "black"
-    sex "male"
-    grade 12
+    label "167"
+    group 3
+    status 7.792563
     inferred_group 2
-    inferred_score_mean -1.596513682532899
-    inferred_score_std 1.264099841143652
+    inferred_score_mean 0.8710499302685328
+    inferred_score_std NAN
   ]
   node [
     id 168
-    label "87"
-    community 0
-    race "black"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -3.01110864751528
-    inferred_score_std 2.040361117676259
+    label "168"
+    group 3
+    status 6.336554
+    inferred_group 0
+    inferred_score_mean 0.2757301823115995
+    inferred_score_std NAN
   ]
   node [
     id 169
-    label "179"
-    community 0
-    race "black"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 0.1997605030461353
-    inferred_score_std 2.1218266563596355
+    label "169"
+    group 3
+    status 8.097283
+    inferred_group 4
+    inferred_score_mean 0.7610635680078808
+    inferred_score_std NAN
   ]
   node [
     id 170
-    label "284"
-    community 2
-    race "hispanic"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean 0.6857216445460466
-    inferred_score_std 2.4771828776346285
+    label "170"
+    group 3
+    status 7.554323
+    inferred_group 2
+    inferred_score_mean 0.3076594200410347
+    inferred_score_std NAN
   ]
   node [
     id 171
-    label "89"
-    community 0
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -2.4174748882990964
-    inferred_score_std 1.1726532186131098
+    label "171"
+    group 3
+    status 6.128108
+    inferred_group 0
+    inferred_score_mean 0.6694602076722276
+    inferred_score_std NAN
   ]
   node [
     id 172
-    label "224"
-    community 4
-    race "black"
-    sex "female"
-    grade 12
-    inferred_group 2
-    inferred_score_mean -0.020928185738437112
-    inferred_score_std 1.1671888372140162
+    label "172"
+    group 3
+    status 6.585203
+    inferred_group 3
+    inferred_score_mean -0.002204153045524692
+    inferred_score_std NAN
   ]
   node [
     id 173
-    label "266"
-    community 0
-    race "black"
-    sex "female"
-    grade 12
-    inferred_group 2
-    inferred_score_mean 2.8630506077414943
-    inferred_score_std 1.8573850244353836
+    label "173"
+    group 3
+    status 6.511557
+    inferred_group 0
+    inferred_score_mean 0.48327626901162046
+    inferred_score_std NAN
   ]
   node [
     id 174
-    label "317"
-    community 0
-    race "mixed"
-    sex "female"
-    grade 12
-    inferred_group 2
-    inferred_score_mean -1.249323311676681
-    inferred_score_std 1.8597580586820355
+    label "174"
+    group 3
+    status 8.129195
+    inferred_group 4
+    inferred_score_mean 0.6858286402067588
+    inferred_score_std NAN
   ]
   node [
     id 175
-    label "359"
-    community 0
-    race "black"
-    sex "female"
-    grade 12
-    inferred_group 2
-    inferred_score_mean -1.8466054510213765
-    inferred_score_std 1.3624072206440851
+    label "175"
+    group 3
+    status 7.071271
+    inferred_group 8
+    inferred_score_mean 0.6080500012129131
+    inferred_score_std NAN
   ]
   node [
     id 176
-    label "414"
-    community 0
-    race "black"
-    sex "male"
-    grade 11
+    label "176"
+    group 3
+    status 8.264187
     inferred_group 2
-    inferred_score_mean -1.63524987380012
-    inferred_score_std 1.504011579606675
+    inferred_score_mean 1.2605704615654736
+    inferred_score_std NAN
   ]
   node [
     id 177
-    label "93"
-    community 3
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 0
-    inferred_score_mean 0.43784274680735413
-    inferred_score_std 2.992888279576327
+    label "177"
+    group 3
+    status 5.422194
+    inferred_group 4
+    inferred_score_mean -0.8053100545937697
+    inferred_score_std NAN
   ]
   node [
     id 178
-    label "99"
-    community 3
-    race "white"
-    sex "female"
-    grade 10
-    inferred_group 0
-    inferred_score_mean 4.491152536191186
-    inferred_score_std 1.7550856337728091
+    label "178"
+    group 3
+    status 6.621712
+    inferred_group 3
+    inferred_score_mean -0.36455469659681566
+    inferred_score_std NAN
   ]
   node [
     id 179
-    label "95"
-    community 3
-    race "white"
-    sex "female"
-    grade 10
+    label "179"
+    group 3
+    status 6.630447
     inferred_group 0
-    inferred_score_mean 0.2526149216105805
-    inferred_score_std 1.955626048600766
+    inferred_score_mean -0.016840092106811314
+    inferred_score_std NAN
   ]
   node [
     id 180
-    label "130"
-    community 7
-    race "mixed"
-    sex "female"
-    grade 12
-    inferred_group 0
-    inferred_score_mean 0.9132575293016878
-    inferred_score_std 0.9272845362937103
+    label "180"
+    group 3
+    status 5.994046
+    inferred_group 4
+    inferred_score_mean -0.0029360731048585407
+    inferred_score_std NAN
   ]
   node [
     id 181
-    label "433"
-    community 7
-    race "hispanic"
-    sex "female"
-    grade 11
-    inferred_group 0
-    inferred_score_mean 0.5919100685737354
-    inferred_score_std 1.0629173660870903
+    label "181"
+    group 3
+    status 6.9916
+    inferred_group 6
+    inferred_score_mean -0.15223094081099192
+    inferred_score_std NAN
   ]
   node [
     id 182
-    label "10"
-    community 8
-    race "white"
-    sex "male"
-    grade 11
+    label "182"
+    group 3
+    status 6.058223
     inferred_group 0
-    inferred_score_mean 4.302506825801094
-    inferred_score_std 1.7723206173347248
+    inferred_score_mean 0.2574374166419594
+    inferred_score_std NAN
   ]
   node [
     id 183
-    label "292"
-    community 0
-    race "black"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 4.172853847695828
-    inferred_score_std 2.1626403745528853
+    label "183"
+    group 3
+    status 7.807989
+    inferred_group 0
+    inferred_score_mean 1.1737848544962954
+    inferred_score_std NAN
   ]
   node [
     id 184
-    label "110"
-    community 8
-    race "hispanic"
-    sex "female"
-    grade 9
-    inferred_group 0
-    inferred_score_mean 0.6111278360016733
-    inferred_score_std 0.78274037961081
+    label "184"
+    group 3
+    status 6.572037
+    inferred_group 2
+    inferred_score_mean 0.021025569699113813
+    inferred_score_std NAN
   ]
   node [
     id 185
-    label "147"
-    community 8
-    race "hispanic"
-    sex "female"
-    grade 9
-    inferred_group 0
-    inferred_score_mean -0.3930348175416546
-    inferred_score_std 1.7121636079549205
+    label "185"
+    group 3
+    status 7.011698
+    inferred_group 3
+    inferred_score_mean 0.10982919596225627
+    inferred_score_std NAN
   ]
   node [
     id 186
-    label "112"
-    community 8
-    race "mixed"
-    sex "female"
-    grade 10
-    inferred_group 0
-    inferred_score_mean 1.9227311171599721
-    inferred_score_std 0.9947313620593371
+    label "186"
+    group 3
+    status 6.544739
+    inferred_group 7
+    inferred_score_mean -0.6796635886948169
+    inferred_score_std NAN
   ]
   node [
     id 187
-    label "114"
-    community 8
-    race "hispanic"
-    sex "female"
-    grade 10
-    inferred_group 0
-    inferred_score_mean 2.9227945043536243
-    inferred_score_std 1.334156743725349
+    label "187"
+    group 3
+    status 5.98484
+    inferred_group 2
+    inferred_score_mean -0.21882584356778037
+    inferred_score_std NAN
   ]
   node [
     id 188
-    label "120"
-    community 8
-    race "white"
-    sex "female"
-    grade 9
-    inferred_group 0
-    inferred_score_mean -1.6693494955756925
-    inferred_score_std 1.6055157481238431
+    label "188"
+    group 3
+    status 6.950736
+    inferred_group 2
+    inferred_score_mean 0.23735053055327635
+    inferred_score_std NAN
   ]
   node [
     id 189
-    label "426"
-    community 0
-    race "white"
-    sex "male"
-    grade 11
-    inferred_group 0
-    inferred_score_mean 1.647366528255297
-    inferred_score_std 2.143550413172265
+    label "189"
+    group 3
+    status 6.145277
+    inferred_group 3
+    inferred_score_mean 0.7746046621453453
+    inferred_score_std NAN
   ]
   node [
     id 190
-    label "121"
-    community 0
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 2.134545586450095
-    inferred_score_std 1.4247985679975335
+    label "190"
+    group 3
+    status 6.659891
+    inferred_group 6
+    inferred_score_mean 1.2053366938699857
+    inferred_score_std NAN
   ]
   node [
     id 191
-    label "122"
-    community 6
-    race "white"
-    sex "female"
-    grade 9
-    inferred_group 1
-    inferred_score_mean -2.6338939221556457
-    inferred_score_std 1.9034894922683976
+    label "191"
+    group 3
+    status 6.304479
+    inferred_group 0
+    inferred_score_mean 0.6571151295432879
+    inferred_score_std NAN
   ]
   node [
     id 192
-    label "236"
-    community 6
-    race "white"
-    sex "female"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 4.211098593064258
-    inferred_score_std 1.7389548223976394
+    label "192"
+    group 3
+    status 7.062106
+    inferred_group 9
+    inferred_score_mean 0.28938256140358926
+    inferred_score_std NAN
   ]
   node [
     id 193
-    label "393"
-    community 6
-    race "white"
-    sex "male"
-    grade 11
-    inferred_group 1
-    inferred_score_mean 1.6501931507332877
-    inferred_score_std 1.3103390592897706
+    label "193"
+    group 3
+    status 6.122721
+    inferred_group 6
+    inferred_score_mean 0.270886249992695
+    inferred_score_std NAN
   ]
   node [
     id 194
-    label "123"
-    community 0
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -1.7251930079242617
-    inferred_score_std 1.3269514517283238
+    label "194"
+    group 3
+    status 5.878364
+    inferred_group 3
+    inferred_score_mean -0.6376057169263978
+    inferred_score_std NAN
   ]
   node [
     id 195
-    label "277"
-    community 0
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 3.060266042305865
-    inferred_score_std 1.9613392717752276
+    label "195"
+    group 3
+    status 7.086711
+    inferred_group 6
+    inferred_score_mean 0.5698976754055896
+    inferred_score_std NAN
   ]
   node [
     id 196
-    label "297"
-    community 0
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 3.272472771030275
-    inferred_score_std 1.9966058413624916
+    label "196"
+    group 3
+    status 7.201789
+    inferred_group 3
+    inferred_score_mean 0.34008489290410526
+    inferred_score_std NAN
   ]
   node [
     id 197
-    label "309"
-    community 0
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -0.49801748060298834
-    inferred_score_std 1.1609461334427482
+    label "197"
+    group 3
+    status 6.629718
+    inferred_group 0
+    inferred_score_mean -0.20145748534886906
+    inferred_score_std NAN
   ]
   node [
     id 198
-    label "363"
-    community 0
-    race "black"
-    sex "female"
-    grade 11
+    label "198"
+    group 3
+    status 6.42307
     inferred_group 2
-    inferred_score_mean -1.5774139736814488
-    inferred_score_std 2.001779230983978
+    inferred_score_mean 0.7404922083487608
+    inferred_score_std NAN
   ]
   node [
     id 199
-    label "290"
-    community 0
-    race "mixed"
-    sex "female"
-    grade 12
-    inferred_group 2
-    inferred_score_mean 2.7456957166321287
-    inferred_score_std 1.640109841426011
-  ]
-  node [
-    id 200
-    label "361"
-    community 0
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 3.2333732787674365
-    inferred_score_std 1.87184973611655
-  ]
-  node [
-    id 201
-    label "385"
-    community 0
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 2
-    inferred_score_mean 0.3243340723857118
-    inferred_score_std 1.861307885981138
-  ]
-  node [
-    id 202
-    label "353"
-    community 0
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 2.3227376502422064
-    inferred_score_std 2.8491773279266064
-  ]
-  node [
-    id 203
-    label "428"
-    community 7
-    race "white"
-    sex "male"
-    grade 12
-    inferred_group 0
-    inferred_score_mean -1.1804120334015662
-    inferred_score_std 1.1592275351116104
-  ]
-  node [
-    id 204
-    label "131"
-    community 3
-    race "white"
-    sex "female"
-    grade 9
-    inferred_group 0
-    inferred_score_mean -0.8519197219450028
-    inferred_score_std 1.2176912488949163
-  ]
-  node [
-    id 205
-    label "350"
-    community 3
-    race "white"
-    sex "female"
-    grade 10
-    inferred_group 0
-    inferred_score_mean -2.2756944150144367
-    inferred_score_std 1.7937391969961327
-  ]
-  node [
-    id 206
-    label "50"
-    community 3
-    race "white"
-    sex "male"
-    grade 12
-    inferred_group 0
-    inferred_score_mean 3.0368717490199395
-    inferred_score_std 2.236056472545701
-  ]
-  node [
-    id 207
-    label "133"
-    community 2
-    race "black"
-    sex "female"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -1.0706036609918779
-    inferred_score_std 1.2183189496211289
-  ]
-  node [
-    id 208
-    label "221"
-    community 2
-    race "black"
-    sex "female"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -1.3650189542076598
-    inferred_score_std 1.0265803530093367
-  ]
-  node [
-    id 209
-    label "324"
-    community 2
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean 3.7821494336937738
-    inferred_score_std 1.5928598283612936
-  ]
-  node [
-    id 210
-    label "134"
-    community 1
-    race "mixed"
-    sex "male"
-    grade 10
-    inferred_group 3
-    inferred_score_mean -4.0901991643045355
-    inferred_score_std 1.6850003406898653
-  ]
-  node [
-    id 211
-    label "154"
-    community 1
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 3
-    inferred_score_mean 2.9451859753112526
-    inferred_score_std 1.313372961199904
-  ]
-  node [
-    id 212
-    label "312"
-    community 1
-    race "mixed"
-    sex "male"
-    grade 10
-    inferred_group 3
-    inferred_score_mean 0.006939500276290099
-    inferred_score_std 1.0288818327434353
-  ]
-  node [
-    id 213
-    label "316"
-    community 1
-    race "hispanic"
-    sex "female"
-    grade 10
-    inferred_group 3
-    inferred_score_mean 0.9250353152892018
-    inferred_score_std 1.119129824261274
-  ]
-  node [
-    id 214
-    label "372"
-    community 1
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 3
-    inferred_score_mean 2.8225846697470676
-    inferred_score_std 1.9320096059358138
-  ]
-  node [
-    id 215
-    label "431"
-    community 1
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 3
-    inferred_score_mean 0.03184224818551879
-    inferred_score_std 0.9348371480408475
-  ]
-  node [
-    id 216
-    label "140"
-    community 0
-    race "white"
-    sex "female"
-    grade 11
-    inferred_group 0
-    inferred_score_mean -3.2658705146624607
-    inferred_score_std 1.4697238702439477
-  ]
-  node [
-    id 217
-    label "228"
-    community 0
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 0
-    inferred_score_mean 0.4025710519610918
-    inferred_score_std 1.387661678866977
-  ]
-  node [
-    id 218
-    label "354"
-    community 0
-    race "white"
-    sex "male"
-    grade 12
-    inferred_group 0
-    inferred_score_mean -0.28843814181891564
-    inferred_score_std 1.255315614108866
-  ]
-  node [
-    id 219
     label "199"
-    community 4
-    race "black"
-    sex "male"
-    grade 12
-    inferred_group 2
-    inferred_score_mean -3.1351438866098227
-    inferred_score_std 1.2289856072515861
-  ]
-  node [
-    id 220
-    label "146"
-    community 0
-    race "white"
-    sex "female"
-    grade 11
-    inferred_group 0
-    inferred_score_mean -1.1751683031475222
-    inferred_score_std 1.7912459766296482
-  ]
-  node [
-    id 221
-    label "416"
-    community 1
-    race "black"
-    sex "female"
-    grade 10
+    group 3
+    status 6.800508
     inferred_group 3
-    inferred_score_mean 4.178340849624316
-    inferred_score_std 1.9057393506572013
-  ]
-  node [
-    id 222
-    label "178"
-    community 1
-    race "hispanic"
-    sex "male"
-    grade 10
-    inferred_group 3
-    inferred_score_mean -1.4360557398094123
-    inferred_score_std 1.8581879014454097
-  ]
-  node [
-    id 223
-    label "159"
-    community 0
-    race "black"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -1.6092505501359073
-    inferred_score_std 2.6021098660530257
-  ]
-  node [
-    id 224
-    label "166"
-    community 8
-    race "hispanic"
-    sex "male"
-    grade 10
-    inferred_group 0
-    inferred_score_mean -1.3372555117948468
-    inferred_score_std 1.078822107331601
-  ]
-  node [
-    id 225
-    label "341"
-    community 6
-    race "mixed"
-    sex "female"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 1.9748776871422127
-    inferred_score_std 1.0404118033835368
-  ]
-  node [
-    id 226
-    label "169"
-    community 5
-    race "mixed"
-    sex "female"
-    grade 9
-    inferred_group 0
-    inferred_score_mean 0.191177056829775
-    inferred_score_std 1.3055115971002267
-  ]
-  node [
-    id 227
-    label "306"
-    community 5
-    race "hispanic"
-    sex "female"
-    grade 10
-    inferred_group 0
-    inferred_score_mean 1.7435452298165823
-    inferred_score_std 1.8463312719031069
-  ]
-  node [
-    id 228
-    label "310"
-    community 5
-    race "hispanic"
-    sex "female"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 2.3637671491302847
-    inferred_score_std 1.1865219706115162
-  ]
-  node [
-    id 229
-    label "194"
-    community 0
-    race "black"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -1.5958262688002018
-    inferred_score_std 1.5975859867023843
-  ]
-  node [
-    id 230
-    label "180"
-    community 2
-    race "black"
-    sex "female"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -2.2228687869487844
-    inferred_score_std 1.3237584318196987
-  ]
-  node [
-    id 231
-    label "40"
-    community 2
-    race "black"
-    sex "female"
-    grade 9
-    inferred_group 3
-    inferred_score_mean 2.2368029210693976
-    inferred_score_std 2.124224270481349
-  ]
-  node [
-    id 232
-    label "320"
-    community 2
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean 1.196876021717984
-    inferred_score_std 1.8559941108606592
-  ]
-  node [
-    id 233
-    label "368"
-    community 2
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -0.1583429026805964
-    inferred_score_std 1.0426016062337855
-  ]
-  node [
-    id 234
-    label "391"
-    community 2
-    race "mixed"
-    sex "female"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -5.054515243455474
-    inferred_score_std 1.4119772178009669
-  ]
-  node [
-    id 235
-    label "181"
-    community 0
-    race "black"
-    sex "male"
-    grade 12
-    inferred_group 2
-    inferred_score_mean 0.11173449508644302
-    inferred_score_std 1.6786789158577904
-  ]
-  node [
-    id 236
-    label "239"
-    community 0
-    race "black"
-    sex "male"
-    grade 12
-    inferred_group 2
-    inferred_score_mean 3.1329609918981776
-    inferred_score_std 2.0296660621004015
-  ]
-  node [
-    id 237
-    label "183"
-    community 5
-    race "hispanic"
-    sex "female"
-    grade 9
-    inferred_group 1
-    inferred_score_mean -0.9178369322733936
-    inferred_score_std 1.6272013525020257
-  ]
-  node [
-    id 238
-    label "232"
-    community 5
-    race "hispanic"
-    sex "male"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 0.10975309019791989
-    inferred_score_std 1.8771145973075938
-  ]
-  node [
-    id 239
-    label "272"
-    community 5
-    race "hispanic"
-    sex "male"
-    grade 9
-    inferred_group 1
-    inferred_score_mean -1.428298838688865
-    inferred_score_std 1.2018465394600615
-  ]
-  node [
-    id 240
-    label "373"
-    community 5
-    race "white"
-    sex "female"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 0.781669615412216
-    inferred_score_std 1.3375733814403765
-  ]
-  node [
-    id 241
-    label "189"
-    community 3
-    race "white"
-    sex "male"
-    grade 10
-    inferred_group 0
-    inferred_score_mean -2.1825879167775857
-    inferred_score_std 1.4320429665972507
-  ]
-  node [
-    id 242
-    label "409"
-    community 0
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 2.9378621727820895
-    inferred_score_std 1.6847270449037146
-  ]
-  node [
-    id 243
-    label "192"
-    community 2
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -2.308453894550516
-    inferred_score_std 1.6698260200369468
-  ]
-  node [
-    id 244
-    label "66"
-    community 2
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -0.09473298511793679
-    inferred_score_std 2.229864968170709
-  ]
-  node [
-    id 245
-    label "302"
-    community 2
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -3.394789413188868
-    inferred_score_std 1.33825584445068
-  ]
-  node [
-    id 246
-    label "384"
-    community 0
-    race "black"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 1.8263294873307219
-    inferred_score_std 1.7429397895632408
-  ]
-  node [
-    id 247
-    label "195"
-    community 8
-    race "white"
-    sex "male"
-    grade 10
-    inferred_group 0
-    inferred_score_mean -2.3656880147408077
-    inferred_score_std 1.4445126362850762
-  ]
-  node [
-    id 248
-    label "201"
-    community 0
-    race "mixed"
-    sex "female"
-    grade 12
-    inferred_group 2
-    inferred_score_mean -1.86434214653896
-    inferred_score_std 2.1589797286554813
-  ]
-  node [
-    id 249
-    label "392"
-    community 0
-    race "black"
-    sex "female"
-    grade 12
-    inferred_group 2
-    inferred_score_mean -1.2346104869555068
-    inferred_score_std 1.8015295040559136
-  ]
-  node [
-    id 250
-    label "202"
-    community 3
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 1
-    inferred_score_mean -3.036555633645817
-    inferred_score_std 1.4436135675848951
-  ]
-  node [
-    id 251
-    label "86"
-    community 3
-    race "white"
-    sex "female"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 1.411861780452601
-    inferred_score_std 2.4272267712613083
-  ]
-  node [
-    id 252
-    label "259"
-    community 5
-    race "hispanic"
-    sex "female"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 0.907792029051411
-    inferred_score_std 1.9536531050355244
-  ]
-  node [
-    id 253
-    label "424"
-    community 3
-    race "white"
-    sex "female"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 1.073613724576545
-    inferred_score_std 1.374720018036466
-  ]
-  node [
-    id 254
-    label "203"
-    community 8
-    race "mixed"
-    sex "male"
-    grade 10
-    inferred_group 0
-    inferred_score_mean -3.313163428757108
-    inferred_score_std 1.6178189373952672
-  ]
-  node [
-    id 255
-    label "150"
-    community 2
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean 2.5283234437683517
-    inferred_score_std 1.9135742586340956
-  ]
-  node [
-    id 256
-    label "218"
-    community 8
-    race "white"
-    sex "female"
-    grade 10
-    inferred_group 0
-    inferred_score_mean -3.8640896263164244
-    inferred_score_std 1.9185869149958985
-  ]
-  node [
-    id 257
-    label "365"
-    community 8
-    race "white"
-    sex "female"
-    grade 11
-    inferred_group 0
-    inferred_score_mean 2.36070564064974
-    inferred_score_std 1.6905797032638685
-  ]
-  node [
-    id 258
-    label "332"
-    community 3
-    race "mixed"
-    sex "male"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 2.366592206042116
-    inferred_score_std 2.2019044675829162
-  ]
-  node [
-    id 259
-    label "220"
-    community 2
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -0.4417498389489578
-    inferred_score_std 1.9645766907456812
-  ]
-  node [
-    id 260
-    label "251"
-    community 5
-    race "white"
-    sex "female"
-    grade 9
-    inferred_group 1
-    inferred_score_mean -0.5978963059117214
-    inferred_score_std 1.523558395521145
-  ]
-  node [
-    id 261
-    label "222"
-    community 3
-    race "white"
-    sex "female"
-    grade 9
-    inferred_group 0
-    inferred_score_mean -0.044369602572549106
-    inferred_score_std 1.2178010630265794
-  ]
-  node [
-    id 262
-    label "319"
-    community 1
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -1.7071212122157386
-    inferred_score_std 1.6704490046451737
-  ]
-  node [
-    id 263
-    label "405"
-    community 1
-    race "black"
-    sex "female"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -2.7060481292404406
-    inferred_score_std 1.4361550703794883
-  ]
-  node [
-    id 264
-    label "209"
-    community 2
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 3
-    inferred_score_mean 2.3086920200999175
-    inferred_score_std 1.7244631866840139
-  ]
-  node [
-    id 265
-    label "230"
-    community 5
-    race "white"
-    sex "female"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 2.860989192980402
-    inferred_score_std 1.333936889320878
-  ]
-  node [
-    id 266
-    label "245"
-    community 1
-    race "mixed"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 0.558388569566949
-    inferred_score_std 1.2549111084596383
-  ]
-  node [
-    id 267
-    label "331"
-    community 1
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -0.9448005151564932
-    inferred_score_std 1.8675695403363282
-  ]
-  node [
-    id 268
-    label "235"
-    community 0
-    race "white"
-    sex "male"
-    grade 9
-    inferred_group 0
-    inferred_score_mean -0.672377672367553
-    inferred_score_std 2.309350232768728
-  ]
-  node [
-    id 269
-    label "439"
-    community 4
-    race "black"
-    sex "male"
-    grade 12
-    inferred_group 2
-    inferred_score_mean 1.6317889030374586
-    inferred_score_std 1.009337799038757
-  ]
-  node [
-    id 270
-    label "75"
-    community 0
-    race "black"
-    sex "female"
-    grade 12
-    inferred_group 2
-    inferred_score_mean 2.7982837336811492
-    inferred_score_std 1.9324949376380602
-  ]
-  node [
-    id 271
-    label "403"
-    community 1
-    race "black"
-    sex "female"
-    grade 12
-    inferred_group 2
-    inferred_score_mean 0.3256677571045995
-    inferred_score_std 2.0130154857571445
-  ]
-  node [
-    id 272
-    label "247"
-    community 0
-    race "white"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -4.012220291072497
-    inferred_score_std 2.5974321316694735
-  ]
-  node [
-    id 273
-    label "255"
-    community 0
-    race "black"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -0.6243514555422186
-    inferred_score_std 1.660318082663244
-  ]
-  node [
-    id 274
-    label "256"
-    community 5
-    race "mixed"
-    sex "female"
-    grade 9
-    inferred_group 1
-    inferred_score_mean -2.2572933744026424
-    inferred_score_std 1.4527298327775577
-  ]
-  node [
-    id 275
-    label "311"
-    community 5
-    race "white"
-    sex "female"
-    grade 10
-    inferred_group 3
-    inferred_score_mean -2.650367627569079
-    inferred_score_std 1.6326310821429746
-  ]
-  node [
-    id 276
-    label "257"
-    community 6
-    race "white"
-    sex "male"
-    grade 11
-    inferred_group 1
-    inferred_score_mean 1.1503107653439468
-    inferred_score_std 1.348873390286957
-  ]
-  node [
-    id 277
-    label "261"
-    community 0
-    race "black"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -4.316739047347935
-    inferred_score_std 2.0020981905935593
-  ]
-  node [
-    id 278
-    label "378"
-    community 0
-    race "mixed"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -2.0984977668840066
-    inferred_score_std 1.6403135171198133
-  ]
-  node [
-    id 279
-    label "369"
-    community 0
-    race "white"
-    sex "female"
-    grade 10
-    inferred_group 0
-    inferred_score_mean 0.6858093230770064
-    inferred_score_std 1.8642121111071568
-  ]
-  node [
-    id 280
-    label "407"
-    community 0
-    race "white"
-    sex "female"
-    grade 10
-    inferred_group 0
-    inferred_score_mean -0.20852640579578993
-    inferred_score_std 1.8259220057156176
-  ]
-  node [
-    id 281
-    label "265"
-    community 0
-    race "hispanic"
-    sex "male"
-    grade 9
-    inferred_group 2
-    inferred_score_mean -2.941208027381011
-    inferred_score_std 2.024067430833965
-  ]
-  node [
-    id 282
-    label "267"
-    community 0
-    race "white"
-    sex "male"
-    grade 10
-    inferred_group 3
-    inferred_score_mean -0.7740570806839318
-    inferred_score_std 2.2948720472179525
-  ]
-  node [
-    id 283
-    label "286"
-    community 0
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean 1.7401762524551345
-    inferred_score_std 2.6625823092709218
-  ]
-  node [
-    id 284
-    label "271"
-    community 2
-    race "black"
-    sex "female"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -2.2461386787034097
-    inferred_score_std 1.3978584787445554
-  ]
-  node [
-    id 285
-    label "45"
-    community 2
-    race "black"
-    sex "female"
-    grade 9
-    inferred_group 3
-    inferred_score_mean 1.404953327806962
-    inferred_score_std 2.581299966530125
-  ]
-  node [
-    id 286
-    label "296"
-    community 4
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -3.2391662085410813
-    inferred_score_std 1.394472217215575
-  ]
-  node [
-    id 287
-    label "246"
-    community 2
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 1
-    inferred_score_mean 2.936031860822644
-    inferred_score_std 2.0768627712441745
-  ]
-  node [
-    id 288
-    label "279"
-    community 0
-    race "mixed"
-    sex "female"
-    grade 9
-    inferred_group 2
-    inferred_score_mean -1.5350346547372629
-    inferred_score_std 2.7993914783992015
-  ]
-  node [
-    id 289
-    label "281"
-    community 3
-    race "white"
-    sex "male"
-    grade 10
-    inferred_group 1
-    inferred_score_mean -1.6413758232595492
-    inferred_score_std 1.9338140726517896
-  ]
-  node [
-    id 290
-    label "325"
-    community 6
-    race "missing"
-    sex "female"
-    grade 10
-    inferred_group 1
-    inferred_score_mean 4.519296703809098
-    inferred_score_std 1.806856846373517
-  ]
-  node [
-    id 291
-    label "417"
-    community 3
-    race "white"
-    sex "male"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 1.4313930613225332
-    inferred_score_std 1.6659827691462756
-  ]
-  node [
-    id 292
-    label "390"
-    community 8
-    race "white"
-    sex "female"
-    grade 11
-    inferred_group 0
-    inferred_score_mean -0.5341456322969461
-    inferred_score_std 1.7781283533661048
-  ]
-  node [
-    id 293
-    label "288"
-    community 2
-    race "black"
-    sex "female"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -1.732069690906414
-    inferred_score_std 2.3422952697456303
-  ]
-  node [
-    id 294
-    label "293"
-    community 2
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -3.18420526307609
-    inferred_score_std 1.9258444618383974
-  ]
-  node [
-    id 295
-    label "294"
-    community 3
-    race "white"
-    sex "female"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 0.9530466911395677
-    inferred_score_std 2.0165722813407774
-  ]
-  node [
-    id 296
-    label "321"
-    community 4
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -2.2848926543898616
-    inferred_score_std 1.2437370091708757
-  ]
-  node [
-    id 297
-    label "374"
-    community 0
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -0.2532609396178619
-    inferred_score_std 1.7075797021672554
-  ]
-  node [
-    id 298
-    label "300"
-    community 2
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -1.2406608304154574
-    inferred_score_std 1.710009207076204
-  ]
-  node [
-    id 299
-    label "301"
-    community 1
-    race "hispanic"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -0.22748270694717257
-    inferred_score_std 1.8525421246760487
-  ]
-  node [
-    id 300
-    label "329"
-    community 2
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean 0.6579220617055154
-    inferred_score_std 2.352869356261309
-  ]
-  node [
-    id 301
-    label "355"
-    community 2
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -4.670179796180174
-    inferred_score_std 1.5404429269596442
-  ]
-  node [
-    id 302
-    label "376"
-    community 2
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean 0.2328436957920538
-    inferred_score_std 2.0747705231600184
-  ]
-  node [
-    id 303
-    label "107"
-    community 0
-    race "hispanic"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 1.37511405358391
-    inferred_score_std 2.3149211888177614
-  ]
-  node [
-    id 304
-    label "371"
-    community 0
-    race "mixed"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -3.2601581241694695
-    inferred_score_std 1.421777025457484
-  ]
-  node [
-    id 305
-    label "308"
-    community 0
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -2.774717211678393
-    inferred_score_std 1.35047031423256
-  ]
-  node [
-    id 306
-    label "335"
-    community 0
-    race "black"
-    sex "female"
-    grade 12
-    inferred_group 2
-    inferred_score_mean 0.707505735653246
-    inferred_score_std 2.358554794812079
-  ]
-  node [
-    id 307
-    label "337"
-    community 0
-    race "black"
-    sex "female"
-    grade 12
-    inferred_group 2
-    inferred_score_mean 1.9312975872718603
-    inferred_score_std 1.2357390993909563
-  ]
-  node [
-    id 308
-    label "323"
-    community 2
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -1.4445315580752802
-    inferred_score_std 2.1963238978934867
-  ]
-  node [
-    id 309
-    label "326"
-    community 1
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -4.095479600467804
-    inferred_score_std 1.5121046698970575
-  ]
-  node [
-    id 310
-    label "153"
-    community 1
-    race "mixed"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -0.5097359924750222
-    inferred_score_std 2.3947463221461547
-  ]
-  node [
-    id 311
-    label "330"
-    community 2
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean 1.0763836026253886
-    inferred_score_std 1.828244109238379
-  ]
-  node [
-    id 312
-    label "338"
-    community 0
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -2.784162320198903
-    inferred_score_std 1.7413207304149305
-  ]
-  node [
-    id 313
-    label "163"
-    community 0
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 0.9302078207331597
-    inferred_score_std 2.4283356964798037
-  ]
-  node [
-    id 314
-    label "422"
-    community 0
-    race "black"
-    sex "male"
-    grade 12
-    inferred_group 2
-    inferred_score_mean 2.526470077727342
-    inferred_score_std 1.727432122813028
-  ]
-  node [
-    id 315
-    label "347"
-    community 2
-    race "black"
-    sex "female"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -1.3622478051462994
-    inferred_score_std 2.4518930044549236
-  ]
-  node [
-    id 316
-    label "348"
-    community 0
-    race "black"
-    sex "female"
-    grade 12
-    inferred_group 2
-    inferred_score_mean -0.8323898987223345
-    inferred_score_std 2.1418228595746904
-  ]
-  node [
-    id 317
-    label "349"
-    community 4
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -3.952098568151906
-    inferred_score_std 1.7645574986919488
-  ]
-  node [
-    id 318
-    label "96"
-    community 0
-    race "white"
-    sex "male"
-    grade 12
-    inferred_group 0
-    inferred_score_mean 3.129246773365407
-    inferred_score_std 2.03420579600466
-  ]
-  node [
-    id 319
-    label "411"
-    community 0
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 0
-    inferred_score_mean 3.2096161939429413
-    inferred_score_std 2.0388027733629994
-  ]
-  node [
-    id 320
-    label "398"
-    community 2
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -3.4695622911239368
-    inferred_score_std 1.4680112851692448
-  ]
-  node [
-    id 321
-    label "401"
-    community 0
-    race "black"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 0.7483368170110266
-    inferred_score_std 1.6995052674312914
-  ]
-  node [
-    id 322
-    label "64"
-    community 8
-    race "hispanic"
-    sex "male"
-    grade 11
-    inferred_group 0
-    inferred_score_mean 3.6413379693869374
-    inferred_score_std 1.9799541535948002
-  ]
-  node [
-    id 323
-    label "198"
-    community 0
-    race "black"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 2.131571388018208
-    inferred_score_std 1.994210026864959
-  ]
-  node [
-    id 324
-    label "436"
-    community 0
-    race "black"
-    sex "female"
-    grade 12
-    inferred_group 2
-    inferred_score_mean 1.4069877275864286
-    inferred_score_std 2.7331553155257913
-  ]
-  node [
-    id 325
-    label "360"
-    community 0
-    race "black"
-    sex "female"
-    grade 12
-    inferred_group 2
-    inferred_score_mean -2.5031241014418417
-    inferred_score_std 2.4089687532594164
-  ]
-  node [
-    id 326
-    label "187"
-    community 0
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 2.710074447463917
-    inferred_score_std 2.0682722137771425
-  ]
-  node [
-    id 327
-    label "108"
-    community 0
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 2.4316967751654217
-    inferred_score_std 1.9846689280656244
-  ]
-  node [
-    id 328
-    label "366"
-    community 3
-    race "white"
-    sex "male"
-    grade 9
-    inferred_group 1
-    inferred_score_mean -3.395700755165249
-    inferred_score_std 1.9710551709035107
-  ]
-  node [
-    id 329
-    label "252"
-    community 3
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 1
-    inferred_score_mean 0.8589291963210886
-    inferred_score_std 2.5572544217097826
-  ]
-  node [
-    id 330
-    label "216"
-    community 0
-    race "black"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -0.9209757579059397
-    inferred_score_std 1.4455481406244124
-  ]
-  node [
-    id 331
-    label "295"
-    community 0
-    race "white"
-    sex "male"
-    grade 11
-    inferred_group 0
-    inferred_score_mean 1.8815821025877772
-    inferred_score_std 2.306171784528754
-  ]
-  node [
-    id 332
-    label "145"
-    community 5
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 1
-    inferred_score_mean 1.6160937081749276
-    inferred_score_std 2.060391298600117
-  ]
-  node [
-    id 333
-    label "42"
-    community 0
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 1.6155302710477517
-    inferred_score_std 1.8964231781126801
-  ]
-  node [
-    id 334
-    label "382"
-    community 0
-    race "black"
-    sex "female"
-    grade 11
-    inferred_group 2
-    inferred_score_mean -1.9952281760582018
-    inferred_score_std 1.7346583622184482
-  ]
-  node [
-    id 335
-    label "386"
-    community 1
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 3
-    inferred_score_mean -1.2292670945569544
-    inferred_score_std 1.7566671823560245
-  ]
-  node [
-    id 336
-    label "388"
-    community 0
-    race "mixed"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -4.22354645619769
-    inferred_score_std 1.79697323737513
-  ]
-  node [
-    id 337
-    label "443"
-    community 0
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -0.38381555378384785
-    inferred_score_std 1.7070123152286556
-  ]
-  node [
-    id 338
-    label "175"
-    community 2
-    race "mixed"
-    sex "female"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -0.03295568324774617
-    inferred_score_std 1.436690900461322
-  ]
-  node [
-    id 339
-    label "231"
-    community 2
-    race "mixed"
-    sex "missing"
-    grade 9
-    inferred_group 3
-    inferred_score_mean 0.5096390333580624
-    inferred_score_std 2.7938627979004247
-  ]
-  node [
-    id 340
-    label "397"
-    community 2
-    race "black"
-    sex "male"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -3.4349232796529487
-    inferred_score_std 1.5560612836260421
-  ]
-  node [
-    id 341
-    label "406"
-    community 2
-    race "black"
-    sex "female"
-    grade 9
-    inferred_group 3
-    inferred_score_mean -4.7228666544669995
-    inferred_score_std 1.5051585913284544
-  ]
-  node [
-    id 342
-    label "237"
-    community 0
-    race "black"
-    sex "female"
-    grade 10
-    inferred_group 2
-    inferred_score_mean 0.44713591833381017
-    inferred_score_std 2.7941385893023916
-  ]
-  node [
-    id 343
-    label "410"
-    community 0
-    race "black"
-    sex "female"
-    grade 12
-    inferred_group 2
-    inferred_score_mean -1.9558480484886198
-    inferred_score_std 1.7192349729336214
-  ]
-  node [
-    id 344
-    label "413"
-    community 0
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 3
-    inferred_score_mean -4.135552234300159
-    inferred_score_std 1.8483582496167172
-  ]
-  node [
-    id 345
-    label "164"
-    community 0
-    race "hispanic"
-    sex "male"
-    grade 10
-    inferred_group 3
-    inferred_score_mean 0.8886918814435393
-    inferred_score_std 2.1630554297552886
-  ]
-  node [
-    id 346
-    label "434"
-    community 3
-    race "white"
-    sex "female"
-    grade 9
-    inferred_group 0
-    inferred_score_mean -1.3095588108457277
-    inferred_score_std 1.4080641128122502
-  ]
-  node [
-    id 347
-    label "32"
-    community 0
-    race "white"
-    sex "male"
-    grade 11
-    inferred_group 0
-    inferred_score_mean 1.9687546852519566
-    inferred_score_std 2.2029950185093843
-  ]
-  node [
-    id 348
-    label "57"
-    community 7
-    race "white"
-    sex "male"
-    grade 12
-    inferred_group 0
-    inferred_score_mean 2.9631450219903703
-    inferred_score_std 1.8862053278571482
-  ]
-  node [
-    id 349
-    label "446"
-    community 3
-    race "white"
-    sex "male"
-    grade 11
-    inferred_group 0
-    inferred_score_mean -0.2445046125910691
-    inferred_score_std 1.743571989434426
-  ]
-  node [
-    id 350
-    label "435"
-    community 0
-    race "black"
-    sex "male"
-    grade 10
-    inferred_group 2
-    inferred_score_mean -2.3714459117448197
-    inferred_score_std 1.9185137816948512
-  ]
-  node [
-    id 351
-    label "442"
-    community 0
-    race "mixed"
-    sex "male"
-    grade 11
-    inferred_group 2
-    inferred_score_mean 3.5093247280463142
-    inferred_score_std 1.7891405701947656
+    inferred_score_mean -0.1954066431145428
+    inferred_score_std NAN
   ]
   edge [
     source 0
-    target 69
-    type "dominant"
-  ]
-  edge [
-    source 0
-    target 72
-    type "dominant"
-  ]
-  edge [
-    source 0
-    target 73
-    type "dominant"
-  ]
-  edge [
-    source 0
-    target 190
-    type "dominant"
+    target 47
   ]
   edge [
     source 1
-    target 0
-    type "dominant"
+    target 25
   ]
   edge [
     source 1
-    target 49
-    type "dominant"
-  ]
-  edge [
-    source 1
-    target 51
-    type "dominant"
-  ]
-  edge [
-    source 1
-    target 66
-    type "dominant"
-  ]
-  edge [
-    source 1
-    target 190
-    type "dominant"
-  ]
-  edge [
-    source 1
-    target 278
-    type "dominant"
-  ]
-  edge [
-    source 1
-    target 321
-    type "dominant"
+    target 26
   ]
   edge [
     source 2
-    target 0
-    type "dominant"
+    target 4
   ]
   edge [
     source 2
-    target 17
-    type "dominant"
-  ]
-  edge [
-    source 2
-    target 129
-    type "dominant"
-  ]
-  edge [
-    source 2
-    target 172
-    type "dominant"
-  ]
-  edge [
-    source 2
-    target 190
-    type "dominant"
+    target 46
   ]
   edge [
     source 3
-    target 8
-    type "neutral"
+    target 43
   ]
   edge [
     source 4
-    target 3
-    type "dominant"
+    target 8
   ]
   edge [
     source 5
-    target 3
-    type "dominant"
+    target 35
   ]
   edge [
     source 5
-    target 207
-    type "dominant"
+    target 46
   ]
   edge [
     source 6
-    target 3
-    type "dominant"
+    target 1
   ]
   edge [
     source 6
-    target 263
-    type "neutral"
+    target 27
   ]
   edge [
     source 7
-    target 3
-    type "dominant"
-  ]
-  edge [
-    source 7
-    target 19
-    type "dominant"
-  ]
-  edge [
-    source 8
-    target 50
-    type "dominant"
-  ]
-  edge [
-    source 8
-    target 167
-    type "dominant"
-  ]
-  edge [
-    source 9
-    target 3
-    type "dominant"
-  ]
-  edge [
-    source 9
-    target 11
-    type "neutral"
-  ]
-  edge [
-    source 9
-    target 230
-    type "neutral"
-  ]
-  edge [
-    source 9
-    target 208
-    type "dominant"
-  ]
-  edge [
-    source 9
-    target 234
-    type "dominant"
-  ]
-  edge [
-    source 10
-    target 12
-    type "neutral"
-  ]
-  edge [
-    source 10
-    target 13
-    type "neutral"
-  ]
-  edge [
-    source 10
-    target 16
-    type "neutral"
-  ]
-  edge [
-    source 10
-    target 317
-    type "dominant"
+    target 17
   ]
   edge [
     source 11
-    target 10
-    type "dominant"
-  ]
-  edge [
-    source 11
-    target 13
-    type "neutral"
-  ]
-  edge [
-    source 11
-    target 176
-    type "neutral"
-  ]
-  edge [
-    source 11
-    target 86
-    type "dominant"
-  ]
-  edge [
-    source 11
-    target 112
-    type "dominant"
-  ]
-  edge [
-    source 11
-    target 305
-    type "dominant"
-  ]
-  edge [
-    source 13
-    target 12
-    type "dominant"
-  ]
-  edge [
-    source 13
-    target 101
-    type "dominant"
-  ]
-  edge [
-    source 13
-    target 218
-    type "dominant"
-  ]
-  edge [
-    source 13
-    target 288
-    type "dominant"
-  ]
-  edge [
-    source 13
-    target 304
-    type "dominant"
-  ]
-  edge [
-    source 14
-    target 10
-    type "dominant"
-  ]
-  edge [
-    source 14
-    target 159
-    type "dominant"
-  ]
-  edge [
-    source 14
-    target 317
-    type "dominant"
-  ]
-  edge [
-    source 15
-    target 10
-    type "dominant"
-  ]
-  edge [
-    source 15
-    target 305
-    type "dominant"
-  ]
-  edge [
-    source 16
-    target 58
-    type "neutral"
-  ]
-  edge [
-    source 16
-    target 30
-    type "neutral"
-  ]
-  edge [
-    source 16
-    target 19
-    type "neutral"
-  ]
-  edge [
-    source 16
-    target 112
-    type "dominant"
-  ]
-  edge [
-    source 16
-    target 161
-    type "dominant"
-  ]
-  edge [
-    source 16
-    target 168
-    type "dominant"
-  ]
-  edge [
-    source 16
-    target 304
-    type "dominant"
-  ]
-  edge [
-    source 17
-    target 10
-    type "dominant"
-  ]
-  edge [
-    source 17
-    target 321
-    type "neutral"
-  ]
-  edge [
-    source 17
-    target 39
-    type "dominant"
-  ]
-  edge [
-    source 17
-    target 167
-    type "dominant"
-  ]
-  edge [
-    source 17
-    target 176
-    type "dominant"
-  ]
-  edge [
-    source 18
-    target 10
-    type "dominant"
-  ]
-  edge [
-    source 19
-    target 10
-    type "dominant"
-  ]
-  edge [
-    source 19
-    target 47
-    type "dominant"
-  ]
-  edge [
-    source 20
-    target 21
-    type "neutral"
-  ]
-  edge [
-    source 20
-    target 268
-    type "dominant"
-  ]
-  edge [
-    source 20
-    target 281
-    type "dominant"
-  ]
-  edge [
-    source 21
     target 34
-    type "dominant"
+  ]
+  edge [
+    source 12
+    target 14
+  ]
+  edge [
+    source 12
+    target 33
+  ]
+  edge [
+    source 12
+    target 42
+  ]
+  edge [
+    source 13
+    target 8
+  ]
+  edge [
+    source 13
+    target 9
+  ]
+  edge [
+    source 13
+    target 15
+  ]
+  edge [
+    source 13
+    target 17
+  ]
+  edge [
+    source 13
+    target 20
+  ]
+  edge [
+    source 13
+    target 29
+  ]
+  edge [
+    source 13
+    target 39
+  ]
+  edge [
+    source 13
+    target 41
+  ]
+  edge [
+    source 13
+    target 45
+  ]
+  edge [
+    source 14
+    target 9
+  ]
+  edge [
+    source 14
+    target 47
+  ]
+  edge [
+    source 15
+    target 14
+  ]
+  edge [
+    source 15
+    target 28
+  ]
+  edge [
+    source 17
+    target 7
+  ]
+  edge [
+    source 17
+    target 11
+  ]
+  edge [
+    source 17
+    target 33
+  ]
+  edge [
+    source 19
+    target 23
+  ]
+  edge [
+    source 19
+    target 33
+  ]
+  edge [
+    source 20
+    target 19
+  ]
+  edge [
+    source 20
+    target 23
+  ]
+  edge [
+    source 20
+    target 32
   ]
   edge [
     source 21
-    target 272
-    type "dominant"
+    target 7
+  ]
+  edge [
+    source 21
+    target 40
   ]
   edge [
     source 22
-    target 35
-    type "dominant"
+    target 11
   ]
   edge [
     source 23
-    target 22
-    type "dominant"
+    target 1
   ]
   edge [
     source 23
-    target 250
-    type "dominant"
+    target 16
+  ]
+  edge [
+    source 23
+    target 20
   ]
   edge [
     source 24
-    target 26
-    type "neutral"
-  ]
-  edge [
-    source 24
-    target 27
-    type "neutral"
-  ]
-  edge [
-    source 24
-    target 179
-    type "dominant"
+    target 31
   ]
   edge [
     source 25
-    target 24
-    type "dominant"
-  ]
-  edge [
-    source 25
-    target 27
-    type "neutral"
+    target 39
   ]
   edge [
     source 26
-    target 179
-    type "neutral"
+    target 8
   ]
   edge [
     source 26
-    target 35
-    type "dominant"
+    target 12
   ]
   edge [
-    source 27
-    target 141
-    type "neutral"
+    source 26
+    target 19
   ]
   edge [
     source 28
-    target 272
-    type "dominant"
+    target 29
   ]
   edge [
-    source 29
-    target 28
-    type "dominant"
-  ]
-  edge [
-    source 29
-    target 121
-    type "dominant"
-  ]
-  edge [
-    source 29
-    target 281
-    type "dominant"
-  ]
-  edge [
-    source 30
-    target 28
-    type "dominant"
-  ]
-  edge [
-    source 30
-    target 42
-    type "neutral"
-  ]
-  edge [
-    source 30
-    target 57
-    type "neutral"
-  ]
-  edge [
-    source 30
-    target 58
-    type "neutral"
-  ]
-  edge [
-    source 30
+    source 28
     target 45
-    type "neutral"
   ]
   edge [
     source 30
-    target 296
-    type "neutral"
-  ]
-  edge [
-    source 30
-    target 269
-    type "neutral"
-  ]
-  edge [
-    source 30
-    target 47
-    type "dominant"
-  ]
-  edge [
-    source 30
-    target 50
-    type "dominant"
-  ]
-  edge [
-    source 30
-    target 86
-    type "dominant"
-  ]
-  edge [
-    source 30
-    target 219
-    type "dominant"
-  ]
-  edge [
-    source 30
-    target 317
-    type "dominant"
+    target 10
   ]
   edge [
     source 31
-    target 32
-    type "neutral"
+    target 13
   ]
   edge [
     source 31
-    target 34
-    type "neutral"
+    target 21
+  ]
+  edge [
+    source 31
+    target 30
   ]
   edge [
     source 31
     target 35
-    type "neutral"
+  ]
+  edge [
+    source 32
+    target 5
+  ]
+  edge [
+    source 32
+    target 8
+  ]
+  edge [
+    source 32
+    target 9
+  ]
+  edge [
+    source 32
+    target 17
   ]
   edge [
     source 32
     target 35
-    type "neutral"
+  ]
+  edge [
+    source 32
+    target 41
   ]
   edge [
     source 33
-    target 31
-    type "dominant"
+    target 48
+  ]
+  edge [
+    source 33
+    target 49
   ]
   edge [
     source 34
-    target 205
-    type "dominant"
-  ]
-  edge [
-    source 36
-    target 37
-    type "neutral"
+    target 14
   ]
   edge [
     source 36
     target 38
-    type "neutral"
-  ]
-  edge [
-    source 36
-    target 102
-    type "dominant"
-  ]
-  edge [
-    source 36
-    target 340
-    type "dominant"
   ]
   edge [
     source 37
-    target 79
-    type "neutral"
+    target 5
   ]
   edge [
     source 37
-    target 80
-    type "neutral"
+    target 28
   ]
   edge [
     source 37
-    target 82
-    type "neutral"
+    target 51
   ]
   edge [
-    source 37
+    source 39
+    target 1
+  ]
+  edge [
+    source 40
+    target 41
+  ]
+  edge [
+    source 41
+    target 2
+  ]
+  edge [
+    source 41
+    target 20
+  ]
+  edge [
+    source 41
+    target 25
+  ]
+  edge [
+    source 41
+    target 31
+  ]
+  edge [
+    source 42
+    target 26
+  ]
+  edge [
+    source 42
+    target 41
+  ]
+  edge [
+    source 42
+    target 48
+  ]
+  edge [
+    source 43
+    target 9
+  ]
+  edge [
+    source 43
+    target 26
+  ]
+  edge [
+    source 44
+    target 11
+  ]
+  edge [
+    source 46
+    target 17
+  ]
+  edge [
+    source 46
+    target 29
+  ]
+  edge [
+    source 46
+    target 48
+  ]
+  edge [
+    source 47
+    target 87
+  ]
+  edge [
+    source 49
+    target 17
+  ]
+  edge [
+    source 50
+    target 75
+  ]
+  edge [
+    source 50
+    target 95
+  ]
+  edge [
+    source 51
+    target 78
+  ]
+  edge [
+    source 52
+    target 13
+  ]
+  edge [
+    source 52
+    target 28
+  ]
+  edge [
+    source 52
+    target 55
+  ]
+  edge [
+    source 52
     target 84
-    type "neutral"
-  ]
-  edge [
-    source 37
-    target 96
-    type "dominant"
-  ]
-  edge [
-    source 37
-    target 134
-    type "dominant"
-  ]
-  edge [
-    source 37
-    target 184
-    type "dominant"
-  ]
-  edge [
-    source 37
-    target 239
-    type "dominant"
-  ]
-  edge [
-    source 37
-    target 245
-    type "dominant"
-  ]
-  edge [
-    source 38
-    target 37
-    type "dominant"
-  ]
-  edge [
-    source 38
-    target 226
-    type "neutral"
-  ]
-  edge [
-    source 38
-    target 239
-    type "neutral"
-  ]
-  edge [
-    source 38
-    target 227
-    type "neutral"
-  ]
-  edge [
-    source 38
-    target 228
-    type "neutral"
-  ]
-  edge [
-    source 38
-    target 82
-    type "dominant"
-  ]
-  edge [
-    source 38
-    target 93
-    type "dominant"
-  ]
-  edge [
-    source 38
-    target 96
-    type "dominant"
-  ]
-  edge [
-    source 38
-    target 274
-    type "dominant"
-  ]
-  edge [
-    source 39
-    target 40
-    type "neutral"
-  ]
-  edge [
-    source 39
-    target 272
-    type "dominant"
-  ]
-  edge [
-    source 41
-    target 42
-    type "neutral"
-  ]
-  edge [
-    source 41
-    target 43
-    type "neutral"
-  ]
-  edge [
-    source 41
-    target 47
-    type "neutral"
-  ]
-  edge [
-    source 41
-    target 219
-    type "dominant"
-  ]
-  edge [
-    source 41
-    target 263
-    type "dominant"
-  ]
-  edge [
-    source 41
-    target 296
-    type "dominant"
-  ]
-  edge [
-    source 41
-    target 317
-    type "dominant"
-  ]
-  edge [
-    source 42
-    target 101
-    type "neutral"
-  ]
-  edge [
-    source 42
-    target 43
-    type "dominant"
-  ]
-  edge [
-    source 42
-    target 45
-    type "dominant"
-  ]
-  edge [
-    source 42
-    target 47
-    type "dominant"
-  ]
-  edge [
-    source 42
-    target 103
-    type "dominant"
-  ]
-  edge [
-    source 42
-    target 286
-    type "dominant"
-  ]
-  edge [
-    source 42
-    target 296
-    type "dominant"
-  ]
-  edge [
-    source 43
-    target 47
-    type "neutral"
-  ]
-  edge [
-    source 43
-    target 286
-    type "dominant"
-  ]
-  edge [
-    source 44
-    target 41
-    type "dominant"
-  ]
-  edge [
-    source 44
-    target 45
-    type "neutral"
-  ]
-  edge [
-    source 45
-    target 41
-    type "dominant"
-  ]
-  edge [
-    source 45
-    target 86
-    type "neutral"
-  ]
-  edge [
-    source 45
-    target 269
-    type "neutral"
-  ]
-  edge [
-    source 45
-    target 47
-    type "dominant"
-  ]
-  edge [
-    source 45
-    target 67
-    type "dominant"
-  ]
-  edge [
-    source 45
-    target 103
-    type "dominant"
-  ]
-  edge [
-    source 45
-    target 176
-    type "dominant"
-  ]
-  edge [
-    source 45
-    target 343
-    type "dominant"
-  ]
-  edge [
-    source 46
-    target 30
-    type "dominant"
-  ]
-  edge [
-    source 46
-    target 41
-    type "dominant"
-  ]
-  edge [
-    source 46
-    target 42
-    type "dominant"
-  ]
-  edge [
-    source 46
-    target 47
-    type "dominant"
-  ]
-  edge [
-    source 46
-    target 101
-    type "dominant"
-  ]
-  edge [
-    source 46
-    target 118
-    type "dominant"
-  ]
-  edge [
-    source 46
-    target 172
-    type "dominant"
-  ]
-  edge [
-    source 46
-    target 208
-    type "dominant"
-  ]
-  edge [
-    source 47
-    target 219
-    type "dominant"
-  ]
-  edge [
-    source 47
-    target 296
-    type "dominant"
-  ]
-  edge [
-    source 48
-    target 41
-    type "dominant"
-  ]
-  edge [
-    source 48
-    target 212
-    type "dominant"
-  ]
-  edge [
-    source 48
-    target 273
-    type "dominant"
-  ]
-  edge [
-    source 48
-    target 299
-    type "dominant"
-  ]
-  edge [
-    source 48
-    target 308
-    type "dominant"
-  ]
-  edge [
-    source 48
-    target 309
-    type "dominant"
-  ]
-  edge [
-    source 49
-    target 40
-    type "dominant"
-  ]
-  edge [
-    source 49
-    target 51
-    type "neutral"
-  ]
-  edge [
-    source 49
-    target 52
-    type "neutral"
-  ]
-  edge [
-    source 49
-    target 54
-    type "neutral"
-  ]
-  edge [
-    source 49
-    target 76
-    type "dominant"
-  ]
-  edge [
-    source 49
-    target 309
-    type "dominant"
-  ]
-  edge [
-    source 50
-    target 49
-    type "dominant"
-  ]
-  edge [
-    source 50
-    target 85
-    type "neutral"
-  ]
-  edge [
-    source 50
-    target 57
-    type "neutral"
-  ]
-  edge [
-    source 51
-    target 76
-    type "neutral"
-  ]
-  edge [
-    source 51
-    target 86
-    type "neutral"
-  ]
-  edge [
-    source 51
-    target 54
-    type "neutral"
-  ]
-  edge [
-    source 51
-    target 336
-    type "dominant"
-  ]
-  edge [
-    source 52
-    target 51
-    type "dominant"
-  ]
-  edge [
-    source 52
-    target 222
-    type "neutral"
-  ]
-  edge [
-    source 52
-    target 212
-    type "neutral"
-  ]
-  edge [
-    source 52
-    target 215
-    type "neutral"
-  ]
-  edge [
-    source 52
-    target 116
-    type "dominant"
-  ]
-  edge [
-    source 52
-    target 194
-    type "dominant"
-  ]
-  edge [
-    source 52
-    target 210
-    type "dominant"
   ]
   edge [
     source 53
-    target 49
-    type "dominant"
-  ]
-  edge [
-    source 53
-    target 52
-    type "dominant"
+    target 17
   ]
   edge [
     source 54
-    target 86
-    type "neutral"
+    target 80
   ]
   edge [
     source 55
-    target 141
-    type "dominant"
+    target 61
   ]
   edge [
     source 56
-    target 55
-    type "dominant"
+    target 60
+  ]
+  edge [
+    source 56
+    target 64
+  ]
+  edge [
+    source 56
+    target 69
   ]
   edge [
     source 57
-    target 55
-    type "dominant"
-  ]
-  edge [
-    source 57
-    target 73
-    type "neutral"
-  ]
-  edge [
-    source 57
-    target 85
-    type "neutral"
-  ]
-  edge [
-    source 57
-    target 220
-    type "dominant"
-  ]
-  edge [
-    source 58
-    target 55
-    type "dominant"
-  ]
-  edge [
-    source 58
-    target 112
-    type "neutral"
-  ]
-  edge [
-    source 58
-    target 133
-    type "neutral"
+    target 8
   ]
   edge [
     source 59
-    target 21
-    type "dominant"
-  ]
-  edge [
-    source 59
-    target 55
-    type "dominant"
-  ]
-  edge [
-    source 59
-    target 261
-    type "dominant"
-  ]
-  edge [
-    source 60
-    target 55
-    type "dominant"
-  ]
-  edge [
-    source 60
-    target 180
-    type "neutral"
-  ]
-  edge [
-    source 60
-    target 147
-    type "neutral"
-  ]
-  edge [
-    source 60
-    target 181
-    type "neutral"
-  ]
-  edge [
-    source 60
-    target 70
-    type "dominant"
-  ]
-  edge [
-    source 60
-    target 127
-    type "dominant"
+    target 7
   ]
   edge [
     source 61
-    target 112
-    type "dominant"
+    target 72
   ]
   edge [
     source 62
-    target 61
-    type "dominant"
+    target 19
   ]
   edge [
-    source 64
-    target 63
-    type "dominant"
-  ]
-  edge [
-    source 64
-    target 312
-    type "dominant"
-  ]
-  edge [
-    source 65
-    target 40
-    type "dominant"
-  ]
-  edge [
-    source 65
-    target 63
-    type "dominant"
-  ]
-  edge [
-    source 65
-    target 223
-    type "dominant"
-  ]
-  edge [
-    source 65
-    target 278
-    type "dominant"
-  ]
-  edge [
-    source 65
-    target 336
-    type "dominant"
-  ]
-  edge [
-    source 66
-    target 67
-    type "neutral"
-  ]
-  edge [
-    source 66
-    target 245
-    type "dominant"
-  ]
-  edge [
-    source 66
-    target 301
-    type "dominant"
-  ]
-  edge [
-    source 67
-    target 245
-    type "dominant"
-  ]
-  edge [
-    source 67
-    target 275
-    type "dominant"
-  ]
-  edge [
-    source 67
-    target 277
-    type "dominant"
-  ]
-  edge [
-    source 67
-    target 301
-    type "dominant"
-  ]
-  edge [
-    source 68
-    target 30
-    type "dominant"
-  ]
-  edge [
-    source 68
+    source 62
     target 66
-    type "dominant"
   ]
   edge [
-    source 68
-    target 207
-    type "dominant"
+    source 62
+    target 67
   ]
   edge [
-    source 69
-    target 70
-    type "neutral"
-  ]
-  edge [
-    source 69
+    source 62
     target 72
-    type "neutral"
   ]
   edge [
-    source 69
-    target 203
-    type "dominant"
+    source 63
+    target 76
   ]
   edge [
-    source 70
-    target 180
-    type "neutral"
+    source 63
+    target 96
   ]
   edge [
-    source 70
-    target 181
-    type "neutral"
+    source 63
+    target 98
   ]
   edge [
-    source 71
+    source 64
+    target 78
+  ]
+  edge [
+    source 66
+    target 5
+  ]
+  edge [
+    source 66
+    target 58
+  ]
+  edge [
+    source 66
     target 69
-    type "dominant"
+  ]
+  edge [
+    source 70
+    target 48
+  ]
+  edge [
+    source 70
+    target 57
+  ]
+  edge [
+    source 70
+    target 62
+  ]
+  edge [
+    source 70
+    target 63
+  ]
+  edge [
+    source 70
+    target 81
   ]
   edge [
     source 71
-    target 132
-    type "dominant"
+    target 7
+  ]
+  edge [
+    source 71
+    target 55
+  ]
+  edge [
+    source 71
+    target 72
+  ]
+  edge [
+    source 71
+    target 86
   ]
   edge [
     source 72
-    target 73
-    type "neutral"
-  ]
-  edge [
-    source 72
-    target 203
-    type "dominant"
+    target 30
   ]
   edge [
     source 73
-    target 161
-    type "dominant"
-  ]
-  edge [
-    source 73
-    target 220
-    type "dominant"
+    target 97
   ]
   edge [
     source 74
-    target 73
-    type "dominant"
+    target 57
   ]
   edge [
     source 74
-    target 307
-    type "dominant"
+    target 69
   ]
   edge [
     source 74
-    target 343
-    type "dominant"
+    target 86
+  ]
+  edge [
+    source 74
+    target 92
   ]
   edge [
     source 75
-    target 73
-    type "dominant"
+    target 1
   ]
   edge [
-    source 75
-    target 291
-    type "neutral"
-  ]
-  edge [
-    source 75
-    target 241
-    type "dominant"
-  ]
-  edge [
-    source 75
-    target 346
-    type "dominant"
+    source 76
+    target 11
   ]
   edge [
     source 76
     target 64
-    type "dominant"
   ]
   edge [
     source 76
+    target 67
+  ]
+  edge [
+    source 76
+    target 93
+  ]
+  edge [
+    source 77
+    target 7
+  ]
+  edge [
+    source 77
+    target 19
+  ]
+  edge [
+    source 77
+    target 73
+  ]
+  edge [
+    source 77
     target 78
-    type "neutral"
-  ]
-  edge [
-    source 76
-    target 140
-    type "dominant"
-  ]
-  edge [
-    source 76
-    target 350
-    type "dominant"
-  ]
-  edge [
-    source 77
-    target 76
-    type "dominant"
-  ]
-  edge [
-    source 77
-    target 273
-    type "dominant"
   ]
   edge [
     source 78
-    target 139
-    type "neutral"
-  ]
-  edge [
-    source 78
-    target 309
-    type "neutral"
-  ]
-  edge [
-    source 78
-    target 116
-    type "dominant"
-  ]
-  edge [
-    source 78
-    target 247
-    type "dominant"
+    target 93
   ]
   edge [
     source 79
-    target 80
-    type "neutral"
-  ]
-  edge [
-    source 79
-    target 82
-    type "neutral"
-  ]
-  edge [
-    source 79
-    target 96
-    type "neutral"
-  ]
-  edge [
-    source 79
-    target 203
-    type "dominant"
-  ]
-  edge [
-    source 80
-    target 81
-    type "neutral"
-  ]
-  edge [
-    source 80
-    target 82
-    type "neutral"
-  ]
-  edge [
-    source 80
-    target 225
-    type "neutral"
-  ]
-  edge [
-    source 80
-    target 84
-    type "neutral"
-  ]
-  edge [
-    source 80
-    target 96
-    type "dominant"
-  ]
-  edge [
-    source 80
-    target 191
-    type "dominant"
+    target 3
   ]
   edge [
     source 81
-    target 37
-    type "dominant"
+    target 1
+  ]
+  edge [
+    source 81
+    target 83
   ]
   edge [
     source 82
-    target 96
-    type "neutral"
+    target 83
+  ]
+  edge [
+    source 82
+    target 88
   ]
   edge [
     source 83
-    target 37
-    type "dominant"
+    target 60
   ]
   edge [
     source 83
-    target 80
-    type "dominant"
-  ]
-  edge [
-    source 83
-    target 240
-    type "dominant"
+    target 65
   ]
   edge [
     source 84
-    target 81
-    type "dominant"
-  ]
-  edge [
-    source 84
-    target 225
-    type "neutral"
-  ]
-  edge [
-    source 86
-    target 50
-    type "dominant"
-  ]
-  edge [
-    source 86
     target 78
-    type "dominant"
+  ]
+  edge [
+    source 85
+    target 4
+  ]
+  edge [
+    source 85
+    target 81
   ]
   edge [
     source 86
-    target 269
-    type "neutral"
+    target 11
   ]
   edge [
     source 86
-    target 116
-    type "dominant"
+    target 13
   ]
   edge [
     source 86
-    target 194
-    type "dominant"
+    target 70
   ]
   edge [
     source 86
-    target 219
-    type "dominant"
+    target 83
   ]
   edge [
     source 86
-    target 262
-    type "dominant"
-  ]
-  edge [
-    source 86
-    target 296
-    type "dominant"
+    target 92
   ]
   edge [
     source 87
-    target 88
-    type "neutral"
+    target 13
   ]
   edge [
-    source 88
-    target 204
-    type "neutral"
-  ]
-  edge [
-    source 88
-    target 286
-    type "dominant"
+    source 87
+    target 94
   ]
   edge [
     source 89
-    target 92
-    type "neutral"
-  ]
-  edge [
-    source 89
-    target 218
-    type "dominant"
+    target 95
   ]
   edge [
     source 90
-    target 89
-    type "dominant"
+    target 86
   ]
   edge [
     source 91
-    target 89
-    type "dominant"
+    target 28
+  ]
+  edge [
+    source 91
+    target 80
   ]
   edge [
     source 92
-    target 125
-    type "dominant"
+    target 83
+  ]
+  edge [
+    source 92
+    target 94
   ]
   edge [
     source 93
-    target 95
-    type "neutral"
+    target 3
   ]
   edge [
     source 93
-    target 145
-    type "dominant"
+    target 33
   ]
   edge [
     source 93
-    target 328
-    type "dominant"
+    target 88
   ]
   edge [
     source 94
-    target 93
-    type "dominant"
+    target 26
   ]
   edge [
     source 94
-    target 97
-    type "dominant"
+    target 54
   ]
   edge [
-    source 95
-    target 136
-    type "neutral"
-  ]
-  edge [
-    source 95
-    target 143
-    type "dominant"
-  ]
-  edge [
-    source 95
-    target 239
-    type "dominant"
+    source 94
+    target 92
   ]
   edge [
     source 96
-    target 93
-    type "dominant"
+    target 61
   ]
   edge [
     source 96
-    target 239
-    type "dominant"
+    target 94
   ]
   edge [
-    source 97
-    target 35
-    type "dominant"
-  ]
-  edge [
-    source 97
-    target 93
-    type "dominant"
-  ]
-  edge [
-    source 97
+    source 96
     target 95
-    type "dominant"
   ]
   edge [
     source 97
-    target 143
-    type "dominant"
+    target 73
+  ]
+  edge [
+    source 98
+    target 88
+  ]
+  edge [
+    source 98
+    target 91
   ]
   edge [
     source 99
     target 98
-    type "dominant"
   ]
   edge [
     source 100
-    target 98
-    type "dominant"
+    target 37
+  ]
+  edge [
+    source 100
+    target 43
+  ]
+  edge [
+    source 100
+    target 67
   ]
   edge [
     source 101
     target 11
-    type "dominant"
   ]
   edge [
     source 101
-    target 86
-    type "dominant"
+    target 108
   ]
   edge [
     source 101
+    target 136
+  ]
+  edge [
+    source 102
+    target 95
+  ]
+  edge [
+    source 102
+    target 106
+  ]
+  edge [
+    source 102
     target 112
-    type "dominant"
   ]
   edge [
-    source 101
-    target 176
-    type "dominant"
+    source 102
+    target 113
   ]
   edge [
-    source 101
-    target 194
-    type "dominant"
+    source 102
+    target 130
   ]
   edge [
-    source 101
-    target 286
-    type "dominant"
-  ]
-  edge [
-    source 101
-    target 296
-    type "dominant"
+    source 102
+    target 137
   ]
   edge [
     source 103
-    target 102
-    type "dominant"
+    target 14
   ]
   edge [
     source 104
-    target 67
-    type "dominant"
+    target 111
   ]
   edge [
     source 104
-    target 102
-    type "dominant"
+    target 134
   ]
   edge [
     source 104
-    target 320
-    type "dominant"
+    target 138
   ]
   edge [
     source 105
-    target 102
-    type "dominant"
+    target 27
   ]
   edge [
     source 105
-    target 344
-    type "dominant"
+    target 50
+  ]
+  edge [
+    source 105
+    target 94
+  ]
+  edge [
+    source 105
+    target 115
+  ]
+  edge [
+    source 105
+    target 131
+  ]
+  edge [
+    source 105
+    target 145
   ]
   edge [
     source 106
-    target 102
-    type "dominant"
+    target 103
   ]
   edge [
     source 106
-    target 308
-    type "dominant"
+    target 118
+  ]
+  edge [
+    source 106
+    target 127
   ]
   edge [
     source 107
-    target 102
-    type "dominant"
+    target 20
   ]
   edge [
     source 107
-    target 207
-    type "dominant"
+    target 35
   ]
   edge [
     source 107
-    target 208
-    type "dominant"
-  ]
-  edge [
-    source 107
-    target 213
-    type "dominant"
-  ]
-  edge [
-    source 107
-    target 262
-    type "dominant"
+    target 105
   ]
   edge [
     source 108
-    target 109
-    type "neutral"
+    target 20
   ]
   edge [
     source 108
-    target 110
-    type "neutral"
+    target 60
   ]
   edge [
     source 108
-    target 188
-    type "dominant"
-  ]
-  edge [
-    source 108
-    target 247
-    type "dominant"
-  ]
-  edge [
-    source 108
-    target 292
-    type "dominant"
-  ]
-  edge [
-    source 109
-    target 110
-    type "dominant"
-  ]
-  edge [
-    source 109
-    target 216
-    type "dominant"
-  ]
-  edge [
-    source 109
-    target 292
-    type "dominant"
+    target 101
   ]
   edge [
     source 110
-    target 95
-    type "dominant"
+    target 8
   ]
   edge [
-    source 111
-    target 108
-    type "dominant"
+    source 110
+    target 69
   ]
   edge [
-    source 111
-    target 133
-    type "neutral"
+    source 110
+    target 105
   ]
   edge [
-    source 111
-    target 292
-    type "neutral"
-  ]
-  edge [
-    source 112
+    source 110
     target 113
-    type "neutral"
+  ]
+  edge [
+    source 111
+    target 1
+  ]
+  edge [
+    source 111
+    target 43
+  ]
+  edge [
+    source 111
+    target 115
   ]
   edge [
     source 112
-    target 115
-    type "neutral"
+    target 99
+  ]
+  edge [
+    source 112
+    target 111
+  ]
+  edge [
+    source 112
+    target 121
+  ]
+  edge [
+    source 112
+    target 124
   ]
   edge [
     source 113
-    target 305
-    type "dominant"
+    target 46
   ]
   edge [
     source 114
-    target 112
-    type "dominant"
+    target 73
   ]
   edge [
     source 114
-    target 155
-    type "dominant"
+    target 125
+  ]
+  edge [
+    source 114
+    target 136
+  ]
+  edge [
+    source 114
+    target 142
   ]
   edge [
     source 115
-    target 197
-    type "neutral"
+    target 2
   ]
   edge [
     source 115
-    target 277
-    type "dominant"
-  ]
-  edge [
-    source 115
-    target 305
-    type "dominant"
+    target 64
   ]
   edge [
     source 116
-    target 29
-    type "dominant"
+    target 75
   ]
   edge [
     source 116
-    target 309
-    type "dominant"
+    target 111
+  ]
+  edge [
+    source 116
+    target 140
+  ]
+  edge [
+    source 116
+    target 143
+  ]
+  edge [
+    source 116
+    target 147
   ]
   edge [
     source 117
-    target 115
-    type "dominant"
+    target 13
   ]
   edge [
     source 117
-    target 118
-    type "neutral"
+    target 14
   ]
   edge [
     source 117
-    target 321
-    type "dominant"
+    target 137
+  ]
+  edge [
+    source 117
+    target 138
   ]
   edge [
     source 118
-    target 45
-    type "dominant"
+    target 4
   ]
   edge [
     source 118
-    target 194
-    type "neutral"
+    target 26
+  ]
+  edge [
+    source 118
+    target 31
+  ]
+  edge [
+    source 118
+    target 66
   ]
   edge [
     source 119
-    target 40
-    type "dominant"
+    target 59
   ]
   edge [
     source 119
-    target 117
-    type "dominant"
+    target 71
   ]
   edge [
     source 119
-    target 153
-    type "dominant"
-  ]
-  edge [
-    source 120
-    target 122
-    type "neutral"
-  ]
-  edge [
-    source 120
-    target 281
-    type "dominant"
+    target 147
   ]
   edge [
     source 121
-    target 120
-    type "dominant"
+    target 16
   ]
   edge [
     source 121
-    target 122
-    type "neutral"
+    target 22
   ]
   edge [
     source 121
-    target 157
-    type "dominant"
+    target 36
+  ]
+  edge [
+    source 121
+    target 125
+  ]
+  edge [
+    source 122
+    target 15
+  ]
+  edge [
+    source 122
+    target 103
+  ]
+  edge [
+    source 122
+    target 110
+  ]
+  edge [
+    source 122
+    target 111
+  ]
+  edge [
+    source 122
+    target 116
   ]
   edge [
     source 123
-    target 124
-    type "neutral"
+    target 43
   ]
   edge [
     source 123
-    target 204
-    type "dominant"
-  ]
-  edge [
-    source 123
-    target 261
-    type "dominant"
-  ]
-  edge [
-    source 124
-    target 240
-    type "neutral"
-  ]
-  edge [
-    source 124
-    target 205
-    type "dominant"
-  ]
-  edge [
-    source 125
-    target 123
-    type "dominant"
-  ]
-  edge [
-    source 125
-    target 241
-    type "neutral"
-  ]
-  edge [
-    source 125
-    target 346
-    type "dominant"
-  ]
-  edge [
-    source 126
     target 131
-    type "dominant"
+  ]
+  edge [
+    source 123
+    target 148
+  ]
+  edge [
+    source 124
+    target 29
+  ]
+  edge [
+    source 124
+    target 129
+  ]
+  edge [
+    source 125
+    target 106
   ]
   edge [
     source 126
-    target 132
-    type "dominant"
+    target 79
   ]
   edge [
     source 126
-    target 161
-    type "dominant"
+    target 94
+  ]
+  edge [
+    source 126
+    target 102
+  ]
+  edge [
+    source 126
+    target 116
   ]
   edge [
     source 127
-    target 126
-    type "dominant"
+    target 65
   ]
   edge [
     source 127
-    target 128
-    type "dominant"
+    target 72
   ]
   edge [
     source 127
-    target 181
-    type "dominant"
+    target 107
   ]
   edge [
     source 127
-    target 254
-    type "dominant"
+    target 117
   ]
   edge [
     source 128
-    target 70
-    type "dominant"
+    target 6
   ]
   edge [
     source 128
-    target 126
-    type "dominant"
+    target 43
   ]
   edge [
     source 128
-    target 180
-    type "neutral"
+    target 76
   ]
   edge [
     source 128
-    target 181
-    type "dominant"
+    target 115
+  ]
+  edge [
+    source 128
+    target 124
   ]
   edge [
     source 129
-    target 130
-    type "neutral"
+    target 95
   ]
   edge [
     source 129
-    target 249
-    type "dominant"
-  ]
-  edge [
-    source 129
-    target 316
-    type "dominant"
+    target 143
   ]
   edge [
     source 131
-    target 256
-    type "dominant"
+    target 62
   ]
   edge [
     source 132
-    target 131
-    type "dominant"
+    target 122
   ]
   edge [
     source 132
-    target 147
-    type "neutral"
+    target 123
   ]
   edge [
     source 133
-    target 131
-    type "dominant"
+    target 16
   ]
   edge [
     source 133
-    target 132
-    type "dominant"
+    target 114
   ]
   edge [
     source 133
-    target 184
-    type "neutral"
+    target 116
   ]
   edge [
     source 133
-    target 186
-    type "neutral"
+    target 137
   ]
   edge [
     source 133
-    target 299
-    type "dominant"
+    target 140
   ]
   edge [
     source 134
-    target 131
-    type "dominant"
-  ]
-  edge [
-    source 134
-    target 187
-    type "neutral"
-  ]
-  edge [
-    source 134
-    target 254
-    type "neutral"
-  ]
-  edge [
-    source 134
-    target 226
-    type "dominant"
-  ]
-  edge [
-    source 135
-    target 27
-    type "dominant"
-  ]
-  edge [
-    source 135
     target 82
-    type "dominant"
+  ]
+  edge [
+    source 134
+    target 100
+  ]
+  edge [
+    source 134
+    target 116
+  ]
+  edge [
+    source 134
+    target 130
   ]
   edge [
     source 135
-    target 96
-    type "dominant"
+    target 2
   ]
   edge [
     source 135
-    target 131
-    type "dominant"
+    target 43
   ]
   edge [
     source 135
-    target 184
-    type "neutral"
+    target 107
   ]
   edge [
     source 135
-    target 187
-    type "dominant"
+    target 124
   ]
   edge [
     source 135
-    target 218
-    type "dominant"
+    target 127
   ]
   edge [
     source 136
-    target 97
-    type "dominant"
+    target 30
+  ]
+  edge [
+    source 136
+    target 38
+  ]
+  edge [
+    source 136
+    target 41
   ]
   edge [
     source 137
-    target 136
-    type "dominant"
+    target 112
   ]
   edge [
     source 137
-    target 233
-    type "dominant"
+    target 126
   ]
   edge [
     source 137
-    target 259
-    type "dominant"
-  ]
-  edge [
-    source 137
-    target 320
-    type "dominant"
-  ]
-  edge [
-    source 137
-    target 340
-    type "dominant"
+    target 141
   ]
   edge [
     source 138
-    target 116
-    type "dominant"
+    target 113
+  ]
+  edge [
+    source 138
+    target 122
+  ]
+  edge [
+    source 138
+    target 146
   ]
   edge [
     source 139
-    target 82
-    type "dominant"
+    target 76
   ]
   edge [
     source 139
-    target 96
-    type "dominant"
+    target 92
   ]
   edge [
     source 139
-    target 116
-    type "dominant"
+    target 146
   ]
   edge [
     source 139
-    target 266
-    type "neutral"
-  ]
-  edge [
-    source 139
-    target 267
-    type "neutral"
-  ]
-  edge [
-    source 139
-    target 153
-    type "dominant"
-  ]
-  edge [
-    source 139
-    target 219
-    type "dominant"
-  ]
-  edge [
-    source 139
-    target 309
-    type "dominant"
-  ]
-  edge [
-    source 140
-    target 116
-    type "dominant"
-  ]
-  edge [
-    source 140
-    target 304
-    type "neutral"
+    target 148
   ]
   edge [
     source 141
-    target 116
-    type "dominant"
+    target 113
   ]
   edge [
     source 142
-    target 64
-    type "dominant"
+    target 22
+  ]
+  edge [
+    source 142
+    target 126
+  ]
+  edge [
+    source 142
+    target 128
+  ]
+  edge [
+    source 143
+    target 56
+  ]
+  edge [
+    source 143
+    target 121
+  ]
+  edge [
+    source 143
+    target 139
   ]
   edge [
     source 143
     target 145
-    type "neutral"
+  ]
+  edge [
+    source 143
+    target 149
   ]
   edge [
     source 144
-    target 143
-    type "dominant"
+    target 63
   ]
   edge [
     source 144
-    target 237
-    type "neutral"
+    target 85
   ]
   edge [
     source 144
-    target 265
-    type "neutral"
+    target 112
   ]
   edge [
     source 144
-    target 252
-    type "neutral"
-  ]
-  edge [
-    source 144
-    target 191
-    type "dominant"
-  ]
-  edge [
-    source 144
-    target 241
-    type "dominant"
+    target 142
   ]
   edge [
     source 145
-    target 144
-    type "dominant"
+    target 23
+  ]
+  edge [
+    source 145
+    target 62
+  ]
+  edge [
+    source 145
+    target 96
   ]
   edge [
     source 146
-    target 60
-    type "dominant"
+    target 101
   ]
   edge [
     source 146
-    target 132
-    type "dominant"
+    target 131
   ]
   edge [
     source 146
-    target 134
-    type "dominant"
-  ]
-  edge [
-    source 146
-    target 147
-    type "dominant"
-  ]
-  edge [
-    source 146
-    target 180
-    type "dominant"
+    target 140
   ]
   edge [
     source 147
-    target 128
-    type "dominant"
+    target 103
   ]
   edge [
     source 147
-    target 203
-    type "neutral"
+    target 104
+  ]
+  edge [
+    source 147
+    target 126
   ]
   edge [
     source 148
-    target 52
-    type "dominant"
-  ]
-  edge [
-    source 148
-    target 233
-    type "dominant"
-  ]
-  edge [
-    source 148
-    target 262
-    type "dominant"
-  ]
-  edge [
-    source 148
-    target 284
-    type "dominant"
-  ]
-  edge [
-    source 148
-    target 301
-    type "dominant"
-  ]
-  edge [
-    source 148
-    target 340
-    type "dominant"
+    target 18
   ]
   edge [
     source 149
-    target 148
-    type "dominant"
-  ]
-  edge [
-    source 149
-    target 235
-    type "dominant"
+    target 115
   ]
   edge [
     source 150
-    target 155
-    type "dominant"
+    target 23
+  ]
+  edge [
+    source 150
+    target 36
+  ]
+  edge [
+    source 150
+    target 49
+  ]
+  edge [
+    source 150
+    target 54
+  ]
+  edge [
+    source 150
+    target 61
+  ]
+  edge [
+    source 150
+    target 137
   ]
   edge [
     source 151
-    target 150
-    type "dominant"
+    target 75
   ]
   edge [
     source 152
-    target 72
-    type "dominant"
+    target 104
   ]
   edge [
     source 152
-    target 114
-    type "dominant"
+    target 160
   ]
   edge [
     source 152
-    target 150
-    type "dominant"
+    target 192
   ]
   edge [
     source 153
-    target 254
-    type "dominant"
+    target 146
+  ]
+  edge [
+    source 153
+    target 152
   ]
   edge [
     source 154
-    target 153
-    type "dominant"
+    target 163
   ]
   edge [
     source 154
-    target 199
-    type "neutral"
+    target 177
+  ]
+  edge [
+    source 155
+    target 59
+  ]
+  edge [
+    source 155
+    target 187
+  ]
+  edge [
+    source 155
+    target 194
   ]
   edge [
     source 156
-    target 16
-    type "dominant"
+    target 52
   ]
   edge [
     source 156
-    target 19
-    type "dominant"
+    target 60
   ]
   edge [
     source 156
-    target 122
-    type "dominant"
+    target 73
   ]
   edge [
     source 156
-    target 155
-    type "dominant"
+    target 86
+  ]
+  edge [
+    source 156
+    target 178
+  ]
+  edge [
+    source 156
+    target 184
+  ]
+  edge [
+    source 157
+    target 68
+  ]
+  edge [
+    source 157
+    target 143
+  ]
+  edge [
+    source 157
+    target 145
+  ]
+  edge [
+    source 157
+    target 162
+  ]
+  edge [
+    source 157
+    target 168
+  ]
+  edge [
+    source 157
+    target 179
+  ]
+  edge [
+    source 157
+    target 181
+  ]
+  edge [
+    source 157
+    target 187
+  ]
+  edge [
+    source 157
+    target 197
   ]
   edge [
     source 158
-    target 157
-    type "dominant"
+    target 15
+  ]
+  edge [
+    source 158
+    target 18
+  ]
+  edge [
+    source 158
+    target 64
+  ]
+  edge [
+    source 158
+    target 76
+  ]
+  edge [
+    source 158
+    target 173
+  ]
+  edge [
+    source 158
+    target 182
+  ]
+  edge [
+    source 158
+    target 194
+  ]
+  edge [
+    source 158
+    target 199
+  ]
+  edge [
+    source 159
+    target 32
+  ]
+  edge [
+    source 159
+    target 85
+  ]
+  edge [
+    source 159
+    target 110
+  ]
+  edge [
+    source 159
+    target 177
   ]
   edge [
     source 160
-    target 57
-    type "dominant"
+    target 58
   ]
   edge [
     source 160
-    target 159
-    type "dominant"
+    target 177
+  ]
+  edge [
+    source 160
+    target 197
   ]
   edge [
     source 161
-    target 159
-    type "dominant"
+    target 1
   ]
   edge [
     source 161
-    target 186
-    type "neutral"
+    target 95
+  ]
+  edge [
+    source 161
+    target 120
+  ]
+  edge [
+    source 161
+    target 155
+  ]
+  edge [
+    source 161
+    target 177
+  ]
+  edge [
+    source 161
+    target 196
   ]
   edge [
     source 162
-    target 67
-    type "dominant"
+    target 54
   ]
   edge [
     source 162
-    target 293
-    type "dominant"
+    target 69
+  ]
+  edge [
+    source 162
+    target 78
+  ]
+  edge [
+    source 162
+    target 152
+  ]
+  edge [
+    source 162
+    target 171
+  ]
+  edge [
+    source 162
+    target 193
   ]
   edge [
     source 163
-    target 162
-    type "dominant"
+    target 101
+  ]
+  edge [
+    source 163
+    target 120
+  ]
+  edge [
+    source 163
+    target 177
+  ]
+  edge [
+    source 164
+    target 12
+  ]
+  edge [
+    source 164
+    target 32
+  ]
+  edge [
+    source 164
+    target 60
+  ]
+  edge [
+    source 164
+    target 143
   ]
   edge [
     source 165
-    target 164
-    type "dominant"
+    target 10
+  ]
+  edge [
+    source 165
+    target 67
+  ]
+  edge [
+    source 165
+    target 155
+  ]
+  edge [
+    source 165
+    target 162
+  ]
+  edge [
+    source 165
+    target 175
+  ]
+  edge [
+    source 165
+    target 181
+  ]
+  edge [
+    source 165
+    target 199
   ]
   edge [
     source 166
-    target 167
-    type "neutral"
+    target 66
+  ]
+  edge [
+    source 166
+    target 123
+  ]
+  edge [
+    source 166
+    target 187
   ]
   edge [
     source 167
-    target 40
-    type "dominant"
+    target 28
   ]
   edge [
     source 167
-    target 176
-    type "neutral"
+    target 87
   ]
   edge [
     source 167
-    target 219
-    type "dominant"
+    target 99
+  ]
+  edge [
+    source 167
+    target 152
+  ]
+  edge [
+    source 167
+    target 184
+  ]
+  edge [
+    source 167
+    target 187
+  ]
+  edge [
+    source 167
+    target 199
+  ]
+  edge [
+    source 168
+    target 38
+  ]
+  edge [
+    source 168
+    target 101
   ]
   edge [
     source 169
-    target 168
-    type "dominant"
+    target 60
   ]
   edge [
     source 169
-    target 229
-    type "neutral"
+    target 63
+  ]
+  edge [
+    source 169
+    target 80
+  ]
+  edge [
+    source 169
+    target 109
+  ]
+  edge [
+    source 169
+    target 113
+  ]
+  edge [
+    source 169
+    target 159
+  ]
+  edge [
+    source 169
+    target 177
+  ]
+  edge [
+    source 169
+    target 181
   ]
   edge [
     source 170
-    target 168
-    type "dominant"
+    target 73
   ]
   edge [
     source 170
-    target 230
-    type "dominant"
+    target 117
   ]
   edge [
     source 171
-    target 273
-    type "dominant"
+    target 26
+  ]
+  edge [
+    source 171
+    target 42
+  ]
+  edge [
+    source 171
+    target 52
+  ]
+  edge [
+    source 171
+    target 95
+  ]
+  edge [
+    source 171
+    target 155
+  ]
+  edge [
+    source 171
+    target 195
   ]
   edge [
     source 172
-    target 47
-    type "dominant"
-  ]
-  edge [
-    source 172
-    target 171
-    type "dominant"
-  ]
-  edge [
-    source 172
-    target 208
-    type "neutral"
-  ]
-  edge [
-    source 172
-    target 219
-    type "dominant"
+    target 155
   ]
   edge [
     source 173
-    target 171
-    type "dominant"
+    target 8
   ]
   edge [
     source 173
-    target 172
-    type "dominant"
+    target 36
+  ]
+  edge [
+    source 173
+    target 92
+  ]
+  edge [
+    source 173
+    target 116
+  ]
+  edge [
+    source 173
+    target 119
+  ]
+  edge [
+    source 173
+    target 161
+  ]
+  edge [
+    source 173
+    target 193
+  ]
+  edge [
+    source 173
+    target 197
   ]
   edge [
     source 174
-    target 171
-    type "dominant"
+    target 2
+  ]
+  edge [
+    source 174
+    target 90
+  ]
+  edge [
+    source 174
+    target 101
+  ]
+  edge [
+    source 174
+    target 120
+  ]
+  edge [
+    source 174
+    target 177
   ]
   edge [
     source 175
-    target 171
-    type "dominant"
+    target 97
+  ]
+  edge [
+    source 175
+    target 127
+  ]
+  edge [
+    source 175
+    target 137
+  ]
+  edge [
+    source 175
+    target 173
+  ]
+  edge [
+    source 175
+    target 174
+  ]
+  edge [
+    source 176
+    target 161
+  ]
+  edge [
+    source 176
+    target 188
+  ]
+  edge [
+    source 176
+    target 198
+  ]
+  edge [
+    source 177
+    target 69
   ]
   edge [
     source 178
-    target 32
-    type "dominant"
-  ]
-  edge [
-    source 178
-    target 88
-    type "dominant"
-  ]
-  edge [
-    source 178
-    target 124
-    type "dominant"
-  ]
-  edge [
-    source 178
-    target 177
-    type "dominant"
-  ]
-  edge [
-    source 178
-    target 204
-    type "dominant"
-  ]
-  edge [
-    source 178
-    target 205
-    type "dominant"
+    target 98
   ]
   edge [
     source 179
-    target 35
-    type "dominant"
+    target 173
   ]
   edge [
     source 180
-    target 147
-    type "dominant"
+    target 108
   ]
   edge [
     source 180
-    target 181
-    type "dominant"
+    target 160
   ]
   edge [
     source 181
-    target 25
-    type "dominant"
+    target 12
   ]
   edge [
     source 181
-    target 276
-    type "dominant"
+    target 42
+  ]
+  edge [
+    source 181
+    target 80
   ]
   edge [
     source 182
-    target 109
-    type "dominant"
+    target 111
   ]
   edge [
     source 182
-    target 292
-    type "dominant"
+    target 129
   ]
   edge [
     source 183
-    target 17
-    type "dominant"
+    target 51
   ]
   edge [
     source 183
-    target 114
-    type "dominant"
+    target 150
   ]
   edge [
     source 183
-    target 321
-    type "dominant"
+    target 180
   ]
   edge [
     source 184
     target 185
-    type "neutral"
   ]
   edge [
-    source 186
-    target 58
-    type "dominant"
+    source 184
+    target 188
   ]
   edge [
-    source 186
-    target 79
-    type "dominant"
+    source 185
+    target 41
   ]
   edge [
-    source 186
-    target 224
-    type "dominant"
+    source 185
+    target 67
   ]
   edge [
-    source 187
-    target 133
-    type "dominant"
+    source 185
+    target 74
   ]
   edge [
-    source 187
-    target 141
-    type "dominant"
+    source 185
+    target 122
   ]
   edge [
     source 187
-    target 186
-    type "dominant"
+    target 134
   ]
   edge [
     source 187
-    target 224
-    type "dominant"
+    target 170
   ]
   edge [
     source 187
-    target 344
-    type "dominant"
+    target 178
   ]
   edge [
     source 188
-    target 254
-    type "dominant"
+    target 104
+  ]
+  edge [
+    source 188
+    target 105
+  ]
+  edge [
+    source 188
+    target 136
   ]
   edge [
     source 189
-    target 35
-    type "dominant"
-  ]
-  edge [
-    source 189
-    target 188
-    type "dominant"
-  ]
-  edge [
-    source 189
-    target 304
-    type "dominant"
+    target 185
   ]
   edge [
     source 190
-    target 86
-    type "dominant"
+    target 14
   ]
   edge [
     source 190
-    target 152
-    type "dominant"
+    target 50
+  ]
+  edge [
+    source 190
+    target 141
+  ]
+  edge [
+    source 190
+    target 162
+  ]
+  edge [
+    source 191
+    target 89
+  ]
+  edge [
+    source 191
+    target 165
   ]
   edge [
     source 192
-    target 79
-    type "dominant"
+    target 106
   ]
   edge [
     source 192
-    target 80
-    type "dominant"
-  ]
-  edge [
-    source 192
-    target 82
-    type "dominant"
-  ]
-  edge [
-    source 192
-    target 96
-    type "dominant"
-  ]
-  edge [
-    source 192
-    target 191
-    type "dominant"
+    target 180
   ]
   edge [
     source 193
-    target 191
-    type "dominant"
+    target 19
   ]
   edge [
     source 193
-    target 276
-    type "neutral"
+    target 26
   ]
   edge [
     source 193
-    target 225
-    type "neutral"
+    target 83
   ]
   edge [
-    source 194
-    target 197
-    type "neutral"
+    source 193
+    target 143
   ]
   edge [
-    source 194
-    target 198
-    type "neutral"
+    source 193
+    target 149
+  ]
+  edge [
+    source 193
+    target 169
   ]
   edge [
     source 195
-    target 194
-    type "dominant"
+    target 138
   ]
   edge [
     source 195
-    target 334
-    type "dominant"
+    target 156
+  ]
+  edge [
+    source 195
+    target 164
+  ]
+  edge [
+    source 195
+    target 193
   ]
   edge [
     source 196
-    target 194
-    type "dominant"
+    target 18
   ]
   edge [
     source 196
-    target 198
-    type "dominant"
-  ]
-  edge [
-    source 196
-    target 229
-    type "dominant"
+    target 185
   ]
   edge [
     source 197
-    target 198
-    type "neutral"
+    target 151
   ]
   edge [
     source 197
-    target 305
-    type "dominant"
+    target 186
+  ]
+  edge [
+    source 198
+    target 39
+  ]
+  edge [
+    source 198
+    target 55
+  ]
+  edge [
+    source 198
+    target 125
+  ]
+  edge [
+    source 198
+    target 181
+  ]
+  edge [
+    source 198
+    target 187
   ]
   edge [
     source 199
-    target 103
-    type "dominant"
+    target 98
   ]
   edge [
     source 199
     target 172
-    type "dominant"
-  ]
-  edge [
-    source 200
-    target 103
-    type "dominant"
-  ]
-  edge [
-    source 200
-    target 201
-    type "dominant"
-  ]
-  edge [
-    source 200
-    target 337
-    type "dominant"
-  ]
-  edge [
-    source 201
-    target 103
-    type "dominant"
-  ]
-  edge [
-    source 202
-    target 40
-    type "dominant"
-  ]
-  edge [
-    source 202
-    target 47
-    type "dominant"
-  ]
-  edge [
-    source 202
-    target 312
-    type "dominant"
-  ]
-  edge [
-    source 203
-    target 180
-    type "dominant"
-  ]
-  edge [
-    source 203
-    target 261
-    type "dominant"
-  ]
-  edge [
-    source 204
-    target 125
-    type "dominant"
-  ]
-  edge [
-    source 204
-    target 205
-    type "neutral"
-  ]
-  edge [
-    source 206
-    target 25
-    type "dominant"
-  ]
-  edge [
-    source 206
-    target 125
-    type "dominant"
-  ]
-  edge [
-    source 207
-    target 208
-    type "neutral"
-  ]
-  edge [
-    source 207
-    target 284
-    type "dominant"
-  ]
-  edge [
-    source 207
-    target 320
-    type "dominant"
-  ]
-  edge [
-    source 208
-    target 234
-    type "dominant"
-  ]
-  edge [
-    source 208
-    target 320
-    type "dominant"
-  ]
-  edge [
-    source 208
-    target 340
-    type "dominant"
-  ]
-  edge [
-    source 208
-    target 341
-    type "dominant"
-  ]
-  edge [
-    source 209
-    target 207
-    type "dominant"
-  ]
-  edge [
-    source 209
-    target 311
-    type "dominant"
-  ]
-  edge [
-    source 209
-    target 320
-    type "dominant"
-  ]
-  edge [
-    source 211
-    target 52
-    type "dominant"
-  ]
-  edge [
-    source 211
-    target 210
-    type "dominant"
-  ]
-  edge [
-    source 211
-    target 215
-    type "dominant"
-  ]
-  edge [
-    source 211
-    target 262
-    type "dominant"
-  ]
-  edge [
-    source 211
-    target 336
-    type "dominant"
-  ]
-  edge [
-    source 212
-    target 210
-    type "dominant"
-  ]
-  edge [
-    source 212
-    target 215
-    type "neutral"
-  ]
-  edge [
-    source 212
-    target 222
-    type "dominant"
-  ]
-  edge [
-    source 213
-    target 210
-    type "dominant"
-  ]
-  edge [
-    source 213
-    target 212
-    type "dominant"
-  ]
-  edge [
-    source 213
-    target 263
-    type "dominant"
-  ]
-  edge [
-    source 213
-    target 286
-    type "dominant"
-  ]
-  edge [
-    source 213
-    target 335
-    type "dominant"
-  ]
-  edge [
-    source 213
-    target 344
-    type "dominant"
-  ]
-  edge [
-    source 214
-    target 210
-    type "dominant"
-  ]
-  edge [
-    source 214
-    target 233
-    type "dominant"
-  ]
-  edge [
-    source 215
-    target 210
-    type "dominant"
-  ]
-  edge [
-    source 215
-    target 213
-    type "dominant"
-  ]
-  edge [
-    source 215
-    target 222
-    type "neutral"
-  ]
-  edge [
-    source 217
-    target 216
-    type "dominant"
-  ]
-  edge [
-    source 217
-    target 344
-    type "dominant"
-  ]
-  edge [
-    source 218
-    target 21
-    type "dominant"
-  ]
-  edge [
-    source 218
-    target 216
-    type "dominant"
-  ]
-  edge [
-    source 219
-    target 43
-    type "dominant"
-  ]
-  edge [
-    source 220
-    target 289
-    type "dominant"
-  ]
-  edge [
-    source 221
-    target 52
-    type "dominant"
-  ]
-  edge [
-    source 221
-    target 211
-    type "dominant"
-  ]
-  edge [
-    source 221
-    target 213
-    type "dominant"
-  ]
-  edge [
-    source 221
-    target 335
-    type "dominant"
-  ]
-  edge [
-    source 224
-    target 280
-    type "dominant"
-  ]
-  edge [
-    source 225
-    target 82
-    type "dominant"
-  ]
-  edge [
-    source 225
-    target 96
-    type "dominant"
-  ]
-  edge [
-    source 225
-    target 224
-    type "dominant"
-  ]
-  edge [
-    source 225
-    target 276
-    type "neutral"
-  ]
-  edge [
-    source 225
-    target 245
-    type "dominant"
-  ]
-  edge [
-    source 226
-    target 228
-    type "neutral"
-  ]
-  edge [
-    source 227
-    target 226
-    type "dominant"
-  ]
-  edge [
-    source 228
-    target 84
-    type "dominant"
-  ]
-  edge [
-    source 228
-    target 144
-    type "dominant"
-  ]
-  edge [
-    source 230
-    target 234
-    type "neutral"
-  ]
-  edge [
-    source 230
-    target 301
-    type "dominant"
-  ]
-  edge [
-    source 230
-    target 341
-    type "dominant"
-  ]
-  edge [
-    source 231
-    target 230
-    type "dominant"
-  ]
-  edge [
-    source 231
-    target 315
-    type "dominant"
-  ]
-  edge [
-    source 232
-    target 230
-    type "dominant"
-  ]
-  edge [
-    source 233
-    target 208
-    type "dominant"
-  ]
-  edge [
-    source 233
-    target 230
-    type "dominant"
-  ]
-  edge [
-    source 233
-    target 298
-    type "dominant"
-  ]
-  edge [
-    source 233
-    target 340
-    type "dominant"
-  ]
-  edge [
-    source 234
-    target 341
-    type "neutral"
-  ]
-  edge [
-    source 235
-    target 248
-    type "dominant"
-  ]
-  edge [
-    source 236
-    target 235
-    type "dominant"
-  ]
-  edge [
-    source 236
-    target 343
-    type "dominant"
-  ]
-  edge [
-    source 237
-    target 238
-    type "neutral"
-  ]
-  edge [
-    source 237
-    target 274
-    type "dominant"
-  ]
-  edge [
-    source 239
-    target 237
-    type "dominant"
-  ]
-  edge [
-    source 239
-    target 274
-    type "neutral"
-  ]
-  edge [
-    source 240
-    target 260
-    type "dominant"
-  ]
-  edge [
-    source 242
-    target 57
-    type "dominant"
-  ]
-  edge [
-    source 243
-    target 294
-    type "dominant"
-  ]
-  edge [
-    source 244
-    target 243
-    type "dominant"
-  ]
-  edge [
-    source 245
-    target 243
-    type "dominant"
-  ]
-  edge [
-    source 245
-    target 301
-    type "neutral"
-  ]
-  edge [
-    source 246
-    target 229
-    type "dominant"
-  ]
-  edge [
-    source 246
-    target 309
-    type "dominant"
-  ]
-  edge [
-    source 247
-    target 254
-    type "dominant"
-  ]
-  edge [
-    source 248
-    target 249
-    type "neutral"
-  ]
-  edge [
-    source 250
-    target 234
-    type "dominant"
-  ]
-  edge [
-    source 251
-    target 250
-    type "dominant"
-  ]
-  edge [
-    source 252
-    target 250
-    type "dominant"
-  ]
-  edge [
-    source 253
-    target 250
-    type "dominant"
-  ]
-  edge [
-    source 253
-    target 295
-    type "neutral"
-  ]
-  edge [
-    source 253
-    target 346
-    type "neutral"
-  ]
-  edge [
-    source 253
-    target 328
-    type "dominant"
-  ]
-  edge [
-    source 255
-    target 38
-    type "dominant"
-  ]
-  edge [
-    source 255
-    target 233
-    type "dominant"
-  ]
-  edge [
-    source 257
-    target 111
-    type "dominant"
-  ]
-  edge [
-    source 257
-    target 256
-    type "dominant"
-  ]
-  edge [
-    source 257
-    target 292
-    type "neutral"
-  ]
-  edge [
-    source 258
-    target 81
-    type "dominant"
-  ]
-  edge [
-    source 258
-    target 328
-    type "dominant"
-  ]
-  edge [
-    source 259
-    target 245
-    type "dominant"
-  ]
-  edge [
-    source 260
-    target 208
-    type "dominant"
-  ]
-  edge [
-    source 261
-    target 6
-    type "dominant"
-  ]
-  edge [
-    source 261
-    target 145
-    type "dominant"
-  ]
-  edge [
-    source 261
-    target 346
-    type "dominant"
-  ]
-  edge [
-    source 262
-    target 6
-    type "dominant"
-  ]
-  edge [
-    source 262
-    target 263
-    type "neutral"
-  ]
-  edge [
-    source 264
-    target 67
-    type "dominant"
-  ]
-  edge [
-    source 265
-    target 240
-    type "dominant"
-  ]
-  edge [
-    source 265
-    target 260
-    type "dominant"
-  ]
-  edge [
-    source 266
-    target 78
-    type "dominant"
-  ]
-  edge [
-    source 266
-    target 267
-    type "dominant"
-  ]
-  edge [
-    source 266
-    target 309
-    type "dominant"
-  ]
-  edge [
-    source 269
-    target 44
-    type "dominant"
-  ]
-  edge [
-    source 269
-    target 325
-    type "dominant"
-  ]
-  edge [
-    source 270
-    target 175
-    type "dominant"
-  ]
-  edge [
-    source 270
-    target 266
-    type "dominant"
-  ]
-  edge [
-    source 270
-    target 325
-    type "dominant"
-  ]
-  edge [
-    source 271
-    target 266
-    type "dominant"
-  ]
-  edge [
-    source 273
-    target 128
-    type "dominant"
-  ]
-  edge [
-    source 274
-    target 275
-    type "neutral"
-  ]
-  edge [
-    source 276
-    target 84
-    type "dominant"
-  ]
-  edge [
-    source 278
-    target 277
-    type "dominant"
-  ]
-  edge [
-    source 279
-    target 21
-    type "dominant"
-  ]
-  edge [
-    source 280
-    target 21
-    type "dominant"
-  ]
-  edge [
-    source 283
-    target 282
-    type "dominant"
-  ]
-  edge [
-    source 284
-    target 233
-    type "dominant"
-  ]
-  edge [
-    source 284
-    target 340
-    type "dominant"
-  ]
-  edge [
-    source 285
-    target 284
-    type "dominant"
-  ]
-  edge [
-    source 286
-    target 284
-    type "dominant"
-  ]
-  edge [
-    source 287
-    target 239
-    type "dominant"
-  ]
-  edge [
-    source 289
-    target 291
-    type "neutral"
-  ]
-  edge [
-    source 290
-    target 84
-    type "dominant"
-  ]
-  edge [
-    source 290
-    target 225
-    type "dominant"
-  ]
-  edge [
-    source 290
-    target 289
-    type "dominant"
-  ]
-  edge [
-    source 290
-    target 297
-    type "dominant"
-  ]
-  edge [
-    source 291
-    target 328
-    type "dominant"
-  ]
-  edge [
-    source 296
-    target 286
-    type "dominant"
-  ]
-  edge [
-    source 297
-    target 286
-    type "dominant"
-  ]
-  edge [
-    source 297
-    target 336
-    type "dominant"
-  ]
-  edge [
-    source 300
-    target 234
-    type "dominant"
-  ]
-  edge [
-    source 300
-    target 245
-    type "dominant"
-  ]
-  edge [
-    source 302
-    target 245
-    type "dominant"
-  ]
-  edge [
-    source 303
-    target 140
-    type "dominant"
-  ]
-  edge [
-    source 305
-    target 175
-    type "dominant"
-  ]
-  edge [
-    source 306
-    target 174
-    type "dominant"
-  ]
-  edge [
-    source 307
-    target 174
-    type "dominant"
-  ]
-  edge [
-    source 310
-    target 309
-    type "dominant"
-  ]
-  edge [
-    source 311
-    target 68
-    type "dominant"
-  ]
-  edge [
-    source 313
-    target 278
-    type "dominant"
-  ]
-  edge [
-    source 313
-    target 312
-    type "dominant"
-  ]
-  edge [
-    source 314
-    target 122
-    type "dominant"
-  ]
-  edge [
-    source 318
-    target 205
-    type "dominant"
-  ]
-  edge [
-    source 318
-    target 279
-    type "dominant"
-  ]
-  edge [
-    source 319
-    target 218
-    type "dominant"
-  ]
-  edge [
-    source 320
-    target 301
-    type "dominant"
-  ]
-  edge [
-    source 321
-    target 167
-    type "dominant"
-  ]
-  edge [
-    source 321
-    target 336
-    type "dominant"
-  ]
-  edge [
-    source 321
-    target 344
-    type "dominant"
-  ]
-  edge [
-    source 321
-    target 350
-    type "dominant"
-  ]
-  edge [
-    source 322
-    target 135
-    type "dominant"
-  ]
-  edge [
-    source 323
-    target 175
-    type "dominant"
-  ]
-  edge [
-    source 324
-    target 175
-    type "dominant"
-  ]
-  edge [
-    source 326
-    target 198
-    type "dominant"
-  ]
-  edge [
-    source 327
-    target 142
-    type "dominant"
-  ]
-  edge [
-    source 329
-    target 328
-    type "dominant"
-  ]
-  edge [
-    source 330
-    target 304
-    type "dominant"
-  ]
-  edge [
-    source 331
-    target 203
-    type "dominant"
-  ]
-  edge [
-    source 331
-    target 304
-    type "dominant"
-  ]
-  edge [
-    source 332
-    target 240
-    type "dominant"
-  ]
-  edge [
-    source 333
-    target 278
-    type "dominant"
-  ]
-  edge [
-    source 337
-    target 336
-    type "dominant"
-  ]
-  edge [
-    source 338
-    target 234
-    type "dominant"
-  ]
-  edge [
-    source 338
-    target 341
-    type "dominant"
-  ]
-  edge [
-    source 339
-    target 234
-    type "dominant"
-  ]
-  edge [
-    source 340
-    target 234
-    type "dominant"
-  ]
-  edge [
-    source 342
-    target 271
-    type "dominant"
-  ]
-  edge [
-    source 345
-    target 344
-    type "dominant"
-  ]
-  edge [
-    source 346
-    target 349
-    type "neutral"
-  ]
-  edge [
-    source 347
-    target 203
-    type "dominant"
-  ]
-  edge [
-    source 348
-    target 60
-    type "dominant"
-  ]
-  edge [
-    source 351
-    target 269
-    type "dominant"
   ]
 ]

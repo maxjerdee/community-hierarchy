@@ -1,6 +1,25 @@
 graph [
   directed 1
-  modularity 0.6655792216434123
+  inferred_num_groups_mean 11.611623616236162
+  inferred_num_groups_std 1.841226242011268
+  inferred_density_in_mean 0.1517637134233398
+  inferred_density_in_std 0.04865517192154081
+  inferred_density_out_mean 0.005567382946627281
+  inferred_density_out_std 0.0015801298276571921
+  inferred_variation_in_mean 0.469828479655853
+  inferred_variation_in_std 0.1004524708145876
+  inferred_variation_out_mean 0.6534531814564435
+  inferred_variation_out_std 0.06568350588410042
+  inferred_degree_correction_mean 0.1430809308095664
+  inferred_degree_correction_std 0.03656694052767082
+  inferred_mean_degree_scaling_mean 0.0
+  inferred_mean_degree_scaling_std 0.0
+  inferred_individual_depth_mean 3.682428153506267
+  inferred_individual_depth_std 0.431871640840697
+  inferred_group_depth_mean 0.0
+  inferred_group_depth_std 0.0
+  inferred_ties_parameter_mean 1.0621208572197505
+  inferred_ties_parameter_std 0.12671993688200306
   node [
     id 0
     label "1"
@@ -8,8 +27,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 12
-    modularity_group 4
-    win_percentage 0.33333327777778704
+    inferred_group 6
+    inferred_score_mean 2.300617899543774
+    inferred_score_std 1.2034542298216542
   ]
   node [
     id 1
@@ -18,8 +38,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 3
-    win_percentage 0.9999998571428775
+    inferred_group 6
+    inferred_score_mean 4.805457654961678
+    inferred_score_std 1.7170857642811226
   ]
   node [
     id 2
@@ -28,8 +49,9 @@ graph [
     race "black"
     sex "male"
     grade 12
-    modularity_group 1
-    win_percentage 0.99999980000004
+    inferred_group 6
+    inferred_score_mean 4.798290422938672
+    inferred_score_std 1.5872404989763824
   ]
   node [
     id 3
@@ -38,8 +60,9 @@ graph [
     race "black"
     sex "female"
     grade 10
-    modularity_group 0
-    win_percentage -0.8333331944444675
+    inferred_group 1
+    inferred_score_mean -3.5253463596020223
+    inferred_score_std 1.2845060150388172
   ]
   node [
     id 4
@@ -48,8 +71,9 @@ graph [
     race "black"
     sex "missing"
     grade 12
-    modularity_group 0
-    win_percentage 0.9999990000010001
+    inferred_group 1
+    inferred_score_mean -0.1341040830812552
+    inferred_score_std 1.795624279556937
   ]
   node [
     id 5
@@ -58,8 +82,9 @@ graph [
     race "black"
     sex "female"
     grade 9
-    modularity_group 0
-    win_percentage 0.99999950000025
+    inferred_group 1
+    inferred_score_mean -0.491275921062806
+    inferred_score_std 1.0603991407997668
   ]
   node [
     id 6
@@ -68,8 +93,9 @@ graph [
     race "black"
     sex "female"
     grade 9
-    modularity_group 0
-    win_percentage -0.24999993750001562
+    inferred_group 1
+    inferred_score_mean -1.9687918265488367
+    inferred_score_std 1.5660207781785702
   ]
   node [
     id 7
@@ -78,8 +104,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage 0.99999950000025
+    inferred_group 11
+    inferred_score_mean 3.663317979073564
+    inferred_score_std 1.4572847110950697
   ]
   node [
     id 8
@@ -88,8 +115,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage 0.6666664444445185
+    inferred_group 6
+    inferred_score_mean 1.9328308705977049
+    inferred_score_std 1.3359721171479015
   ]
   node [
     id 9
@@ -98,8 +126,9 @@ graph [
     race "mixed"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage 0.599999880000024
+    inferred_group 1
+    inferred_score_mean 1.5908717396928418
+    inferred_score_std 1.3154942707940371
   ]
   node [
     id 10
@@ -108,8 +137,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage -0.499999950000005
+    inferred_group 3
+    inferred_score_mean -2.2329295831972367
+    inferred_score_std 0.8409294117074944
   ]
   node [
     id 11
@@ -118,8 +148,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage 0.3749999531250059
+    inferred_group 9
+    inferred_score_mean 1.3256264339802188
+    inferred_score_std 1.080294521384566
   ]
   node [
     id 12
@@ -128,8 +159,9 @@ graph [
     race "black"
     sex "male"
     grade 12
-    modularity_group 1
-    win_percentage -0.499999750000125
+    inferred_group 3
+    inferred_score_mean -2.2455589864720986
+    inferred_score_std 1.2831565113921988
   ]
   node [
     id 13
@@ -138,8 +170,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage 0.7142856122449125
+    inferred_group 3
+    inferred_score_mean 0.9306321494205908
+    inferred_score_std 1.563157581109148
   ]
   node [
     id 14
@@ -148,8 +181,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage 0.9999996666667778
+    inferred_group 3
+    inferred_score_mean 2.9465396695374837
+    inferred_score_std 1.7423589714842447
   ]
   node [
     id 15
@@ -158,8 +192,9 @@ graph [
     race "hispanic"
     sex "female"
     grade 11
-    modularity_group 7
-    win_percentage 0.99999950000025
+    inferred_group 3
+    inferred_score_mean 1.3160025094980736
+    inferred_score_std 1.4082168074627368
   ]
   node [
     id 16
@@ -168,8 +203,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 4
-    win_percentage 0.33333329629630043
+    inferred_group 3
+    inferred_score_mean -0.6990337208292045
+    inferred_score_std 0.7878151686032938
   ]
   node [
     id 17
@@ -178,8 +214,9 @@ graph [
     race "black"
     sex "female"
     grade 10
-    modularity_group 1
-    win_percentage 0.285714244897965
+    inferred_group 6
+    inferred_score_mean 1.0150027878439292
+    inferred_score_std 0.9106143173028384
   ]
   node [
     id 18
@@ -188,8 +225,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage 0.9999990000010001
+    inferred_group 3
+    inferred_score_mean 2.525827505672585
+    inferred_score_std 1.4039465621125045
   ]
   node [
     id 19
@@ -198,8 +236,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 1
-    win_percentage 0.0
+    inferred_group 3
+    inferred_score_mean -1.0797063390414678
+    inferred_score_std 1.1442527858656213
   ]
   node [
     id 20
@@ -208,8 +247,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 10
-    modularity_group 8
-    win_percentage 0.6666664444445185
+    inferred_group 5
+    inferred_score_mean 0.6103870176756943
+    inferred_score_std 1.342999997673638
   ]
   node [
     id 21
@@ -218,8 +258,9 @@ graph [
     race "white"
     sex "female"
     grade 12
-    modularity_group 4
-    win_percentage -0.285714244897965
+    inferred_group 7
+    inferred_score_mean -1.9203931829473835
+    inferred_score_std 1.1766833611960963
   ]
   node [
     id 22
@@ -228,8 +269,9 @@ graph [
     race "white"
     sex "male"
     grade 9
-    modularity_group 5
-    win_percentage 0.0
+    inferred_group 4
+    inferred_score_mean -0.6688954629228886
+    inferred_score_std 1.0759231627520633
   ]
   node [
     id 23
@@ -238,8 +280,9 @@ graph [
     race "mixed"
     sex "male"
     grade 9
-    modularity_group 5
-    win_percentage 0.99999950000025
+    inferred_group 4
+    inferred_score_mean 3.614704606633315
+    inferred_score_std 1.5835422166274364
   ]
   node [
     id 24
@@ -248,8 +291,9 @@ graph [
     race "white"
     sex "female"
     grade 9
-    modularity_group 5
-    win_percentage 0.0
+    inferred_group 4
+    inferred_score_mean -0.3417957935816598
+    inferred_score_std 1.3065170446929362
   ]
   node [
     id 25
@@ -258,8 +302,9 @@ graph [
     race "white"
     sex "female"
     grade 11
-    modularity_group 5
-    win_percentage -0.24999993750001562
+    inferred_group 4
+    inferred_score_mean -1.082922373731695
+    inferred_score_std 1.176654495029662
   ]
   node [
     id 26
@@ -268,8 +313,9 @@ graph [
     race "white"
     sex "female"
     grade 10
-    modularity_group 5
-    win_percentage 0.33333322222225925
+    inferred_group 4
+    inferred_score_mean 0.008218969582973834
+    inferred_score_std 1.5740484327960245
   ]
   node [
     id 27
@@ -278,8 +324,9 @@ graph [
     race "white"
     sex "female"
     grade 10
-    modularity_group 5
-    win_percentage -0.24999993750001562
+    inferred_group 4
+    inferred_score_mean -0.3764750666778554
+    inferred_score_std 1.2969196363786788
   ]
   node [
     id 28
@@ -288,8 +335,9 @@ graph [
     race "white"
     sex "male"
     grade 10
-    modularity_group 8
-    win_percentage -0.33333322222225925
+    inferred_group 3
+    inferred_score_mean -1.394086285918613
+    inferred_score_std 1.0136689870849864
   ]
   node [
     id 29
@@ -298,8 +346,9 @@ graph [
     race "asian"
     sex "male"
     grade 10
-    modularity_group 8
-    win_percentage 0.49999987500003124
+    inferred_group 3
+    inferred_score_mean 1.3782154125362112
+    inferred_score_std 1.3408627682324572
   ]
   node [
     id 30
@@ -308,8 +357,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 1
-    win_percentage 0.2666666488888901
+    inferred_group 9
+    inferred_score_mean 0.38685117393312324
+    inferred_score_std 0.8485882046289114
   ]
   node [
     id 31
@@ -318,8 +368,9 @@ graph [
     race "white"
     sex "female"
     grade 10
-    modularity_group 5
-    win_percentage -0.24999993750001562
+    inferred_group 4
+    inferred_score_mean -1.4226451376443154
+    inferred_score_std 1.2364889785344038
   ]
   node [
     id 32
@@ -328,8 +379,9 @@ graph [
     race "white"
     sex "female"
     grade 10
-    modularity_group 5
-    win_percentage -0.33333322222225925
+    inferred_group 4
+    inferred_score_mean -1.6920655387423893
+    inferred_score_std 1.6472795353097822
   ]
   node [
     id 33
@@ -338,8 +390,9 @@ graph [
     race "white"
     sex "male"
     grade 9
-    modularity_group 5
-    win_percentage 0.9999990000010001
+    inferred_group 4
+    inferred_score_mean 2.132423740333284
+    inferred_score_std 1.4118030021717005
   ]
   node [
     id 34
@@ -348,8 +401,9 @@ graph [
     race "white"
     sex "male"
     grade 12
-    modularity_group 5
-    win_percentage 0.0
+    inferred_group 4
+    inferred_score_mean -1.7576915471898327
+    inferred_score_std 1.611001437512351
   ]
   node [
     id 35
@@ -358,8 +412,9 @@ graph [
     race "white"
     sex "female"
     grade 10
-    modularity_group 5
-    win_percentage -0.7142856122449125
+    inferred_group 4
+    inferred_score_mean -3.0544567875221187
+    inferred_score_std 1.3984867078508618
   ]
   node [
     id 36
@@ -368,8 +423,9 @@ graph [
     race "mixed"
     sex "female"
     grade 9
-    modularity_group 0
-    win_percentage 0.49999987500003124
+    inferred_group 1
+    inferred_score_mean 1.6781248958000639
+    inferred_score_std 1.450021670557158
   ]
   node [
     id 37
@@ -378,8 +434,9 @@ graph [
     race "hispanic"
     sex "female"
     grade 9
-    modularity_group 2
-    win_percentage 0.15384614201183525
+    inferred_group 2
+    inferred_score_mean 0.5594717092841315
+    inferred_score_std 0.8097943398809792
   ]
   node [
     id 38
@@ -388,8 +445,9 @@ graph [
     race "hispanic"
     sex "female"
     grade 9
-    modularity_group 2
-    win_percentage 0.3636363305785154
+    inferred_group 2
+    inferred_score_mean 1.9721248170013728
+    inferred_score_std 0.8877404418022653
   ]
   node [
     id 39
@@ -398,8 +456,9 @@ graph [
     race "black"
     sex "female"
     grade 10
-    modularity_group 8
-    win_percentage 0.0
+    inferred_group 6
+    inferred_score_mean -1.826094509013266
+    inferred_score_std 1.2250772471521234
   ]
   node [
     id 40
@@ -408,8 +467,9 @@ graph [
     race "black"
     sex "female"
     grade 10
-    modularity_group 3
-    win_percentage -0.8333331944444675
+    inferred_group 6
+    inferred_score_mean -3.571044262905637
+    inferred_score_std 1.3512243435677591
   ]
   node [
     id 41
@@ -418,8 +478,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage 0.0
+    inferred_group 9
+    inferred_score_mean -1.011079171448566
+    inferred_score_std 0.9710783122408692
   ]
   node [
     id 42
@@ -428,8 +489,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage 0.499999950000005
+    inferred_group 9
+    inferred_score_mean 1.3575827581071311
+    inferred_score_std 0.8842014809962744
   ]
   node [
     id 43
@@ -438,8 +500,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage -0.199999960000008
+    inferred_group 9
+    inferred_score_mean -2.0244584761893196
+    inferred_score_std 1.3364031821551452
   ]
   node [
     id 44
@@ -448,8 +511,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 1
-    win_percentage 0.0
+    inferred_group 9
+    inferred_score_mean -1.0606298640432097
+    inferred_score_std 1.073683510186351
   ]
   node [
     id 45
@@ -458,8 +522,9 @@ graph [
     race "black"
     sex "female"
     grade 12
-    modularity_group 1
-    win_percentage 0.3333333055555579
+    inferred_group 9
+    inferred_score_mean 0.6792226717318812
+    inferred_score_std 0.9280028237862344
   ]
   node [
     id 46
@@ -468,8 +533,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage 0.9999998750000157
+    inferred_group 9
+    inferred_score_mean 4.685100470769786
+    inferred_score_std 1.7090750141139395
   ]
   node [
     id 47
@@ -478,8 +544,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage -0.4545454132231443
+    inferred_group 9
+    inferred_score_mean -2.10149465922755
+    inferred_score_std 0.7603509950382975
   ]
   node [
     id 48
@@ -488,8 +555,9 @@ graph [
     race "hispanic"
     sex "female"
     grade 10
-    modularity_group 9
-    win_percentage 0.9999998333333611
+    inferred_group 6
+    inferred_score_mean 4.208512996727266
+    inferred_score_std 1.620075566044665
   ]
   node [
     id 49
@@ -498,8 +566,9 @@ graph [
     race "black"
     sex "female"
     grade 10
-    modularity_group 3
-    win_percentage 0.0
+    inferred_group 6
+    inferred_score_mean 0.42110141605887474
+    inferred_score_std 1.3602243451371605
   ]
   node [
     id 50
@@ -508,8 +577,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage -0.33333327777778704
+    inferred_group 9
+    inferred_score_mean -0.6397841438487134
+    inferred_score_std 0.7874273374043205
   ]
   node [
     id 51
@@ -518,8 +588,9 @@ graph [
     race "black"
     sex "female"
     grade 10
-    modularity_group 3
-    win_percentage -0.1428571224489825
+    inferred_group 6
+    inferred_score_mean -0.733444910756512
+    inferred_score_std 0.9604318350617096
   ]
   node [
     id 52
@@ -528,8 +599,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 3
-    win_percentage 0.0
+    inferred_group 13
+    inferred_score_mean 0.28821201115520223
+    inferred_score_std 0.727000652972622
   ]
   node [
     id 53
@@ -538,8 +610,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 10
-    modularity_group 3
-    win_percentage 0.99999950000025
+    inferred_group 13
+    inferred_score_mean 3.8752276000143033
+    inferred_score_std 1.804632274695866
   ]
   node [
     id 54
@@ -548,8 +621,9 @@ graph [
     race "mixed"
     sex "female"
     grade 10
-    modularity_group 3
-    win_percentage 0.0
+    inferred_group 6
+    inferred_score_mean -0.008231707859670956
+    inferred_score_std 1.655019596108273
   ]
   node [
     id 55
@@ -558,8 +632,9 @@ graph [
     race "white"
     sex "female"
     grade 11
-    modularity_group 4
-    win_percentage -0.6666665555555741
+    inferred_group 7
+    inferred_score_mean -2.49005191186776
+    inferred_score_std 1.3327766948192896
   ]
   node [
     id 56
@@ -568,8 +643,9 @@ graph [
     race "mixed"
     sex "male"
     grade 12
-    modularity_group 4
-    win_percentage 0.9999990000010001
+    inferred_group 7
+    inferred_score_mean 1.7295477532737376
+    inferred_score_std 1.8491489700102284
   ]
   node [
     id 57
@@ -578,8 +654,9 @@ graph [
     race "asian"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage 0.0
+    inferred_group 3
+    inferred_score_mean 0.19623242362565282
+    inferred_score_std 0.873505519353778
   ]
   node [
     id 58
@@ -588,8 +665,9 @@ graph [
     race "white"
     sex "female"
     grade 9
-    modularity_group 4
-    win_percentage 0.0
+    inferred_group 7
+    inferred_score_mean -0.5306832332523025
+    inferred_score_std 1.5114338398553138
   ]
   node [
     id 59
@@ -598,8 +676,9 @@ graph [
     race "white"
     sex "male"
     grade 11
-    modularity_group 4
-    win_percentage 0.9999996666667778
+    inferred_group 4
+    inferred_score_mean 1.4386111381946367
+    inferred_score_std 1.234507522906649
   ]
   node [
     id 60
@@ -608,8 +687,9 @@ graph [
     race "white"
     sex "female"
     grade 12
-    modularity_group 4
-    win_percentage 0.12499998437500197
+    inferred_group 7
+    inferred_score_mean -0.18441084219846546
+    inferred_score_std 0.7558088059730023
   ]
   node [
     id 61
@@ -618,8 +698,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 7
-    win_percentage 0.0
+    inferred_group 3
+    inferred_score_mean 1.005151457076814
+    inferred_score_std 1.360649134192364
   ]
   node [
     id 62
@@ -628,8 +709,9 @@ graph [
     race "black"
     sex "male"
     grade 12
-    modularity_group 7
-    win_percentage 0.9999990000010001
+    inferred_group 9
+    inferred_score_mean 2.9917499265209173
+    inferred_score_std 1.6130397127923595
   ]
   node [
     id 63
@@ -638,8 +720,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 3
-    win_percentage -0.99999950000025
+    inferred_group 11
+    inferred_score_mean -1.1829731404967354
+    inferred_score_std 3.047165528316859
   ]
   node [
     id 64
@@ -648,8 +731,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 3
-    win_percentage 0.0
+    inferred_group 11
+    inferred_score_mean -1.3083434924645079
+    inferred_score_std 1.8989911744026027
   ]
   node [
     id 65
@@ -658,8 +742,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 3
-    win_percentage 0.99999980000004
+    inferred_group 11
+    inferred_score_mean 2.4559981756583276
+    inferred_score_std 2.0458870245250367
   ]
   node [
     id 66
@@ -668,8 +753,9 @@ graph [
     race "black"
     sex "female"
     grade 9
-    modularity_group 0
-    win_percentage 0.0
+    inferred_group 1
+    inferred_score_mean -1.3346356175940017
+    inferred_score_std 1.0183569088516489
   ]
   node [
     id 67
@@ -678,8 +764,9 @@ graph [
     race "black"
     sex "female"
     grade 9
-    modularity_group 0
-    win_percentage 0.0
+    inferred_group 1
+    inferred_score_mean -0.4499680394664942
+    inferred_score_std 1.1227800191928308
   ]
   node [
     id 68
@@ -688,8 +775,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 0
-    win_percentage 0.49999987500003124
+    inferred_group 1
+    inferred_score_mean 2.046850422071058
+    inferred_score_std 1.5999590010717801
   ]
   node [
     id 69
@@ -698,8 +786,9 @@ graph [
     race "white"
     sex "female"
     grade 12
-    modularity_group 4
-    win_percentage -0.199999960000008
+    inferred_group 5
+    inferred_score_mean -0.4497884173675901
+    inferred_score_std 0.9266429746157756
   ]
   node [
     id 70
@@ -708,8 +797,9 @@ graph [
     race "white"
     sex "female"
     grade 12
-    modularity_group 4
-    win_percentage -0.399999920000016
+    inferred_group 7
+    inferred_score_mean -1.7763576692290803
+    inferred_score_std 1.2822440528467265
   ]
   node [
     id 71
@@ -718,8 +808,9 @@ graph [
     race "mixed"
     sex "male"
     grade 12
-    modularity_group 4
-    win_percentage 0.99999950000025
+    inferred_group 7
+    inferred_score_mean 0.911095574620095
+    inferred_score_std 1.3474971806404292
   ]
   node [
     id 72
@@ -728,8 +819,9 @@ graph [
     race "white"
     sex "female"
     grade 11
-    modularity_group 4
-    win_percentage -0.199999960000008
+    inferred_group 5
+    inferred_score_mean 0.09088548068459008
+    inferred_score_std 0.9541224413023416
   ]
   node [
     id 73
@@ -738,8 +830,9 @@ graph [
     race "white"
     sex "female"
     grade 11
-    modularity_group 4
-    win_percentage -0.1428571224489825
+    inferred_group 3
+    inferred_score_mean 0.6623303856697093
+    inferred_score_std 0.5075139023780786
   ]
   node [
     id 74
@@ -748,8 +841,9 @@ graph [
     race "black"
     sex "male"
     grade 12
-    modularity_group 10
-    win_percentage 0.9999996666667778
+    inferred_group 3
+    inferred_score_mean 4.2126078470490285
+    inferred_score_std 1.7076568006743187
   ]
   node [
     id 75
@@ -758,8 +852,9 @@ graph [
     race "white"
     sex "male"
     grade 9
-    modularity_group 2
-    win_percentage 0.7499998125000469
+    inferred_group 10
+    inferred_score_mean 2.6324734127006146
+    inferred_score_std 1.5009314039155297
   ]
   node [
     id 76
@@ -768,8 +863,9 @@ graph [
     race "black"
     sex "female"
     grade 10
-    modularity_group 3
-    win_percentage 0.1428571224489825
+    inferred_group 6
+    inferred_score_mean -0.12127162166535418
+    inferred_score_std 1.0503086211258934
   ]
   node [
     id 77
@@ -778,8 +874,9 @@ graph [
     race "mixed"
     sex "female"
     grade 10
-    modularity_group 9
-    win_percentage 0.99999950000025
+    inferred_group 6
+    inferred_score_mean 3.0063836981542753
+    inferred_score_std 1.6965362346513408
   ]
   node [
     id 78
@@ -788,8 +885,9 @@ graph [
     race "black"
     sex "female"
     grade 10
-    modularity_group 9
-    win_percentage 0.0
+    inferred_group 6
+    inferred_score_mean -0.6323981610177716
+    inferred_score_std 1.011628906294887
   ]
   node [
     id 79
@@ -798,8 +896,9 @@ graph [
     race "white"
     sex "male"
     grade 9
-    modularity_group 2
-    win_percentage -0.1428571224489825
+    inferred_group 2
+    inferred_score_mean -0.33659393368813184
+    inferred_score_std 1.078391198448015
   ]
   node [
     id 80
@@ -808,8 +907,9 @@ graph [
     race "white"
     sex "female"
     grade 9
-    modularity_group 2
-    win_percentage 0.0
+    inferred_group 2
+    inferred_score_mean 0.6258677810204427
+    inferred_score_std 1.260749365962568
   ]
   node [
     id 81
@@ -818,8 +918,9 @@ graph [
     race "white"
     sex "male"
     grade 9
-    modularity_group 2
-    win_percentage -0.24999993750001562
+    inferred_group 2
+    inferred_score_mean -0.7212241179239184
+    inferred_score_std 1.5470269985472092
   ]
   node [
     id 82
@@ -828,8 +929,9 @@ graph [
     race "white"
     sex "male"
     grade 9
-    modularity_group 2
-    win_percentage -0.5555554938271674
+    inferred_group 2
+    inferred_score_mean -0.42867433886306877
+    inferred_score_std 0.8008162335578141
   ]
   node [
     id 83
@@ -838,8 +940,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 9
-    modularity_group 2
-    win_percentage 0.9999996666667778
+    inferred_group 10
+    inferred_score_mean 3.7447950686348923
+    inferred_score_std 1.5818180001076978
   ]
   node [
     id 84
@@ -848,8 +951,9 @@ graph [
     race "white"
     sex "female"
     grade 9
-    modularity_group 2
-    win_percentage -0.285714244897965
+    inferred_group 2
+    inferred_score_mean -0.3823456331952951
+    inferred_score_std 1.4074655291062688
   ]
   node [
     id 85
@@ -858,8 +962,9 @@ graph [
     race "asian"
     sex "male"
     grade 10
-    modularity_group 1
-    win_percentage 0.0
+    inferred_group 3
+    inferred_score_mean -0.4462129446538239
+    inferred_score_std 1.0817849395901447
   ]
   node [
     id 86
@@ -868,8 +973,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 1
-    win_percentage 0.19999998666666757
+    inferred_group 9
+    inferred_score_mean 0.2803169943978918
+    inferred_score_std 0.6318823982675758
   ]
   node [
     id 87
@@ -878,8 +984,9 @@ graph [
     race "white"
     sex "female"
     grade 12
-    modularity_group 5
-    win_percentage 0.0
+    inferred_group 4
+    inferred_score_mean 0.9787416670113823
+    inferred_score_std 1.0881817722303655
   ]
   node [
     id 88
@@ -888,8 +995,9 @@ graph [
     race "white"
     sex "female"
     grade 10
-    modularity_group 5
-    win_percentage 0.0
+    inferred_group 4
+    inferred_score_mean 0.7620120072063711
+    inferred_score_std 1.2551074067280354
   ]
   node [
     id 89
@@ -898,8 +1006,9 @@ graph [
     race "white"
     sex "male"
     grade 12
-    modularity_group 11
-    win_percentage -0.24999993750001562
+    inferred_group 8
+    inferred_score_mean -0.08377454882487964
+    inferred_score_std 1.2986308257378076
   ]
   node [
     id 90
@@ -908,8 +1017,9 @@ graph [
     race "white"
     sex "male"
     grade 12
-    modularity_group 11
-    win_percentage 0.9999990000010001
+    inferred_group 8
+    inferred_score_mean 2.7093818185697263
+    inferred_score_std 2.0510646174533713
   ]
   node [
     id 91
@@ -918,8 +1028,9 @@ graph [
     race "white"
     sex "male"
     grade 12
-    modularity_group 11
-    win_percentage 0.9999990000010001
+    inferred_group 8
+    inferred_score_mean -0.300478507538982
+    inferred_score_std 0.9940202507266139
   ]
   node [
     id 92
@@ -928,8 +1039,9 @@ graph [
     race "white"
     sex "male"
     grade 12
-    modularity_group 11
-    win_percentage 0.499999750000125
+    inferred_group 8
+    inferred_score_mean 1.0579465508806738
+    inferred_score_std 1.581759115609478
   ]
   node [
     id 93
@@ -938,8 +1050,9 @@ graph [
     race "white"
     sex "male"
     grade 9
-    modularity_group 2
-    win_percentage -0.285714244897965
+    inferred_group 10
+    inferred_score_mean -1.099209274363067
+    inferred_score_std 0.8810638597776073
   ]
   node [
     id 94
@@ -948,8 +1061,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 9
-    modularity_group 2
-    win_percentage 0.99999950000025
+    inferred_group 10
+    inferred_score_mean 2.7434897286539113
+    inferred_score_std 1.8631680045624268
   ]
   node [
     id 95
@@ -958,8 +1072,9 @@ graph [
     race "mixed"
     sex "male"
     grade 9
-    modularity_group 2
-    win_percentage 0.0
+    inferred_group 10
+    inferred_score_mean 0.8457599099629678
+    inferred_score_std 0.968070489837922
   ]
   node [
     id 96
@@ -968,8 +1083,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 9
-    modularity_group 2
-    win_percentage -0.4545454132231443
+    inferred_group 2
+    inferred_score_mean -0.6462716990871927
+    inferred_score_std 0.8667514701979928
   ]
   node [
     id 97
@@ -978,8 +1094,9 @@ graph [
     race "white"
     sex "male"
     grade 9
-    modularity_group 2
-    win_percentage 0.33333327777778704
+    inferred_group 10
+    inferred_score_mean 1.1165473628199027
+    inferred_score_std 1.1559232591390316
   ]
   node [
     id 98
@@ -988,8 +1105,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 12
-    win_percentage -0.99999950000025
+    inferred_group 0
+    inferred_score_mean -2.8999341442515942
+    inferred_score_std 1.6069729370212622
   ]
   node [
     id 99
@@ -998,8 +1116,9 @@ graph [
     race "black"
     sex "missing"
     grade 9
-    modularity_group 12
-    win_percentage 0.9999990000010001
+    inferred_group 0
+    inferred_score_mean 0.7480044391087579
+    inferred_score_std 2.278332947629101
   ]
   node [
     id 100
@@ -1008,8 +1127,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 12
-    win_percentage 0.9999990000010001
+    inferred_group 0
+    inferred_score_mean 2.3426152014721553
+    inferred_score_std 2.1877721791804303
   ]
   node [
     id 101
@@ -1018,8 +1138,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage 0.499999950000005
+    inferred_group 9
+    inferred_score_mean 2.585249183337625
+    inferred_score_std 1.1022003564564278
   ]
   node [
     id 102
@@ -1028,8 +1149,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage -0.9999998333333611
+    inferred_group 1
+    inferred_score_mean -4.496019305457122
+    inferred_score_std 1.7496903597274245
   ]
   node [
     id 103
@@ -1038,8 +1160,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 6
-    win_percentage -0.6666665555555741
+    inferred_group 9
+    inferred_score_mean -3.59531322368956
+    inferred_score_std 1.2924565787743059
   ]
   node [
     id 104
@@ -1048,8 +1171,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage 0.9999996666667778
+    inferred_group 1
+    inferred_score_mean 2.73995189669044
+    inferred_score_std 1.8543276557517008
   ]
   node [
     id 105
@@ -1058,8 +1182,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 3
-    win_percentage 0.99999950000025
+    inferred_group 0
+    inferred_score_mean 0.8047950477086183
+    inferred_score_std 1.9054268814215054
   ]
   node [
     id 106
@@ -1068,8 +1193,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 9
-    modularity_group 9
-    win_percentage 0.99999950000025
+    inferred_group 11
+    inferred_score_mean 2.199885791103304
+    inferred_score_std 1.273721260015619
   ]
   node [
     id 107
@@ -1078,8 +1204,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage 0.99999980000004
+    inferred_group 1
+    inferred_score_mean 2.9656829732031946
+    inferred_score_std 1.756622360226915
   ]
   node [
     id 108
@@ -1088,8 +1215,9 @@ graph [
     race "white"
     sex "male"
     grade 11
-    modularity_group 6
-    win_percentage 0.33333327777778704
+    inferred_group 0
+    inferred_score_mean 1.3571057629804708
+    inferred_score_std 1.1663132857080305
   ]
   node [
     id 109
@@ -1098,8 +1226,9 @@ graph [
     race "white"
     sex "male"
     grade 11
-    modularity_group 6
-    win_percentage 0.399999920000016
+    inferred_group 0
+    inferred_score_mean 1.9038066573721322
+    inferred_score_std 1.103906357603006
   ]
   node [
     id 110
@@ -1108,8 +1237,9 @@ graph [
     race "white"
     sex "male"
     grade 9
-    modularity_group 6
-    win_percentage 0.0
+    inferred_group 0
+    inferred_score_mean 0.9677372778250147
+    inferred_score_std 0.9000281844184708
   ]
   node [
     id 111
@@ -1118,8 +1248,9 @@ graph [
     race "missing"
     sex "female"
     grade 11
-    modularity_group 6
-    win_percentage 0.0
+    inferred_group 0
+    inferred_score_mean 0.3677298706000125
+    inferred_score_std 1.1427169978246048
   ]
   node [
     id 112
@@ -1128,8 +1259,9 @@ graph [
     race "mixed"
     sex "female"
     grade 11
-    modularity_group 7
-    win_percentage -0.6249999218750099
+    inferred_group 3
+    inferred_score_mean -2.9046611569672134
+    inferred_score_std 0.9815181951746199
   ]
   node [
     id 113
@@ -1138,8 +1270,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 7
-    win_percentage 0.499999750000125
+    inferred_group 3
+    inferred_score_mean -1.279955784626497
+    inferred_score_std 1.380837627337086
   ]
   node [
     id 114
@@ -1148,8 +1281,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 8
-    win_percentage 0.0
+    inferred_group 3
+    inferred_score_mean 0.36772101463620366
+    inferred_score_std 1.5503613596089998
   ]
   node [
     id 115
@@ -1158,8 +1292,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 7
-    win_percentage 0.199999960000008
+    inferred_group 3
+    inferred_score_mean -1.2847789305224158
+    inferred_score_std 0.9154847407114239
   ]
   node [
     id 116
@@ -1168,8 +1303,9 @@ graph [
     race "white"
     sex "male"
     grade 10
-    modularity_group 9
-    win_percentage -0.5555554938271674
+    inferred_group 6
+    inferred_score_mean -2.2075816245551922
+    inferred_score_std 1.109893967891438
   ]
   node [
     id 117
@@ -1178,8 +1314,9 @@ graph [
     race "mixed"
     sex "male"
     grade 11
-    modularity_group 3
-    win_percentage 0.24999993750001562
+    inferred_group 6
+    inferred_score_mean 0.8257541502441467
+    inferred_score_std 0.9986534646372268
   ]
   node [
     id 118
@@ -1188,8 +1325,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 1
-    win_percentage 0.0
+    inferred_group 6
+    inferred_score_mean 0.22863226218960564
+    inferred_score_std 1.0788064045868004
   ]
   node [
     id 119
@@ -1198,8 +1336,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 3
-    win_percentage 0.9999996666667778
+    inferred_group 6
+    inferred_score_mean 1.451025513751304
+    inferred_score_std 1.9187775356470376
   ]
   node [
     id 120
@@ -1208,8 +1347,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 8
-    win_percentage 0.0
+    inferred_group 11
+    inferred_score_mean 0.44042095132674547
+    inferred_score_std 1.6192060863563047
   ]
   node [
     id 121
@@ -1218,8 +1358,9 @@ graph [
     race "mixed"
     sex "male"
     grade 10
-    modularity_group 8
-    win_percentage 0.24999993750001562
+    inferred_group 11
+    inferred_score_mean 0.19820824795095174
+    inferred_score_std 1.2692372295523615
   ]
   node [
     id 122
@@ -1228,8 +1369,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 8
-    win_percentage -0.49999987500003124
+    inferred_group 11
+    inferred_score_mean -0.5699288522262917
+    inferred_score_std 1.0916361692218552
   ]
   node [
     id 123
@@ -1238,8 +1380,9 @@ graph [
     race "white"
     sex "female"
     grade 9
-    modularity_group 5
-    win_percentage 0.24999993750001562
+    inferred_group 4
+    inferred_score_mean 0.0874894441073185
+    inferred_score_std 1.186206601768711
   ]
   node [
     id 124
@@ -1248,8 +1391,9 @@ graph [
     race "white"
     sex "female"
     grade 9
-    modularity_group 5
-    win_percentage 0.0
+    inferred_group 4
+    inferred_score_mean -0.8871371209970835
+    inferred_score_std 1.0743767639126585
   ]
   node [
     id 125
@@ -1258,8 +1402,9 @@ graph [
     race "white"
     sex "male"
     grade 12
-    modularity_group 5
-    win_percentage -0.16666663888889352
+    inferred_group 4
+    inferred_score_mean -0.5448544841346565
+    inferred_score_std 1.0321753217159775
   ]
   node [
     id 126
@@ -1268,8 +1413,9 @@ graph [
     race "white"
     sex "female"
     grade 12
-    modularity_group 4
-    win_percentage 0.199999960000008
+    inferred_group 5
+    inferred_score_mean -0.9505831889461868
+    inferred_score_std 1.4735515298868849
   ]
   node [
     id 127
@@ -1278,8 +1424,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 11
-    modularity_group 4
-    win_percentage 0.599999880000024
+    inferred_group 5
+    inferred_score_mean 0.1842304609863968
+    inferred_score_std 1.5274607465626855
   ]
   node [
     id 128
@@ -1288,8 +1435,9 @@ graph [
     race "asian"
     sex "male"
     grade 11
-    modularity_group 4
-    win_percentage 0.0
+    inferred_group 7
+    inferred_score_mean -0.6745919498083774
+    inferred_score_std 1.3578855845407694
   ]
   node [
     id 129
@@ -1298,8 +1446,9 @@ graph [
     race "black"
     sex "female"
     grade 12
-    modularity_group 10
-    win_percentage 0.24999993750001562
+    inferred_group 11
+    inferred_score_mean 0.6878695776641477
+    inferred_score_std 1.4398346735460885
   ]
   node [
     id 130
@@ -1308,8 +1457,9 @@ graph [
     race "black"
     sex "female"
     grade 12
-    modularity_group 10
-    win_percentage 0.0
+    inferred_group 3
+    inferred_score_mean 0.27518585202909085
+    inferred_score_std 1.7277876950765607
   ]
   node [
     id 131
@@ -1318,8 +1468,9 @@ graph [
     race "white"
     sex "female"
     grade 10
-    modularity_group 4
-    win_percentage -0.6666665555555741
+    inferred_group 7
+    inferred_score_mean -3.3619109535369534
+    inferred_score_std 1.3743477387347933
   ]
   node [
     id 132
@@ -1328,8 +1479,9 @@ graph [
     race "hispanic"
     sex "female"
     grade 12
-    modularity_group 4
-    win_percentage -0.49999991666668053
+    inferred_group 7
+    inferred_score_mean -2.798017089934252
+    inferred_score_std 1.0342236158087617
   ]
   node [
     id 133
@@ -1338,8 +1490,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 10
-    modularity_group 4
-    win_percentage 0.24999996875000394
+    inferred_group 7
+    inferred_score_mean -0.1799166469215299
+    inferred_score_std 0.6650256385500102
   ]
   node [
     id 134
@@ -1348,8 +1501,9 @@ graph [
     race "hispanic"
     sex "female"
     grade 10
-    modularity_group 2
-    win_percentage 0.0
+    inferred_group 7
+    inferred_score_mean 1.2957064032954988
+    inferred_score_std 1.0594796102196022
   ]
   node [
     id 135
@@ -1358,8 +1512,9 @@ graph [
     race "white"
     sex "male"
     grade 10
-    modularity_group 4
-    win_percentage 0.6249999218750099
+    inferred_group 7
+    inferred_score_mean 2.5243310563902748
+    inferred_score_std 0.9805641501963765
   ]
   node [
     id 136
@@ -1368,8 +1523,9 @@ graph [
     race "white"
     sex "male"
     grade 9
-    modularity_group 2
-    win_percentage 0.0
+    inferred_group 10
+    inferred_score_mean 1.517533690422893
+    inferred_score_std 1.3200462872048961
   ]
   node [
     id 137
@@ -1378,8 +1534,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage 0.99999980000004
+    inferred_group 1
+    inferred_score_mean 2.6893232692419353
+    inferred_score_std 2.126201857287948
   ]
   node [
     id 138
@@ -1388,8 +1545,9 @@ graph [
     race "hispanic"
     sex "female"
     grade 11
-    modularity_group 9
-    win_percentage 0.9999990000010001
+    inferred_group 11
+    inferred_score_mean 1.3723717107020008
+    inferred_score_std 2.096064820211463
   ]
   node [
     id 139
@@ -1398,8 +1556,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 9
-    win_percentage 0.6666665925926009
+    inferred_group 6
+    inferred_score_mean 2.24927412854014
+    inferred_score_std 1.033057923953833
   ]
   node [
     id 140
@@ -1408,8 +1567,9 @@ graph [
     race "asian"
     sex "male"
     grade 10
-    modularity_group 6
-    win_percentage -0.24999993750001562
+    inferred_group 6
+    inferred_score_mean -2.2909335090303853
+    inferred_score_std 0.9702742000349615
   ]
   node [
     id 141
@@ -1418,8 +1578,9 @@ graph [
     race "white"
     sex "female"
     grade 10
-    modularity_group 5
-    win_percentage -0.24999993750001562
+    inferred_group 7
+    inferred_score_mean -1.2683443007961632
+    inferred_score_std 1.0302437155587467
   ]
   node [
     id 142
@@ -1428,8 +1589,9 @@ graph [
     race "mixed"
     sex "male"
     grade 11
-    modularity_group 3
-    win_percentage 0.0
+    inferred_group 11
+    inferred_score_mean 1.0456494212414162
+    inferred_score_std 1.519531694328176
   ]
   node [
     id 143
@@ -1438,8 +1600,9 @@ graph [
     race "white"
     sex "male"
     grade 9
-    modularity_group 2
-    win_percentage -0.7499998125000469
+    inferred_group 10
+    inferred_score_mean -2.5419432084540445
+    inferred_score_std 1.2273384504971263
   ]
   node [
     id 144
@@ -1448,8 +1611,9 @@ graph [
     race "white"
     sex "female"
     grade 9
-    modularity_group 2
-    win_percentage 0.12499998437500197
+    inferred_group 10
+    inferred_score_mean -0.44329006245633806
+    inferred_score_std 0.9954013206708443
   ]
   node [
     id 145
@@ -1458,8 +1622,9 @@ graph [
     race "mixed"
     sex "male"
     grade 9
-    modularity_group 2
-    win_percentage -0.24999993750001562
+    inferred_group 10
+    inferred_score_mean -2.520228478033956
+    inferred_score_std 1.1862875641267516
   ]
   node [
     id 146
@@ -1468,8 +1633,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 12
-    modularity_group 4
-    win_percentage 0.99999980000004
+    inferred_group 7
+    inferred_score_mean 2.197119359098496
+    inferred_score_std 1.3187898563269513
   ]
   node [
     id 147
@@ -1478,8 +1644,9 @@ graph [
     race "mixed"
     sex "female"
     grade 12
-    modularity_group 4
-    win_percentage -0.16666663888889352
+    inferred_group 7
+    inferred_score_mean -1.015664327446854
+    inferred_score_std 1.0656225198467837
   ]
   node [
     id 148
@@ -1488,8 +1655,9 @@ graph [
     race "black"
     sex "female"
     grade 9
-    modularity_group 0
-    win_percentage 0.7142856122449125
+    inferred_group 1
+    inferred_score_mean 2.7502399080386226
+    inferred_score_std 1.034641213981838
   ]
   node [
     id 149
@@ -1498,8 +1666,9 @@ graph [
     race "black"
     sex "male"
     grade 12
-    modularity_group 10
-    win_percentage 0.99999950000025
+    inferred_group 11
+    inferred_score_mean 3.6245559696439766
+    inferred_score_std 1.8236409604263732
   ]
   node [
     id 150
@@ -1508,8 +1677,9 @@ graph [
     race "black"
     sex "female"
     grade 12
-    modularity_group 8
-    win_percentage -0.33333322222225925
+    inferred_group 3
+    inferred_score_mean -2.0239271402689893
+    inferred_score_std 1.3663435425699106
   ]
   node [
     id 151
@@ -1518,8 +1688,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 8
-    win_percentage 0.9999990000010001
+    inferred_group 3
+    inferred_score_mean 2.827681763815201
+    inferred_score_std 1.6422475360270452
   ]
   node [
     id 152
@@ -1528,8 +1699,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 8
-    win_percentage 0.49999987500003124
+    inferred_group 3
+    inferred_score_mean 1.7760266660001731
+    inferred_score_std 1.4490014917793899
   ]
   node [
     id 153
@@ -1538,8 +1710,9 @@ graph [
     race "white"
     sex "male"
     grade 10
-    modularity_group 6
-    win_percentage -0.49999987500003124
+    inferred_group 6
+    inferred_score_mean -0.9870742784445864
+    inferred_score_std 1.659228835876536
   ]
   node [
     id 154
@@ -1548,8 +1721,9 @@ graph [
     race "black"
     sex "male"
     grade 12
-    modularity_group 6
-    win_percentage 0.499999750000125
+    inferred_group 6
+    inferred_score_mean 1.8429291150047415
+    inferred_score_std 1.0058047558311938
   ]
   node [
     id 155
@@ -1558,8 +1732,9 @@ graph [
     race "black"
     sex "female"
     grade 12
-    modularity_group 8
-    win_percentage -0.9999996666667778
+    inferred_group 3
+    inferred_score_mean -3.7145369277192617
+    inferred_score_std 1.5553034476664003
   ]
   node [
     id 156
@@ -1568,8 +1743,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 8
-    win_percentage 0.9999997500000625
+    inferred_group 3
+    inferred_score_mean 2.7826986775383578
+    inferred_score_std 1.7412481939073507
   ]
   node [
     id 157
@@ -1578,8 +1754,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 8
-    win_percentage -0.99999950000025
+    inferred_group 11
+    inferred_score_mean -2.8809909657028405
+    inferred_score_std 1.6200170194312848
   ]
   node [
     id 158
@@ -1588,8 +1765,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 8
-    win_percentage 0.9999990000010001
+    inferred_group 11
+    inferred_score_mean 1.9478517765080134
+    inferred_score_std 1.645274060695232
   ]
   node [
     id 159
@@ -1598,8 +1776,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage -0.9999996666667778
+    inferred_group 3
+    inferred_score_mean -2.6015027228729153
+    inferred_score_std 1.465889214150582
   ]
   node [
     id 160
@@ -1608,8 +1787,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 1
-    win_percentage 0.99999950000025
+    inferred_group 3
+    inferred_score_mean 3.596027809673685
+    inferred_score_std 1.4913709016453258
   ]
   node [
     id 161
@@ -1618,8 +1798,9 @@ graph [
     race "missing"
     sex "female"
     grade 11
-    modularity_group 4
-    win_percentage -0.399999920000016
+    inferred_group 3
+    inferred_score_mean -2.7494940308450473
+    inferred_score_std 1.1648547184619231
   ]
   node [
     id 162
@@ -1628,8 +1809,9 @@ graph [
     race "black"
     sex "female"
     grade 9
-    modularity_group 0
-    win_percentage 0.33333322222225925
+    inferred_group 11
+    inferred_score_mean 1.5961568484484754
+    inferred_score_std 1.3907618040485905
   ]
   node [
     id 163
@@ -1638,8 +1820,9 @@ graph [
     race "black"
     sex "female"
     grade 9
-    modularity_group 0
-    win_percentage 0.9999990000010001
+    inferred_group 11
+    inferred_score_mean 3.4529668297364107
+    inferred_score_std 1.4721606698284748
   ]
   node [
     id 164
@@ -1648,8 +1831,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 13
-    win_percentage -0.9999990000010001
+    inferred_group 8
+    inferred_score_mean 0.3295331821267458
+    inferred_score_std 1.398882911352514
   ]
   node [
     id 165
@@ -1658,8 +1842,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 10
-    modularity_group 13
-    win_percentage 0.9999990000010001
+    inferred_group 8
+    inferred_score_mean 0.5273487473285647
+    inferred_score_std 0.9436227103675486
   ]
   node [
     id 166
@@ -1668,8 +1853,9 @@ graph [
     race "black"
     sex "male"
     grade 12
-    modularity_group 1
-    win_percentage 0.0
+    inferred_group 6
+    inferred_score_mean 0.061420657975960434
+    inferred_score_std 1.4651904265240514
   ]
   node [
     id 167
@@ -1678,8 +1864,9 @@ graph [
     race "black"
     sex "male"
     grade 12
-    modularity_group 1
-    win_percentage -0.1428571224489825
+    inferred_group 6
+    inferred_score_mean -1.192270084802677
+    inferred_score_std 0.9490562625186334
   ]
   node [
     id 168
@@ -1688,8 +1875,9 @@ graph [
     race "black"
     sex "female"
     grade 10
-    modularity_group 7
-    win_percentage -0.9999996666667778
+    inferred_group 11
+    inferred_score_mean -3.5448731756973384
+    inferred_score_std 1.9434380161544835
   ]
   node [
     id 169
@@ -1698,8 +1886,9 @@ graph [
     race "black"
     sex "female"
     grade 10
-    modularity_group 7
-    win_percentage 0.499999750000125
+    inferred_group 11
+    inferred_score_mean -0.4614555753577857
+    inferred_score_std 1.6063109412583199
   ]
   node [
     id 170
@@ -1708,8 +1897,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 9
-    modularity_group 7
-    win_percentage 0.99999950000025
+    inferred_group 1
+    inferred_score_mean 0.32291127993592617
+    inferred_score_std 1.7366026347145205
   ]
   node [
     id 171
@@ -1718,8 +1908,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 1
-    win_percentage -0.599999880000024
+    inferred_group 3
+    inferred_score_mean -2.4356421963938604
+    inferred_score_std 1.3474416840426147
   ]
   node [
     id 172
@@ -1728,8 +1919,9 @@ graph [
     race "black"
     sex "female"
     grade 12
-    modularity_group 1
-    win_percentage -0.12499998437500197
+    inferred_group 9
+    inferred_score_mean -0.7234220164432504
+    inferred_score_std 0.932513107630259
   ]
   node [
     id 173
@@ -1738,8 +1930,9 @@ graph [
     race "black"
     sex "female"
     grade 12
-    modularity_group 1
-    win_percentage 0.99999950000025
+    inferred_group 3
+    inferred_score_mean 1.2602960240590337
+    inferred_score_std 1.774192457433649
   ]
   node [
     id 174
@@ -1748,8 +1941,9 @@ graph [
     race "mixed"
     sex "female"
     grade 12
-    modularity_group 10
-    win_percentage -0.33333322222225925
+    inferred_group 11
+    inferred_score_mean 1.358691735350917
+    inferred_score_std 1.6290502482425797
   ]
   node [
     id 175
@@ -1758,8 +1952,9 @@ graph [
     race "black"
     sex "female"
     grade 12
-    modularity_group 7
-    win_percentage -0.599999880000024
+    inferred_group 3
+    inferred_score_mean -2.604642737422139
+    inferred_score_std 1.2990176863132539
   ]
   node [
     id 176
@@ -1768,8 +1963,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage -0.599999880000024
+    inferred_group 9
+    inferred_score_mean -1.1488225464923085
+    inferred_score_std 1.1127797789271763
   ]
   node [
     id 177
@@ -1778,8 +1974,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 5
-    win_percentage -0.9999990000010001
+    inferred_group 4
+    inferred_score_mean -3.2888359778669964
+    inferred_score_std 1.8600678410036195
   ]
   node [
     id 178
@@ -1788,8 +1985,9 @@ graph [
     race "white"
     sex "female"
     grade 10
-    modularity_group 5
-    win_percentage 0.9999998333333611
+    inferred_group 4
+    inferred_score_mean 3.3235080462030595
+    inferred_score_std 1.3972550999384261
   ]
   node [
     id 179
@@ -1798,8 +1996,9 @@ graph [
     race "white"
     sex "female"
     grade 10
-    modularity_group 5
-    win_percentage 0.0
+    inferred_group 4
+    inferred_score_mean -1.124425759959929
+    inferred_score_std 1.2944797568107638
   ]
   node [
     id 180
@@ -1808,8 +2007,9 @@ graph [
     race "mixed"
     sex "female"
     grade 12
-    modularity_group 4
-    win_percentage 0.0
+    inferred_group 7
+    inferred_score_mean -0.8804686584299475
+    inferred_score_std 0.7389814344159087
   ]
   node [
     id 181
@@ -1818,8 +2018,9 @@ graph [
     race "hispanic"
     sex "female"
     grade 11
-    modularity_group 4
-    win_percentage -0.1428571224489825
+    inferred_group 7
+    inferred_score_mean -1.5399080691311056
+    inferred_score_std 0.9024028837297002
   ]
   node [
     id 182
@@ -1828,8 +2029,9 @@ graph [
     race "white"
     sex "male"
     grade 11
-    modularity_group 6
-    win_percentage 0.99999950000025
+    inferred_group 0
+    inferred_score_mean 3.63156126238251
+    inferred_score_std 1.5010678024525208
   ]
   node [
     id 183
@@ -1838,8 +2040,9 @@ graph [
     race "black"
     sex "female"
     grade 10
-    modularity_group 8
-    win_percentage 0.9999996666667778
+    inferred_group 6
+    inferred_score_mean 3.9705853100387327
+    inferred_score_std 1.6444211138112979
   ]
   node [
     id 184
@@ -1848,8 +2051,9 @@ graph [
     race "hispanic"
     sex "female"
     grade 9
-    modularity_group 4
-    win_percentage -0.24999993750001562
+    inferred_group 7
+    inferred_score_mean 0.07105521102483688
+    inferred_score_std 0.7641440382642334
   ]
   node [
     id 185
@@ -1858,8 +2062,9 @@ graph [
     race "hispanic"
     sex "female"
     grade 9
-    modularity_group 4
-    win_percentage 0.0
+    inferred_group 5
+    inferred_score_mean 0.7673728073387929
+    inferred_score_std 1.4352833309289506
   ]
   node [
     id 186
@@ -1868,8 +2073,9 @@ graph [
     race "mixed"
     sex "female"
     grade 10
-    modularity_group 4
-    win_percentage 0.33333327777778704
+    inferred_group 7
+    inferred_score_mean 1.1651616698283656
+    inferred_score_std 1.2662005852819902
   ]
   node [
     id 187
@@ -1878,8 +2084,9 @@ graph [
     race "hispanic"
     sex "female"
     grade 10
-    modularity_group 4
-    win_percentage 0.57142848979593
+    inferred_group 7
+    inferred_score_mean 2.7126017040903996
+    inferred_score_std 1.1412935421429695
   ]
   node [
     id 188
@@ -1888,8 +2095,9 @@ graph [
     race "white"
     sex "female"
     grade 9
-    modularity_group 6
-    win_percentage -0.33333322222225925
+    inferred_group 0
+    inferred_score_mean 0.5962586906639074
+    inferred_score_std 0.8622432902342939
   ]
   node [
     id 189
@@ -1898,8 +2106,9 @@ graph [
     race "white"
     sex "male"
     grade 11
-    modularity_group 6
-    win_percentage 0.9999996666667778
+    inferred_group 0
+    inferred_score_mean 3.420734136186231
+    inferred_score_std 1.8237792219873667
   ]
   node [
     id 190
@@ -1908,8 +2117,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage -0.199999960000008
+    inferred_group 6
+    inferred_score_mean 1.5931567407639264
+    inferred_score_std 1.2941289849442463
   ]
   node [
     id 191
@@ -1918,8 +2128,9 @@ graph [
     race "white"
     sex "female"
     grade 9
-    modularity_group 2
-    win_percentage -0.9999997500000625
+    inferred_group 2
+    inferred_score_mean -3.076570244057939
+    inferred_score_std 1.523263221157828
   ]
   node [
     id 192
@@ -1928,8 +2139,9 @@ graph [
     race "white"
     sex "female"
     grade 9
-    modularity_group 2
-    win_percentage 0.99999980000004
+    inferred_group 2
+    inferred_score_mean 3.5290578109631983
+    inferred_score_std 1.9314915534094304
   ]
   node [
     id 193
@@ -1938,8 +2150,9 @@ graph [
     race "white"
     sex "male"
     grade 11
-    modularity_group 2
-    win_percentage 0.33333322222225925
+    inferred_group 2
+    inferred_score_mean 1.6205776462779382
+    inferred_score_std 1.3920431928917139
   ]
   node [
     id 194
@@ -1948,8 +2161,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 1
-    win_percentage -0.6249999218750099
+    inferred_group 3
+    inferred_score_mean -2.804381602311755
+    inferred_score_std 1.151074332472923
   ]
   node [
     id 195
@@ -1958,8 +2172,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage 0.99999950000025
+    inferred_group 12
+    inferred_score_mean 3.557680492863861
+    inferred_score_std 1.763975749870917
   ]
   node [
     id 196
@@ -1968,8 +2183,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 7
-    win_percentage 0.9999996666667778
+    inferred_group 3
+    inferred_score_mean -0.6207719438981857
+    inferred_score_std 1.1466723027463541
   ]
   node [
     id 197
@@ -1978,8 +2194,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 7
-    win_percentage 0.24999993750001562
+    inferred_group 3
+    inferred_score_mean -1.4882290511041447
+    inferred_score_std 1.4959124866364644
   ]
   node [
     id 198
@@ -1988,8 +2205,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 7
-    win_percentage -0.49999987500003124
+    inferred_group 3
+    inferred_score_mean -2.7577287343996004
+    inferred_score_std 1.3042552041772566
   ]
   node [
     id 199
@@ -1998,8 +2216,9 @@ graph [
     race "mixed"
     sex "female"
     grade 12
-    modularity_group 6
-    win_percentage 0.6666664444445185
+    inferred_group 6
+    inferred_score_mean 1.7813180113436147
+    inferred_score_std 1.1449292273306038
   ]
   node [
     id 200
@@ -2008,8 +2227,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 6
-    win_percentage 0.9999996666667778
+    inferred_group 9
+    inferred_score_mean 2.2393470144592214
+    inferred_score_std 1.6461109692546652
   ]
   node [
     id 201
@@ -2018,8 +2238,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 6
-    win_percentage 0.0
+    inferred_group 9
+    inferred_score_mean -2.1008985953913566
+    inferred_score_std 1.2405023734580694
   ]
   node [
     id 202
@@ -2028,8 +2249,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 3
-    win_percentage 0.9999996666667778
+    inferred_group 6
+    inferred_score_mean 1.37472988592769
+    inferred_score_std 1.6269171856410902
   ]
   node [
     id 203
@@ -2038,8 +2260,9 @@ graph [
     race "white"
     sex "male"
     grade 12
-    modularity_group 4
-    win_percentage -0.3749999531250059
+    inferred_group 7
+    inferred_score_mean -1.1474425455623887
+    inferred_score_std 1.1577103111921636
   ]
   node [
     id 204
@@ -2048,8 +2271,9 @@ graph [
     race "white"
     sex "female"
     grade 9
-    modularity_group 5
-    win_percentage -0.199999960000008
+    inferred_group 4
+    inferred_score_mean -0.42680531508535063
+    inferred_score_std 1.2299949771204841
   ]
   node [
     id 205
@@ -2058,8 +2282,9 @@ graph [
     race "white"
     sex "female"
     grade 10
-    modularity_group 5
-    win_percentage -0.799999840000032
+    inferred_group 4
+    inferred_score_mean -2.7305575789699956
+    inferred_score_std 1.4596925192464438
   ]
   node [
     id 206
@@ -2068,8 +2293,9 @@ graph [
     race "white"
     sex "male"
     grade 12
-    modularity_group 5
-    win_percentage 0.99999950000025
+    inferred_group 4
+    inferred_score_mean 2.8103173688599647
+    inferred_score_std 1.5266728979593776
   ]
   node [
     id 207
@@ -2078,8 +2304,9 @@ graph [
     race "black"
     sex "female"
     grade 9
-    modularity_group 0
-    win_percentage -0.285714244897965
+    inferred_group 1
+    inferred_score_mean -0.6510989382265628
+    inferred_score_std 1.3453559248381985
   ]
   node [
     id 208
@@ -2088,8 +2315,9 @@ graph [
     race "black"
     sex "female"
     grade 9
-    modularity_group 0
-    win_percentage -0.09090908264462885
+    inferred_group 1
+    inferred_score_mean -1.3222141218992192
+    inferred_score_std 1.1590150505389352
   ]
   node [
     id 209
@@ -2098,8 +2326,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage 0.9999996666667778
+    inferred_group 1
+    inferred_score_mean 4.374793536936069
+    inferred_score_std 1.529588774035024
   ]
   node [
     id 210
@@ -2108,8 +2337,9 @@ graph [
     race "mixed"
     sex "male"
     grade 10
-    modularity_group 3
-    win_percentage -0.9999998333333611
+    inferred_group 13
+    inferred_score_mean -3.5662690626506715
+    inferred_score_std 1.6608150118017426
   ]
   node [
     id 211
@@ -2118,8 +2348,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 3
-    win_percentage 0.6666665555555741
+    inferred_group 13
+    inferred_score_mean 2.603838590499277
+    inferred_score_std 1.4825032429228922
   ]
   node [
     id 212
@@ -2128,8 +2359,9 @@ graph [
     race "mixed"
     sex "male"
     grade 10
-    modularity_group 3
-    win_percentage 0.0
+    inferred_group 13
+    inferred_score_mean 0.5414160158468508
+    inferred_score_std 1.204806117475324
   ]
   node [
     id 213
@@ -2138,8 +2370,9 @@ graph [
     race "hispanic"
     sex "female"
     grade 10
-    modularity_group 3
-    win_percentage 0.33333329629630043
+    inferred_group 13
+    inferred_score_mean 0.813641441704121
+    inferred_score_std 0.8947079302711061
   ]
   node [
     id 214
@@ -2148,8 +2381,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 3
-    win_percentage 0.99999950000025
+    inferred_group 1
+    inferred_score_mean 2.472665943549387
+    inferred_score_std 2.134823002413898
   ]
   node [
     id 215
@@ -2158,8 +2392,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 3
-    win_percentage 0.16666663888889352
+    inferred_group 13
+    inferred_score_mean 1.5925468191581482
+    inferred_score_std 0.9103999626731463
   ]
   node [
     id 216
@@ -2168,8 +2403,9 @@ graph [
     race "white"
     sex "female"
     grade 11
-    modularity_group 11
-    win_percentage -0.9999996666667778
+    inferred_group 5
+    inferred_score_mean -2.563337993167632
+    inferred_score_std 1.8353340098952495
   ]
   node [
     id 217
@@ -2178,8 +2414,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 11
-    win_percentage 0.99999950000025
+    inferred_group 6
+    inferred_score_mean 3.3081708160560046
+    inferred_score_std 1.4190195529999827
   ]
   node [
     id 218
@@ -2188,8 +2425,9 @@ graph [
     race "white"
     sex "male"
     grade 12
-    modularity_group 11
-    win_percentage -0.33333327777778704
+    inferred_group 7
+    inferred_score_mean -1.640219280456311
+    inferred_score_std 0.882023923832549
   ]
   node [
     id 219
@@ -2198,8 +2436,9 @@ graph [
     race "black"
     sex "male"
     grade 12
-    modularity_group 1
-    win_percentage -0.7499999062500118
+    inferred_group 9
+    inferred_score_mean -3.2147347749668813
+    inferred_score_std 1.279733779887871
   ]
   node [
     id 220
@@ -2208,8 +2447,9 @@ graph [
     race "white"
     sex "female"
     grade 11
-    modularity_group 2
-    win_percentage -0.33333322222225925
+    inferred_group 3
+    inferred_score_mean -1.8442757566311492
+    inferred_score_std 1.5323976880971402
   ]
   node [
     id 221
@@ -2218,8 +2458,9 @@ graph [
     race "black"
     sex "female"
     grade 10
-    modularity_group 3
-    win_percentage 0.9999997500000625
+    inferred_group 13
+    inferred_score_mean 3.712099739041114
+    inferred_score_std 1.926309582808034
   ]
   node [
     id 222
@@ -2228,8 +2469,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 10
-    modularity_group 3
-    win_percentage -0.33333322222225925
+    inferred_group 13
+    inferred_score_mean 0.6199142870889064
+    inferred_score_std 1.0129280594209575
   ]
   node [
     id 223
@@ -2238,8 +2480,9 @@ graph [
     race "black"
     sex "female"
     grade 10
-    modularity_group 3
-    win_percentage -0.9999990000010001
+    inferred_group 11
+    inferred_score_mean -0.09264356670755695
+    inferred_score_std 1.834362556877159
   ]
   node [
     id 224
@@ -2248,8 +2491,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 10
-    modularity_group 4
-    win_percentage -0.49999987500003124
+    inferred_group 7
+    inferred_score_mean -1.0153155806011527
+    inferred_score_std 1.3559879068441574
   ]
   node [
     id 225
@@ -2258,8 +2502,9 @@ graph [
     race "mixed"
     sex "female"
     grade 9
-    modularity_group 2
-    win_percentage 0.33333329629630043
+    inferred_group 2
+    inferred_score_mean 1.1224421171422807
+    inferred_score_std 1.056550470822037
   ]
   node [
     id 226
@@ -2268,8 +2513,9 @@ graph [
     race "mixed"
     sex "female"
     grade 9
-    modularity_group 2
-    win_percentage -0.49999987500003124
+    inferred_group 2
+    inferred_score_mean -0.49818964734455534
+    inferred_score_std 1.2031345443787627
   ]
   node [
     id 227
@@ -2278,8 +2524,9 @@ graph [
     race "hispanic"
     sex "female"
     grade 10
-    modularity_group 2
-    win_percentage 0.499999750000125
+    inferred_group 2
+    inferred_score_mean 2.307398735678276
+    inferred_score_std 1.3494892327418517
   ]
   node [
     id 228
@@ -2288,8 +2535,9 @@ graph [
     race "hispanic"
     sex "female"
     grade 9
-    modularity_group 2
-    win_percentage 0.49999987500003124
+    inferred_group 2
+    inferred_score_mean 1.1149915439676439
+    inferred_score_std 1.1305869746038628
   ]
   node [
     id 229
@@ -2298,8 +2546,9 @@ graph [
     race "black"
     sex "female"
     grade 10
-    modularity_group 7
-    win_percentage -0.6666664444445185
+    inferred_group 11
+    inferred_score_mean -2.3034564702051195
+    inferred_score_std 1.1416237232717283
   ]
   node [
     id 230
@@ -2308,8 +2557,9 @@ graph [
     race "black"
     sex "female"
     grade 9
-    modularity_group 0
-    win_percentage -0.24999996875000394
+    inferred_group 1
+    inferred_score_mean -1.7802100299407384
+    inferred_score_std 1.2991475412550095
   ]
   node [
     id 231
@@ -2318,8 +2568,9 @@ graph [
     race "black"
     sex "female"
     grade 9
-    modularity_group 0
-    win_percentage 0.99999950000025
+    inferred_group 10
+    inferred_score_mean 2.381354792596634
+    inferred_score_std 1.90970279670431
   ]
   node [
     id 232
@@ -2328,8 +2579,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage 0.9999990000010001
+    inferred_group 1
+    inferred_score_mean 2.631363416569747
+    inferred_score_std 2.00925974235137
   ]
   node [
     id 233
@@ -2338,8 +2590,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage -0.11111109876543349
+    inferred_group 1
+    inferred_score_mean -0.03005773416230843
+    inferred_score_std 0.9617710477676775
   ]
   node [
     id 234
@@ -2348,8 +2601,9 @@ graph [
     race "mixed"
     sex "female"
     grade 9
-    modularity_group 0
-    win_percentage -0.7777776913580343
+    inferred_group 1
+    inferred_score_mean -4.770828689369457
+    inferred_score_std 1.319147870417518
   ]
   node [
     id 235
@@ -2358,8 +2612,9 @@ graph [
     race "black"
     sex "male"
     grade 12
-    modularity_group 10
-    win_percentage -0.33333322222225925
+    inferred_group 11
+    inferred_score_mean -0.6733149925077929
+    inferred_score_std 1.4171255972983468
   ]
   node [
     id 236
@@ -2368,8 +2623,9 @@ graph [
     race "black"
     sex "male"
     grade 12
-    modularity_group 10
-    win_percentage 0.99999950000025
+    inferred_group 11
+    inferred_score_mean 0.6469069404368726
+    inferred_score_std 1.2668636484545492
   ]
   node [
     id 237
@@ -2378,8 +2634,9 @@ graph [
     race "hispanic"
     sex "female"
     grade 9
-    modularity_group 2
-    win_percentage 0.0
+    inferred_group 10
+    inferred_score_mean 0.3096860142089118
+    inferred_score_std 1.2120101241479475
   ]
   node [
     id 238
@@ -2388,8 +2645,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 9
-    modularity_group 2
-    win_percentage 0.0
+    inferred_group 10
+    inferred_score_mean 1.8740373172143088
+    inferred_score_std 1.4178834960398692
   ]
   node [
     id 239
@@ -2398,8 +2656,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 9
-    modularity_group 2
-    win_percentage -0.4285713673469475
+    inferred_group 2
+    inferred_score_mean -1.401202003597318
+    inferred_score_std 1.0699024333543754
   ]
   node [
     id 240
@@ -2408,8 +2667,9 @@ graph [
     race "white"
     sex "female"
     grade 9
-    modularity_group 2
-    win_percentage -0.399999920000016
+    inferred_group 10
+    inferred_score_mean -0.1498623580407088
+    inferred_score_std 0.9460570276808432
   ]
   node [
     id 241
@@ -2418,8 +2678,9 @@ graph [
     race "white"
     sex "male"
     grade 10
-    modularity_group 2
-    win_percentage -0.6666664444445185
+    inferred_group 10
+    inferred_score_mean -1.3274020134437017
+    inferred_score_std 1.916262487250124
   ]
   node [
     id 242
@@ -2428,8 +2689,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 1
-    win_percentage 0.9999990000010001
+    inferred_group 5
+    inferred_score_mean 1.953936146773725
+    inferred_score_std 2.6398111793008665
   ]
   node [
     id 243
@@ -2438,8 +2700,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage -0.33333322222225925
+    inferred_group 11
+    inferred_score_mean -1.9472665732139292
+    inferred_score_std 1.4551579504631396
   ]
   node [
     id 244
@@ -2448,8 +2711,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage 0.9999990000010001
+    inferred_group 11
+    inferred_score_mean -1.068281970770258
+    inferred_score_std 1.0345789292187464
   ]
   node [
     id 245
@@ -2458,8 +2722,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage -0.6666665925926009
+    inferred_group 1
+    inferred_score_mean -3.450331816097119
+    inferred_score_std 1.1893042382622643
   ]
   node [
     id 246
@@ -2468,8 +2733,9 @@ graph [
     race "black"
     sex "female"
     grade 10
-    modularity_group 7
-    win_percentage 0.99999950000025
+    inferred_group 11
+    inferred_score_mean 3.124414785769655
+    inferred_score_std 1.4070598827539356
   ]
   node [
     id 247
@@ -2478,8 +2744,9 @@ graph [
     race "white"
     sex "male"
     grade 10
-    modularity_group 6
-    win_percentage -0.33333322222225925
+    inferred_group 5
+    inferred_score_mean -2.235857411944469
+    inferred_score_std 1.4948990932448678
   ]
   node [
     id 248
@@ -2488,8 +2755,9 @@ graph [
     race "mixed"
     sex "female"
     grade 12
-    modularity_group 10
-    win_percentage -0.499999750000125
+    inferred_group 11
+    inferred_score_mean -2.284944279189938
+    inferred_score_std 1.1935784242887173
   ]
   node [
     id 249
@@ -2498,8 +2766,9 @@ graph [
     race "black"
     sex "female"
     grade 12
-    modularity_group 10
-    win_percentage -0.499999750000125
+    inferred_group 11
+    inferred_score_mean -1.412280973301754
+    inferred_score_std 1.6729340278393559
   ]
   node [
     id 250
@@ -2508,8 +2777,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 5
-    win_percentage -0.599999880000024
+    inferred_group 10
+    inferred_score_mean -3.3902213289356773
+    inferred_score_std 1.4069901573450765
   ]
   node [
     id 251
@@ -2518,8 +2788,9 @@ graph [
     race "white"
     sex "female"
     grade 9
-    modularity_group 5
-    win_percentage 0.9999990000010001
+    inferred_group 10
+    inferred_score_mean 0.6496423490098623
+    inferred_score_std 1.9057472596242417
   ]
   node [
     id 252
@@ -2528,8 +2799,9 @@ graph [
     race "hispanic"
     sex "female"
     grade 9
-    modularity_group 5
-    win_percentage 0.499999750000125
+    inferred_group 10
+    inferred_score_mean -1.4126140849609468
+    inferred_score_std 1.1436160796678205
   ]
   node [
     id 253
@@ -2538,8 +2810,9 @@ graph [
     race "white"
     sex "female"
     grade 9
-    modularity_group 5
-    win_percentage 0.49999987500003124
+    inferred_group 10
+    inferred_score_mean 0.14867417808168332
+    inferred_score_std 1.941537900858126
   ]
   node [
     id 254
@@ -2548,8 +2821,9 @@ graph [
     race "mixed"
     sex "male"
     grade 10
-    modularity_group 6
-    win_percentage -0.799999840000032
+    inferred_group 5
+    inferred_score_mean -2.902372879714748
+    inferred_score_std 1.515888391058711
   ]
   node [
     id 255
@@ -2558,8 +2832,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage 0.99999950000025
+    inferred_group 1
+    inferred_score_mean 3.918490097847064
+    inferred_score_std 1.7234987092852163
   ]
   node [
     id 256
@@ -2568,8 +2843,9 @@ graph [
     race "white"
     sex "female"
     grade 10
-    modularity_group 6
-    win_percentage -0.99999950000025
+    inferred_group 5
+    inferred_score_mean -3.7121028753769996
+    inferred_score_std 1.85047402319814
   ]
   node [
     id 257
@@ -2578,8 +2854,9 @@ graph [
     race "white"
     sex "female"
     grade 11
-    modularity_group 6
-    win_percentage 0.6666664444445185
+    inferred_group 0
+    inferred_score_mean 2.2019545611334363
+    inferred_score_std 1.4524579075878572
   ]
   node [
     id 258
@@ -2588,8 +2865,9 @@ graph [
     race "mixed"
     sex "male"
     grade 9
-    modularity_group 2
-    win_percentage 0.99999950000025
+    inferred_group 4
+    inferred_score_mean 1.5871889946876196
+    inferred_score_std 1.6650974429469871
   ]
   node [
     id 259
@@ -2598,8 +2876,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage 0.0
+    inferred_group 6
+    inferred_score_mean -0.3798570074331482
+    inferred_score_std 1.3637744120463062
   ]
   node [
     id 260
@@ -2608,8 +2887,9 @@ graph [
     race "white"
     sex "female"
     grade 9
-    modularity_group 2
-    win_percentage -0.33333322222225925
+    inferred_group 10
+    inferred_score_mean -1.6208089117891407
+    inferred_score_std 1.2924045516406177
   ]
   node [
     id 261
@@ -2618,8 +2898,9 @@ graph [
     race "white"
     sex "female"
     grade 9
-    modularity_group 4
-    win_percentage 0.0
+    inferred_group 4
+    inferred_score_mean -1.1309923863283693
+    inferred_score_std 0.9895437312484081
   ]
   node [
     id 262
@@ -2628,8 +2909,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage -0.49999991666668053
+    inferred_group 1
+    inferred_score_mean -2.115096101851437
+    inferred_score_std 1.2908123968716327
   ]
   node [
     id 263
@@ -2638,8 +2920,9 @@ graph [
     race "black"
     sex "female"
     grade 9
-    modularity_group 0
-    win_percentage -0.49999987500003124
+    inferred_group 1
+    inferred_score_mean -2.2986983687389544
+    inferred_score_std 1.3867299909881796
   ]
   node [
     id 264
@@ -2648,8 +2931,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 0
-    win_percentage 0.9999990000010001
+    inferred_group 1
+    inferred_score_mean 1.0897021583357298
+    inferred_score_std 1.557674903885087
   ]
   node [
     id 265
@@ -2658,8 +2942,9 @@ graph [
     race "white"
     sex "female"
     grade 9
-    modularity_group 2
-    win_percentage 0.6666664444445185
+    inferred_group 10
+    inferred_score_mean 2.0376383155399695
+    inferred_score_std 1.3997624310483854
   ]
   node [
     id 266
@@ -2668,8 +2953,9 @@ graph [
     race "mixed"
     sex "male"
     grade 10
-    modularity_group 9
-    win_percentage 0.16666663888889352
+    inferred_group 6
+    inferred_score_mean 1.4922853429798992
+    inferred_score_std 1.07704512839202
   ]
   node [
     id 267
@@ -2678,8 +2964,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 9
-    win_percentage -0.499999750000125
+    inferred_group 6
+    inferred_score_mean 1.893500792487461
+    inferred_score_std 1.196409356469082
   ]
   node [
     id 268
@@ -2688,8 +2975,9 @@ graph [
     race "white"
     sex "male"
     grade 9
-    modularity_group 8
-    win_percentage -0.9999990000010001
+    inferred_group 0
+    inferred_score_mean -1.0022363100582066
+    inferred_score_std 1.9515416392103337
   ]
   node [
     id 269
@@ -2698,8 +2986,9 @@ graph [
     race "black"
     sex "male"
     grade 12
-    modularity_group 1
-    win_percentage 0.16666663888889352
+    inferred_group 9
+    inferred_score_mean 1.1217333103571583
+    inferred_score_std 0.902178147387578
   ]
   node [
     id 270
@@ -2708,8 +2997,9 @@ graph [
     race "black"
     sex "female"
     grade 12
-    modularity_group 7
-    win_percentage 0.9999996666667778
+    inferred_group 3
+    inferred_score_mean 3.143566588472562
+    inferred_score_std 1.9541671837650172
   ]
   node [
     id 271
@@ -2718,8 +3008,9 @@ graph [
     race "black"
     sex "female"
     grade 12
-    modularity_group 9
-    win_percentage 0.0
+    inferred_group 11
+    inferred_score_mean 0.9387925116243546
+    inferred_score_std 1.7482114745220856
   ]
   node [
     id 272
@@ -2728,8 +3019,9 @@ graph [
     race "white"
     sex "male"
     grade 11
-    modularity_group 8
-    win_percentage -0.9999996666667778
+    inferred_group 5
+    inferred_score_mean -4.565757324210709
+    inferred_score_std 1.5561806629494777
   ]
   node [
     id 273
@@ -2738,8 +3030,9 @@ graph [
     race "black"
     sex "female"
     grade 10
-    modularity_group 9
-    win_percentage -0.49999987500003124
+    inferred_group 5
+    inferred_score_mean -0.5816848964497753
+    inferred_score_std 1.5942478718152207
   ]
   node [
     id 274
@@ -2748,8 +3041,9 @@ graph [
     race "mixed"
     sex "female"
     grade 9
-    modularity_group 2
-    win_percentage -0.49999987500003124
+    inferred_group 10
+    inferred_score_mean -0.8272788996975502
+    inferred_score_std 1.4892343734370874
   ]
   node [
     id 275
@@ -2758,8 +3052,9 @@ graph [
     race "white"
     sex "female"
     grade 10
-    modularity_group 2
-    win_percentage -0.499999750000125
+    inferred_group 1
+    inferred_score_mean -0.4999811672686706
+    inferred_score_std 1.1517516824588634
   ]
   node [
     id 276
@@ -2768,8 +3063,9 @@ graph [
     race "white"
     sex "male"
     grade 11
-    modularity_group 2
-    win_percentage 0.0
+    inferred_group 2
+    inferred_score_mean -0.7953825953389211
+    inferred_score_std 1.3362146724140251
   ]
   node [
     id 277
@@ -2778,8 +3074,9 @@ graph [
     race "black"
     sex "female"
     grade 10
-    modularity_group 7
-    win_percentage -0.9999996666667778
+    inferred_group 11
+    inferred_score_mean -4.753104175976885
+    inferred_score_std 1.3676390397886427
   ]
   node [
     id 278
@@ -2788,8 +3085,9 @@ graph [
     race "mixed"
     sex "female"
     grade 10
-    modularity_group 3
-    win_percentage -0.599999880000024
+    inferred_group 11
+    inferred_score_mean -1.6638738708697098
+    inferred_score_std 1.6032626897503053
   ]
   node [
     id 279
@@ -2798,8 +3096,9 @@ graph [
     race "white"
     sex "female"
     grade 10
-    modularity_group 5
-    win_percentage 0.0
+    inferred_group 4
+    inferred_score_mean 0.9487537452118808
+    inferred_score_std 1.6613158718643082
   ]
   node [
     id 280
@@ -2808,8 +3107,9 @@ graph [
     race "white"
     sex "female"
     grade 10
-    modularity_group 4
-    win_percentage 0.0
+    inferred_group 12
+    inferred_score_mean -1.226732301534518
+    inferred_score_std 1.1161511621367752
   ]
   node [
     id 281
@@ -2818,8 +3118,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 9
-    modularity_group 8
-    win_percentage -0.9999996666667778
+    inferred_group 3
+    inferred_score_mean -2.7798478938206994
+    inferred_score_std 1.5208255316137163
   ]
   node [
     id 282
@@ -2828,8 +3129,9 @@ graph [
     race "white"
     sex "male"
     grade 10
-    modularity_group 14
-    win_percentage -0.9999990000010001
+    inferred_group 11
+    inferred_score_mean -1.0451164986799901
+    inferred_score_std 1.1590357796721413
   ]
   node [
     id 283
@@ -2838,8 +3140,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 14
-    win_percentage 0.9999990000010001
+    inferred_group 3
+    inferred_score_mean -0.24448749789140192
+    inferred_score_std 2.5346559855790853
   ]
   node [
     id 284
@@ -2848,8 +3151,9 @@ graph [
     race "black"
     sex "female"
     grade 9
-    modularity_group 0
-    win_percentage -0.33333327777778704
+    inferred_group 1
+    inferred_score_mean -1.654054620797831
+    inferred_score_std 1.2120026294355355
   ]
   node [
     id 285
@@ -2858,8 +3162,9 @@ graph [
     race "black"
     sex "female"
     grade 9
-    modularity_group 0
-    win_percentage 0.9999990000010001
+    inferred_group 1
+    inferred_score_mean -1.136011414430325
+    inferred_score_std 1.546824933547368
   ]
   node [
     id 286
@@ -2868,8 +3173,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage -0.7499999062500118
+    inferred_group 9
+    inferred_score_mean -3.008403727264967
+    inferred_score_std 1.3164535075585444
   ]
   node [
     id 287
@@ -2878,8 +3184,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 2
-    win_percentage 0.9999990000010001
+    inferred_group 2
+    inferred_score_mean 2.6067305965837986
+    inferred_score_std 1.6897725756020368
   ]
   node [
     id 288
@@ -2888,8 +3195,9 @@ graph [
     race "mixed"
     sex "female"
     grade 9
-    modularity_group 1
-    win_percentage -0.9999990000010001
+    inferred_group 3
+    inferred_score_mean -2.6945100357092437
+    inferred_score_std 1.5010930133546903
   ]
   node [
     id 289
@@ -2898,8 +3206,9 @@ graph [
     race "white"
     sex "male"
     grade 10
-    modularity_group 2
-    win_percentage -0.6666664444445185
+    inferred_group 10
+    inferred_score_mean -2.0586405890125885
+    inferred_score_std 1.170546434605214
   ]
   node [
     id 290
@@ -2908,8 +3217,9 @@ graph [
     race "missing"
     sex "female"
     grade 10
-    modularity_group 2
-    win_percentage 0.9999997500000625
+    inferred_group 2
+    inferred_score_mean 4.157752070775736
+    inferred_score_std 1.6200091361304516
   ]
   node [
     id 291
@@ -2918,8 +3228,9 @@ graph [
     race "white"
     sex "male"
     grade 9
-    modularity_group 2
-    win_percentage 0.33333322222225925
+    inferred_group 10
+    inferred_score_mean -0.8275045884975463
+    inferred_score_std 1.234864171911396
   ]
   node [
     id 292
@@ -2928,8 +3239,9 @@ graph [
     race "white"
     sex "female"
     grade 11
-    modularity_group 6
-    win_percentage -0.599999880000024
+    inferred_group 0
+    inferred_score_mean -0.3899593519804725
+    inferred_score_std 1.520679456174426
   ]
   node [
     id 293
@@ -2938,8 +3250,9 @@ graph [
     race "black"
     sex "female"
     grade 9
-    modularity_group 0
-    win_percentage -0.9999990000010001
+    inferred_group 11
+    inferred_score_mean 0.14404631917732627
+    inferred_score_std 1.4948275392812889
   ]
   node [
     id 294
@@ -2948,8 +3261,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage -0.9999990000010001
+    inferred_group 11
+    inferred_score_mean -4.330089398775567
+    inferred_score_std 1.6261981019700003
   ]
   node [
     id 295
@@ -2958,8 +3272,9 @@ graph [
     race "white"
     sex "female"
     grade 9
-    modularity_group 5
-    win_percentage 0.0
+    inferred_group 0
+    inferred_score_mean 0.9613347026477549
+    inferred_score_std 2.488815315728275
   ]
   node [
     id 296
@@ -2968,8 +3283,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage -0.57142848979593
+    inferred_group 9
+    inferred_score_mean -1.9137678798819657
+    inferred_score_std 1.1698535709571196
   ]
   node [
     id 297
@@ -2978,8 +3294,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 3
-    win_percentage 0.33333322222225925
+    inferred_group 6
+    inferred_score_mean 2.0370751691404014
+    inferred_score_std 1.0759128586356406
   ]
   node [
     id 298
@@ -2988,8 +3305,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage -0.9999990000010001
+    inferred_group 1
+    inferred_score_mean -0.44469428206301886
+    inferred_score_std 1.3781930315852682
   ]
   node [
     id 299
@@ -2998,8 +3316,9 @@ graph [
     race "hispanic"
     sex "female"
     grade 10
-    modularity_group 9
-    win_percentage -0.99999950000025
+    inferred_group 5
+    inferred_score_mean -0.6883360150089646
+    inferred_score_std 1.5841504336360772
   ]
   node [
     id 300
@@ -3008,8 +3327,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage 0.99999950000025
+    inferred_group 8
+    inferred_score_mean 1.4444531161986018
+    inferred_score_std 1.7493792218359276
   ]
   node [
     id 301
@@ -3018,8 +3338,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage -0.8333331944444675
+    inferred_group 1
+    inferred_score_mean -4.629453768557373
+    inferred_score_std 1.4590920356093575
   ]
   node [
     id 302
@@ -3028,8 +3349,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage 0.9999990000010001
+    inferred_group 11
+    inferred_score_mean 0.5194994489596121
+    inferred_score_std 2.050636163822446
   ]
   node [
     id 303
@@ -3038,8 +3360,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 10
-    modularity_group 6
-    win_percentage 0.9999990000010001
+    inferred_group 5
+    inferred_score_mean -0.04473361848386258
+    inferred_score_std 1.1841538476406681
   ]
   node [
     id 304
@@ -3048,8 +3371,9 @@ graph [
     race "mixed"
     sex "male"
     grade 11
-    modularity_group 6
-    win_percentage -0.8333331944444675
+    inferred_group 5
+    inferred_score_mean -3.7606279822148836
+    inferred_score_std 1.0187903416944881
   ]
   node [
     id 305
@@ -3058,8 +3382,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 7
-    win_percentage -0.6666665555555741
+    inferred_group 3
+    inferred_score_mean -3.3689993949998995
+    inferred_score_std 1.2854927196428267
   ]
   node [
     id 306
@@ -3068,8 +3393,9 @@ graph [
     race "black"
     sex "female"
     grade 12
-    modularity_group 10
-    win_percentage 0.9999990000010001
+    inferred_group 8
+    inferred_score_mean 2.7432344463141445
+    inferred_score_std 1.4750956283267742
   ]
   node [
     id 307
@@ -3078,8 +3404,9 @@ graph [
     race "black"
     sex "female"
     grade 12
-    modularity_group 10
-    win_percentage 0.0
+    inferred_group 11
+    inferred_score_mean 2.720812076662506
+    inferred_score_std 1.5096192777889215
   ]
   node [
     id 308
@@ -3088,8 +3415,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 9
-    win_percentage -0.99999950000025
+    inferred_group 11
+    inferred_score_mean -3.582811476040934
+    inferred_score_std 1.6958732861712094
   ]
   node [
     id 309
@@ -3098,8 +3426,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 9
-    win_percentage -0.8749998906250137
+    inferred_group 6
+    inferred_score_mean -4.102167439051201
+    inferred_score_std 1.399061445899507
   ]
   node [
     id 310
@@ -3108,8 +3437,9 @@ graph [
     race "mixed"
     sex "male"
     grade 10
-    modularity_group 9
-    win_percentage 0.9999990000010001
+    inferred_group 5
+    inferred_score_mean 0.9079145450115015
+    inferred_score_std 1.4116556706570655
   ]
   node [
     id 311
@@ -3118,8 +3448,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage 0.0
+    inferred_group 1
+    inferred_score_mean 2.4106815351198407
+    inferred_score_std 1.2858359628710934
   ]
   node [
     id 312
@@ -3128,8 +3459,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 3
-    win_percentage -0.9999996666667778
+    inferred_group 11
+    inferred_score_mean -3.3448292339312413
+    inferred_score_std 1.3888820417044683
   ]
   node [
     id 313
@@ -3138,8 +3470,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 3
-    win_percentage 0.99999950000025
+    inferred_group 11
+    inferred_score_mean 0.46720184450911934
+    inferred_score_std 1.8371417108697956
   ]
   node [
     id 314
@@ -3148,8 +3481,9 @@ graph [
     race "black"
     sex "male"
     grade 12
-    modularity_group 8
-    win_percentage 0.9999990000010001
+    inferred_group 11
+    inferred_score_mean 3.5666598937279015
+    inferred_score_std 1.1563079021195048
   ]
   node [
     id 315
@@ -3158,8 +3492,9 @@ graph [
     race "black"
     sex "female"
     grade 9
-    modularity_group 0
-    win_percentage -0.9999990000010001
+    inferred_group 10
+    inferred_score_mean -3.0573996348347676
+    inferred_score_std 1.8720454464552476
   ]
   node [
     id 316
@@ -3168,8 +3503,9 @@ graph [
     race "black"
     sex "female"
     grade 12
-    modularity_group 10
-    win_percentage -0.9999990000010001
+    inferred_group 3
+    inferred_score_mean -0.8800339390389481
+    inferred_score_std 1.5101645436928608
   ]
   node [
     id 317
@@ -3178,8 +3514,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage -0.9999997500000625
+    inferred_group 3
+    inferred_score_mean -4.032868773219207
+    inferred_score_std 1.6286002227438823
   ]
   node [
     id 318
@@ -3188,8 +3525,9 @@ graph [
     race "white"
     sex "male"
     grade 12
-    modularity_group 5
-    win_percentage 0.99999950000025
+    inferred_group 4
+    inferred_score_mean 2.872516388633443
+    inferred_score_std 1.8860361954876843
   ]
   node [
     id 319
@@ -3198,8 +3536,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 11
-    win_percentage 0.9999990000010001
+    inferred_group 5
+    inferred_score_mean 0.8357427417889334
+    inferred_score_std 2.0366945784236212
   ]
   node [
     id 320
@@ -3208,8 +3547,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage -0.6666665555555741
+    inferred_group 1
+    inferred_score_mean -2.353358511687783
+    inferred_score_std 1.3393138126244892
   ]
   node [
     id 321
@@ -3218,8 +3558,9 @@ graph [
     race "black"
     sex "female"
     grade 10
-    modularity_group 3
-    win_percentage 0.12499998437500197
+    inferred_group 6
+    inferred_score_mean 0.8835907470823912
+    inferred_score_std 0.8539817626730025
   ]
   node [
     id 322
@@ -3228,8 +3569,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 11
-    modularity_group 4
-    win_percentage 0.9999990000010001
+    inferred_group 5
+    inferred_score_mean 3.8670551050379154
+    inferred_score_std 1.6283659543867037
   ]
   node [
     id 323
@@ -3238,8 +3580,9 @@ graph [
     race "black"
     sex "female"
     grade 10
-    modularity_group 7
-    win_percentage 0.9999990000010001
+    inferred_group 3
+    inferred_score_mean 2.206045923756367
+    inferred_score_std 1.5063548243139142
   ]
   node [
     id 324
@@ -3248,8 +3591,9 @@ graph [
     race "black"
     sex "female"
     grade 12
-    modularity_group 7
-    win_percentage 0.9999990000010001
+    inferred_group 3
+    inferred_score_mean 2.7044378252840073
+    inferred_score_std 1.7911510338453995
   ]
   node [
     id 325
@@ -3258,8 +3602,9 @@ graph [
     race "black"
     sex "female"
     grade 12
-    modularity_group 7
-    win_percentage -0.99999950000025
+    inferred_group 3
+    inferred_score_mean -1.5775192180624833
+    inferred_score_std 1.7509152648862119
   ]
   node [
     id 326
@@ -3268,8 +3613,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 7
-    win_percentage 0.9999990000010001
+    inferred_group 3
+    inferred_score_mean 2.1400559053455472
+    inferred_score_std 2.6960797361371402
   ]
   node [
     id 327
@@ -3278,8 +3624,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 3
-    win_percentage 0.9999990000010001
+    inferred_group 11
+    inferred_score_mean 2.37572664286375
+    inferred_score_std 1.7054241949525828
   ]
   node [
     id 328
@@ -3288,8 +3635,9 @@ graph [
     race "white"
     sex "male"
     grade 9
-    modularity_group 2
-    win_percentage -0.99999980000004
+    inferred_group 10
+    inferred_score_mean -3.6910588171361556
+    inferred_score_std 1.6985604807600008
   ]
   node [
     id 329
@@ -3298,8 +3646,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 2
-    win_percentage 0.9999990000010001
+    inferred_group 10
+    inferred_score_mean 2.3105433282474013
+    inferred_score_std 1.8071407855078683
   ]
   node [
     id 330
@@ -3308,8 +3657,9 @@ graph [
     race "black"
     sex "male"
     grade 11
-    modularity_group 6
-    win_percentage 0.9999990000010001
+    inferred_group 5
+    inferred_score_mean 0.6749788820641339
+    inferred_score_std 1.7787140733804288
   ]
   node [
     id 331
@@ -3318,8 +3668,9 @@ graph [
     race "white"
     sex "male"
     grade 11
-    modularity_group 6
-    win_percentage 0.99999950000025
+    inferred_group 7
+    inferred_score_mean 1.7151770908759405
+    inferred_score_std 2.3600997372922974
   ]
   node [
     id 332
@@ -3328,8 +3679,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 2
-    win_percentage 0.9999990000010001
+    inferred_group 0
+    inferred_score_mean 2.753947467202226
+    inferred_score_std 2.0055726357023747
   ]
   node [
     id 333
@@ -3338,8 +3690,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 3
-    win_percentage 0.9999990000010001
+    inferred_group 5
+    inferred_score_mean 0.9224641069359529
+    inferred_score_std 2.6891734094832422
   ]
   node [
     id 334
@@ -3348,8 +3701,9 @@ graph [
     race "black"
     sex "female"
     grade 11
-    modularity_group 1
-    win_percentage -0.9999990000010001
+    inferred_group 12
+    inferred_score_mean 0.812498255967311
+    inferred_score_std 1.369420235854467
   ]
   node [
     id 335
@@ -3358,8 +3712,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 3
-    win_percentage -0.99999950000025
+    inferred_group 13
+    inferred_score_mean -2.42496801774654
+    inferred_score_std 1.5391941192529193
   ]
   node [
     id 336
@@ -3368,8 +3723,9 @@ graph [
     race "mixed"
     sex "female"
     grade 10
-    modularity_group 3
-    win_percentage -0.9999998333333611
+    inferred_group 6
+    inferred_score_mean -4.074664074918837
+    inferred_score_std 1.6254523232959137
   ]
   node [
     id 337
@@ -3378,8 +3734,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 3
-    win_percentage 0.0
+    inferred_group 6
+    inferred_score_mean -0.7729409883311813
+    inferred_score_std 1.1971641521348158
   ]
   node [
     id 338
@@ -3388,8 +3745,9 @@ graph [
     race "mixed"
     sex "female"
     grade 9
-    modularity_group 0
-    win_percentage 0.99999950000025
+    inferred_group 1
+    inferred_score_mean 1.0392492428475737
+    inferred_score_std 2.1839279261769606
   ]
   node [
     id 339
@@ -3398,8 +3756,9 @@ graph [
     race "mixed"
     sex "missing"
     grade 9
-    modularity_group 0
-    win_percentage 0.9999990000010001
+    inferred_group 1
+    inferred_score_mean -1.1967004468412024
+    inferred_score_std 1.9152330758626996
   ]
   node [
     id 340
@@ -3408,8 +3767,9 @@ graph [
     race "black"
     sex "male"
     grade 9
-    modularity_group 0
-    win_percentage -0.7142856122449125
+    inferred_group 1
+    inferred_score_mean -3.4168886974507404
+    inferred_score_std 1.052784303987675
   ]
   node [
     id 341
@@ -3418,8 +3778,9 @@ graph [
     race "black"
     sex "female"
     grade 9
-    modularity_group 0
-    win_percentage -0.7499998125000469
+    inferred_group 1
+    inferred_score_mean -3.860539261756121
+    inferred_score_std 1.6124830698698023
   ]
   node [
     id 342
@@ -3428,8 +3789,9 @@ graph [
     race "black"
     sex "female"
     grade 10
-    modularity_group 9
-    win_percentage 0.9999990000010001
+    inferred_group 11
+    inferred_score_mean 3.842779281262161
+    inferred_score_std 1.7166321178067483
   ]
   node [
     id 343
@@ -3438,8 +3800,9 @@ graph [
     race "black"
     sex "female"
     grade 12
-    modularity_group 10
-    win_percentage -0.9999996666667778
+    inferred_group 3
+    inferred_score_mean -2.8738414314558978
+    inferred_score_std 1.992819840513636
   ]
   node [
     id 344
@@ -3448,8 +3811,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 3
-    win_percentage -0.9999998333333611
+    inferred_group 5
+    inferred_score_mean -3.1196967365990225
+    inferred_score_std 1.8102638409963328
   ]
   node [
     id 345
@@ -3458,8 +3822,9 @@ graph [
     race "hispanic"
     sex "male"
     grade 10
-    modularity_group 3
-    win_percentage 0.9999990000010001
+    inferred_group 6
+    inferred_score_mean 2.299838992374779
+    inferred_score_std 2.0165144007904567
   ]
   node [
     id 346
@@ -3468,8 +3833,9 @@ graph [
     race "white"
     sex "female"
     grade 9
-    modularity_group 5
-    win_percentage -0.599999880000024
+    inferred_group 4
+    inferred_score_mean -2.8959955444525596
+    inferred_score_std 1.1257204997090355
   ]
   node [
     id 347
@@ -3478,8 +3844,9 @@ graph [
     race "white"
     sex "male"
     grade 11
-    modularity_group 4
-    win_percentage 0.9999990000010001
+    inferred_group 0
+    inferred_score_mean 1.6136622042252957
+    inferred_score_std 2.549008162569909
   ]
   node [
     id 348
@@ -3488,8 +3855,9 @@ graph [
     race "white"
     sex "male"
     grade 12
-    modularity_group 4
-    win_percentage 0.9999990000010001
+    inferred_group 5
+    inferred_score_mean 0.5393219196268108
+    inferred_score_std 1.700722864653338
   ]
   node [
     id 349
@@ -3498,8 +3866,9 @@ graph [
     race "white"
     sex "male"
     grade 11
-    modularity_group 5
-    win_percentage 0.0
+    inferred_group 4
+    inferred_score_mean -1.677862355372026
+    inferred_score_std 1.9479897278402671
   ]
   node [
     id 350
@@ -3508,8 +3877,9 @@ graph [
     race "black"
     sex "male"
     grade 10
-    modularity_group 3
-    win_percentage -0.99999950000025
+    inferred_group 6
+    inferred_score_mean -2.1050215242542962
+    inferred_score_std 2.058119126932469
   ]
   node [
     id 351
@@ -3518,8 +3888,9 @@ graph [
     race "mixed"
     sex "male"
     grade 11
-    modularity_group 1
-    win_percentage 0.9999990000010001
+    inferred_group 3
+    inferred_score_mean 0.9805320444453103
+    inferred_score_std 1.690514092479544
   ]
   edge [
     source 0

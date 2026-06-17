@@ -244,11 +244,13 @@ template <typename T>
 std::pair<T, double> sample_log_weights_map(const std::unordered_map<T, double>& log_weights_map) {
     std::vector<double> log_weights;
     std::vector<T> keys;
-    for (const auto& [key, log_weight] : log_weights_map) {
-        log_weights.push_back(log_weight);
-        keys.push_back(key);
+  for (typename std::unordered_map<T, double>::const_iterator it = log_weights_map.begin(); it != log_weights_map.end(); ++it) {
+    log_weights.push_back(it->second);
+    keys.push_back(it->first);
     }
-    auto [index, entropy] = sample_log_weights(log_weights);
+  std::pair<int, double> sampled = sample_log_weights(log_weights);
+  int index = sampled.first;
+  double entropy = sampled.second;
     return {keys[index], entropy};
 }
 

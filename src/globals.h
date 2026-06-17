@@ -7,21 +7,22 @@
 #include <chrono>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 // Global information about the problem
-inline int n; // Number of nodes
-inline int m; // Number of edges
-inline std::vector<std::unordered_set<int>> neighbors; // neighbors[i] is the list of neighbors of node i
+extern int n; // Number of nodes
+extern int m; // Number of edges
+extern std::vector<std::unordered_set<int>> neighbors; // neighbors[i] is the list of neighbors of node i
 
 // inline bool verbose = true; // Whether to print verbose output during MCMC
-inline bool verbose = false; // Whether to print verbose output during MCMC
+extern bool verbose; // Whether to print verbose output during MCMC
 // inline bool debug = true; // Whether to print debug output during MCMC
-inline bool debug = false; // Whether to print debug output during MCMC
+extern bool debug; // Whether to print debug output during MCMC
 
 // Timing variables
-inline bool timing = true; // Whether to track detailed timing information
-inline std::chrono::high_resolution_clock::time_point start_time, end_time;
-inline double duration = 0.0; // Accumulated or temporary duration (seconds)
+extern bool timing; // Whether to track detailed timing information
+extern std::chrono::high_resolution_clock::time_point start_time, end_time;
+extern double duration; // Accumulated or temporary duration (seconds)
 
 // Constants
 // Base proposal step size (kept for backward compatibility)
@@ -45,9 +46,8 @@ const int GIBBS_REFINEMENT_SWEEPS = 1; // Change back to 10 // Number of Gibbs s
 
 const double DEPTH_PRIOR_WIDTH = 4.0; // Keeping with the depth paper, scale of half-Cauchy prior on depth parameters
 
-inline std::random_device rd;
-inline std::mt19937 rng(rd()); // Initialize Mersenne Twister (global RNG)
-inline std::uniform_real_distribution<double>
-    uniform_random(0.0, 1.0); // Uniform distribution on [0,1]
+extern std::random_device rd;
+extern std::mt19937 rng; // Initialize Mersenne Twister (global RNG)
+extern std::uniform_real_distribution<double> uniform_random; // Uniform distribution on [0,1]
 
 #endif // GLOBALS_H

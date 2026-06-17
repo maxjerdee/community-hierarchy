@@ -132,7 +132,9 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     std::vector<int> edge_counts_sum_actual(num_groups, 0);
     for (int i = 0; i < n; i++) {
         int group_i = partition[i];
-        for (const auto& [j, weight] : neighbors[i]) {
+        for (const auto& edge : neighbors[i]) {
+            int j = edge.first;
+            double weight = edge.second;
             int group_j = partition[j];
             edge_counts_actual[group_i][group_j] += weight;
         }
@@ -457,7 +459,9 @@ double MCMC::calculate_H_A_G_k_M_b() {
     
     // Sum over all edges (weighted by multiplicity)
     for(int i = 0; i < n; i++){
-        for(const auto& [j, A_ij] : neighbors[i]){
+        for(const auto& edge : neighbors[i]){
+            int j = edge.first;
+            double A_ij = edge.second;
             if(i == j){
                 // Self-edge uses double factorial
                 H_A_G_k_M_b_actual += log_factorial2(A_ij);
@@ -496,7 +500,9 @@ double MCMC::calculate_H_Adir_G_A_s_nu() {
     double H_Adir_G_A_s_nu_actual = 0.0;
     // Iterate over all undirected edges
     for(int i = 0; i < n; i++){
-        for(const auto& [j, Awins_ij] : wins[i]){
+        for(const auto& edge : wins[i]){
+            int j = edge.first;
+            double Awins_ij = edge.second;
             double log_p_win_ij = scores[i] - log_sum_exp(std::vector<double>{scores[i], scores[j], std::log(ties_parameter) + scores[i]/2.0 + scores[j]/2.0}); // P(i -> j|i - j)
             H_Adir_G_A_s_nu_actual += log_factorial(Awins_ij) - Awins_ij * log_p_win_ij;
             if(verbose){
@@ -510,7 +516,9 @@ double MCMC::calculate_H_Adir_G_A_s_nu() {
         //         print("Edge (" + std::to_string(i) + " <- " + std::to_string(j) + "): Alosses_ij = " + std::to_string(Alosses_ij) + ", log_p_loss_ij = " + std::to_string(log_p_loss_ij) + ", contribution = " + std::to_string(log_factorial(Alosses_ij) - Alosses_ij * log_p_loss_ij));
         //     }
         // }
-        for(const auto& [j, Aties_ij] : ties[i]){
+        for(const auto& edge : ties[i]){
+            int j = edge.first;
+            double Aties_ij = edge.second;
             if(i < j){
                 double log_p_tie_ij = std::log(ties_parameter) + scores[i]/2.0 + scores[j]/2.0 - log_sum_exp(std::vector<double>{scores[i], scores[j], std::log(ties_parameter) + scores[i]/2.0 + scores[j]/2.0}); // P(i <-> j|i - j)
                 H_Adir_G_A_s_nu_actual += log_factorial(Aties_ij) - Aties_ij * log_p_tie_ij;
@@ -519,7 +527,9 @@ double MCMC::calculate_H_Adir_G_A_s_nu() {
                 }
             }
         }
-        for(const auto& [j, A_ij] : neighbors[i]){
+        for(const auto& edge : neighbors[i]){
+            int j = edge.first;
+            double A_ij = edge.second;
             if(i < j){ // Ensure each undirected edge is counted once
                 H_Adir_G_A_s_nu_actual -= log_factorial(A_ij);
                 if(verbose){

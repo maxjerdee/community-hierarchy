@@ -42,7 +42,7 @@ def samples(
     seed: int | None = None,
     num_samples: int = 1000,
     sweeps_per_sample: int = 10,
-    merge_split_enabled: bool = True,
+    merge_split_enabled: bool = False,
     beta: float = 1.0,
     num_tempering_chains: int = 1,
     no_cache: bool = False,
@@ -145,7 +145,7 @@ def samples(
     sweeps_per_sample : int, optional
         Number of MCMC sweeps to perform between each sample. Defaults to 10.
     merge_split_enabled: bool, optional
-        Whether to use merge-split moves in the MCMC sampling. Defaults to True.
+        Whether to use merge-split moves in the MCMC sampling. Defaults to False.
     beta : float, optional
         Inverse temperature. Defaults to 1.0.
     num_tempering_chains : int, optional

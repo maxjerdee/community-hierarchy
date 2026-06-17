@@ -28,12 +28,16 @@ void MCMC::propose_move() {
     double total_weight = 0.0;
     
     // Calculate total weight
-    for (const auto& [proposal_type, weight] : proposal_weights) {
+    for (const auto& proposal_entry : proposal_weights) {
+        const std::string& proposal_type = proposal_entry.first;
+        double weight = proposal_entry.second;
         total_weight += weight;
     }
     
     // Select proposal type by weighted sampling
-    for (const auto& [proposal_type, weight] : proposal_weights) {
+    for (const auto& proposal_entry : proposal_weights) {
+        const std::string& proposal_type = proposal_entry.first;
+        double weight = proposal_entry.second;
         cumulative_weight += weight;
         if (p < cumulative_weight / total_weight) {
             if (proposal_type == "single_site_move") {
@@ -270,15 +274,21 @@ void MCMC::propose_score_move() {
     if(verbose){
         print("Old H_Adir_G_A_s_nu: " + std::to_string(H_Adir_G_A_s_nu));
     }
-    for(const auto& [j, Adir_ij] : wins[node]){
+    for(const auto& edge : wins[node]){
+        int j = edge.first;
+        double Adir_ij = edge.second;
         double log_p_win_ij = scores[node] - log_sum_exp(std::vector<double>{scores[node], scores[j], std::log(ties_parameter) + scores[node]/2.0 + scores[j]/2.0}); // P(node -> j|node - j)
         H_Adir_G_A_s_nu -= 0.0 - Adir_ij * log_p_win_ij;
     }
-    for(const auto& [j, Adir_ji] : losses[node]){
+    for(const auto& edge : losses[node]){
+        int j = edge.first;
+        double Adir_ji = edge.second;
         double log_p_win_ji = scores[j] - log_sum_exp(std::vector<double>{scores[j], scores[node], std::log(ties_parameter) + scores[j]/2.0 + scores[node]/2.0}); // P(j -> node|j - node)
         H_Adir_G_A_s_nu -= 0.0 - Adir_ji * log_p_win_ji;
     }
-    for(const auto& [j, Aties_ij] : ties[node]){
+    for(const auto& edge : ties[node]){
+        int j = edge.first;
+        double Aties_ij = edge.second;
         double log_p_tie_ij = std::log(ties_parameter) + scores[node]/2.0 + scores[j]/2.0 - log_sum_exp(std::vector<double>{scores[node], scores[j], std::log(ties_parameter) + scores[node]/2.0 + scores[j]/2.0}); // P(i <-> j|i - j)
         H_Adir_G_A_s_nu -= 0.0 - Aties_ij * log_p_tie_ij;
     }
@@ -298,15 +308,21 @@ void MCMC::propose_score_move() {
     H_s_G_b_depths -= std::log(f_normalization) + f_normalization*f_normalization*group_depth*group_depth*group_scaled_score_sums[partition[node]]*group_scaled_score_sums[partition[node]]/(individual_depth*individual_depth);
     
     // H_Adir_G_A_s_nu, add terms
-    for(const auto& [j, Adir_ij] : wins[node]){
+    for(const auto& edge : wins[node]){
+        int j = edge.first;
+        double Adir_ij = edge.second;
         double log_p_win_ij = scores[node] - log_sum_exp(std::vector<double>{scores[node], scores[j], std::log(ties_parameter) + scores[node]/2.0 + scores[j]/2.0}); // P(node -> j|node - j)
         H_Adir_G_A_s_nu += 0.0 - Adir_ij * log_p_win_ij;
     }
-    for(const auto& [j, Adir_ji] : losses[node]){
+    for(const auto& edge : losses[node]){
+        int j = edge.first;
+        double Adir_ji = edge.second;
         double log_p_win_ji = scores[j] - log_sum_exp(std::vector<double>{scores[j], scores[node], std::log(ties_parameter) + scores[j]/2.0 + scores[node]/2.0}); // P(j -> node|j - node)
         H_Adir_G_A_s_nu += 0.0 - Adir_ji * log_p_win_ji;
     }
-    for(const auto& [j, Aties_ij] : ties[node]){
+    for(const auto& edge : ties[node]){
+        int j = edge.first;
+        double Aties_ij = edge.second;
         double log_p_tie_ij = std::log(ties_parameter) + scores[node]/2.0 + scores[j]/2.0 - log_sum_exp(std::vector<double>{scores[node], scores[j], std::log(ties_parameter) + scores[node]/2.0 + scores[j]/2.0}); // P(i <-> j|i - j)
         H_Adir_G_A_s_nu += 0.0 - Aties_ij * log_p_tie_ij;
     }
@@ -451,7 +467,9 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     if(verbose){
         // Check if neighbors[96] has an entry for 0, if so print it
         print("Neighbors of node 96:");
-        for(const auto& [j, weight] : neighbors[96]){
+        for(const auto& edge : neighbors[96]){
+            int j = edge.first;
+            double weight = edge.second;
             print("  Node " + std::to_string(j) + " with weight " + std::to_string(weight));
         }
     }
@@ -591,13 +609,17 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         if(verbose){
             // Check if neighbors[96] has an entry for 0, if so print it
             print("Neighbors of node 96:");
-            for(const auto& [j, weight] : neighbors[96]){
+            for(const auto& edge : neighbors[96]){
+                int j = edge.first;
+                double weight = edge.second;
                 print("  Node " + std::to_string(j) + " with weight " + std::to_string(weight));
             }
         }
 
         // Update edge counts: subtract edges from old_group
-        for(const auto& [j, A_ij] : neighbors[node]){
+        for(const auto& edge : neighbors[node]){
+            int j = edge.first;
+            double A_ij = edge.second;
             if(verbose){
                 print("Updating edge counts for neighbor " + std::to_string(j) + " of node " + std::to_string(node) + " with A_ij = " + std::to_string(A_ij));
                 print(static_cast<int>(neighbors[node].size()));
@@ -632,7 +654,9 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         node_counts[new_group]++;
         
         // Update edge counts: add edges to new_group
-        for(const auto& [j, A_ij] : neighbors[node]){
+        for(const auto& edge : neighbors[node]){
+            int j = edge.first;
+            double A_ij = edge.second;
             int neighbor_group = partition[j];
             edge_counts[new_group][neighbor_group] += A_ij;
             edge_counts[neighbor_group][new_group] += A_ij;
@@ -839,7 +863,9 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     if(verbose){
         // Check if neighbors[96] has an entry for 0, if so print it
         print("Neighbors of node 96:");
-        for(const auto& [j, weight] : neighbors[96]){
+        for(const auto& edge : neighbors[96]){
+            int j = edge.first;
+            double weight = edge.second;
             print("  Node " + std::to_string(j) + " with weight " + std::to_string(weight));
         }
     }

@@ -76,7 +76,9 @@ void MCMC::propose_merge_move() {
         }
     }
     // Sample the new_group based on these weights
-    auto [new_group, entropy] = sample_log_weights_map(group_log_weights);
+    std::pair<int, double> sampled_merge = sample_log_weights_map(group_log_weights);
+    int new_group = sampled_merge.first;
+    double entropy = sampled_merge.second;
     H_merge += entropy; // Entropy of choosing this group to merge into
 
     // Flip nodes into the selected new_group
@@ -546,12 +548,16 @@ double MCMC::gibbs_sweep(std::vector<int> nodes_to_sweep, std::vector<int> group
         }
         if(verbose || debug){
             print("Gibbs log weights for node " + std::to_string(node) + ":");
-            for(const auto& [group, log_weight] : group_log_weights){
+            for(std::unordered_map<int, double>::const_iterator it = group_log_weights.begin(); it != group_log_weights.end(); ++it){
+                int group = it->first;
+                double log_weight = it->second;
                 print("Group " + std::to_string(group) + ": log weight " + std::to_string(log_weight));
             }
         }
         // Unpack sample and entropy from log_weights map
-        auto [new_group, entropy] = sample_log_weights_map(group_log_weights);
+        std::pair<int, double> sampled_gibbs = sample_log_weights_map(group_log_weights);
+        int new_group = sampled_gibbs.first;
+        double entropy = sampled_gibbs.second;
         gibbs_H += entropy;
         if(verbose || debug){
             print("Gibbs sampled node " + std::to_string(node) + " to group " + std::to_string(new_group) + " with entropy " + std::to_string(entropy) + " new cumulative gibbs_H: " + std::to_string(gibbs_H));
@@ -607,8 +613,8 @@ double MCMC::H_reverse_merge(int old_group, int new_group) {
     }
     // Among these options compute the entropy of having chosen new_group to merge into
     std::vector<double> log_weights;
-    for(const auto& [group, log_weight] : group_log_weights){
-        log_weights.push_back(log_weight);
+    for(std::unordered_map<int, double>::const_iterator it = group_log_weights.begin(); it != group_log_weights.end(); ++it){
+        log_weights.push_back(it->second);
     }
     double log_total_weight = log_sum_exp(log_weights);
     H_merge += log_total_weight - group_log_weights[old_group];
