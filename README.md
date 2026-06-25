@@ -27,7 +27,7 @@
 
 This Python package uses Bayesian inference to identify communities and hierarchies of nodes in a directed network, as well as measure the interaction between those structures.
 
-We model community structure using a stochastic block model, hierarchy structure with a Bradley-Terry model, and their interaction according to our work here [link paper].
+We model community structure using a stochastic block model, hierarchy structure with a Bradley-Terry model, and their interaction according to our work (link forthcoming).
 
 ## Installation
 

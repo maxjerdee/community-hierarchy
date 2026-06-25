@@ -7,15 +7,13 @@ on:
       - published
   pull_request:
     paths:
-      - .github/workflows/cd.yml
+      - .github/workflows/release.yml
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  # Many color libraries just need this to be set to any value, but at least
-  # one distinguishes color depth, where "3" -> "256-bit color".
   FORCE_COLOR: 3
 
 jobs:
@@ -48,37 +46,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install system dependencies for Pillow (Ubuntu)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libjpeg-dev
-
-      - name: Install correct numpy version
-        run: python -m pip install "numpy==2.0.2"
-
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.20
 
-      # Building all wheels for Python 3.10-3.13
-      - name: Build Wheel
+      - name: Build wheels
         env:
-          CIBW_BUILD: cp310-* cp311-* cp312-* cp313-*
           CIBW_ARCHS_WINDOWS: AMD64
-          CIBW_BEFORE_ALL_LINUX: |
-            if command -v apk &> /dev/null; then
-              apk add --no-cache jpeg-dev zlib-dev
-            elif command -v yum &> /dev/null; then
-              yum install -y libjpeg-devel zlib-devel
-            elif command -v apt-get &> /dev/null; then
-              apt-get update && apt-get install -y libjpeg-dev zlib1g-dev
-            fi
-          CIBW_TEST_REQUIRES: pytest
-          CIBW_TEST_COMMAND: pytest {project}/tests
         run: cibuildwheel --output-dir wheelhouse
 
-      - name: Upload wheels
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: wheelhouse/*.whl
@@ -88,7 +64,6 @@ jobs:
     environment: pypi
     permissions:
       id-token: write
-      attestations: write
       contents: read
     runs-on: ubuntu-latest
     steps:
@@ -98,17 +73,6 @@ jobs:
           path: dist
           merge-multiple: true
 
-      - name: Generate artifact attestations
-        uses: actions/attest-build-provenance@v1.4.1
-        with:
-          subject-path: "dist/*"
-
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          # Remember to tell (test-)pypi about this repo before publishing
-          # repository-url: https://test.pypi.org/legacy/
-          repository-url: https://upload.pypi.org/legacy/
-          username: __token__
-          # password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-          password: ${{ secrets.PYPI_API_TOKEN }}
           verbose: true

@@ -660,7 +660,7 @@ def plot_node_properties(
 ):
     """Plot individual node scores against group mean scores.
 
-    Scores on the y-axis are posterior means from :meth:`Result.expected_scores`.
+    Scores on the y-axis are posterior means from :meth:`Result.score_means`.
     The x-axis shows the mean score of the group each node belongs to.
 
     Parameters
