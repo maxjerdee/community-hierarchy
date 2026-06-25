@@ -215,6 +215,8 @@ def fit(
     num_tempering_chains: int = 1,
     initial_partition: Optional[list] = None,
     initial_scores: Optional[list] = None,
+    initial_individual_depth: Optional[float] = None,
+    initial_group_depth: Optional[float] = None,
     seed: Optional[int] = None,
     no_cache: bool = False,  # retained for API compatibility; no longer used
     timeout: float = 60.0,
@@ -369,6 +371,16 @@ def fit(
         initial_partition = _gen_initial_partition(G_wins, G_ties, num_groups)
     if initial_scores is None:
         initial_scores = _gen_initial_scores(G_wins, G_ties)
+    elif not scores_fixed:
+        # Normalise user-provided scores to unit RMS and set initial_individual_depth
+        # to that RMS so scaled_scores start near the prior scale while the actual
+        # scores are preserved.  individual_depth remains free (unfixed).
+        scores_arr = np.asarray(initial_scores, dtype=float)
+        src_rms = float(np.sqrt(np.mean(scores_arr ** 2)))
+        if src_rms > 1e-6:
+            initial_scores = (scores_arr / src_rms).tolist()
+            if initial_individual_depth is None and individual_depth is None:
+                initial_individual_depth = src_rms
 
     wins_adj = get_neighbors(G_wins)
     ties_adj = get_neighbors(G_ties)
@@ -387,7 +399,9 @@ def fit(
         variation_out=None if variation_out is None else float(variation_out),
         degree_correction=None if degree_correction is None else float(degree_correction),
         individual_depth=None if individual_depth is None else float(individual_depth),
+        initial_individual_depth=None if initial_individual_depth is None else float(initial_individual_depth),
         group_depth=None if group_depth is None else float(group_depth),
+        initial_group_depth=None if initial_group_depth is None else float(initial_group_depth),
         ties_parameter=None if ties_parameter is None else float(ties_parameter),
         num_groups=None if num_groups is None else int(num_groups),
         num_chains=int(num_chains),

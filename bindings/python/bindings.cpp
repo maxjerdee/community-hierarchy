@@ -134,7 +134,9 @@ FitResultNative fit_backend(
     std::optional<double> variation_out_opt,
     std::optional<double> degree_correction_opt,
     std::optional<double> individual_depth_opt,
+    std::optional<double> individual_depth_init_opt,
     std::optional<double> group_depth_opt,
+    std::optional<double> group_depth_init_opt,
     std::optional<double> ties_parameter_opt,
     std::optional<int>    num_groups_opt,
     int    num_chains,
@@ -215,8 +217,10 @@ FitResultNative fit_backend(
             double vi  = variation_in_opt.has_value()      ? *variation_in_opt      : unif01(chain_init_rng);
             double vo  = variation_out_opt.has_value()     ? *variation_out_opt     : unif01(chain_init_rng);
             double dc  = degree_correction_opt.has_value() ? *degree_correction_opt : unif01(chain_init_rng);
-            double id_ = individual_depth_opt.has_value()  ? *individual_depth_opt  : unif01(chain_init_rng);
-            double gd  = group_depth_opt.has_value()       ? *group_depth_opt       : unif01(chain_init_rng);
+            double id_ = individual_depth_opt.has_value()      ? *individual_depth_opt :
+                         individual_depth_init_opt.has_value() ? *individual_depth_init_opt : unif01(chain_init_rng);
+            double gd  = group_depth_opt.has_value()           ? *group_depth_opt :
+                         group_depth_init_opt.has_value()       ? *group_depth_init_opt      : unif01(chain_init_rng);
             double tp  = ties_parameter_opt.has_value()    ? *ties_parameter_opt    : unif01(chain_init_rng);
             int    ng  = num_groups_opt.has_value()        ? *num_groups_opt        : initial_num_groups;
 
@@ -229,7 +233,7 @@ FitResultNative fit_backend(
                 vi,  variation_in_opt.has_value(),
                 vo,  variation_out_opt.has_value(),
                 dc,  degree_correction_opt.has_value(),
-                id_, individual_depth_opt.has_value(),
+                id_, individual_depth_opt.has_value(),      // fixed only when depth_opt (not init_opt) provided
                 gd,  group_depth_opt.has_value(),
                 tp,  ties_parameter_opt.has_value(),
                 seed + chain_id * num_tempering_chains + ci
@@ -463,7 +467,9 @@ PYBIND11_MODULE(MCMC_core, m) {
         py::object          variation_out_py,
         py::object          degree_correction_py,
         py::object          individual_depth_py,
+        py::object          individual_depth_init_py,
         py::object          group_depth_py,
+        py::object          group_depth_init_py,
         py::object          ties_parameter_py,
         py::object          num_groups_py,
         int    num_chains,
@@ -496,7 +502,9 @@ PYBIND11_MODULE(MCMC_core, m) {
             to_opt_double(variation_out_py),
             to_opt_double(degree_correction_py),
             to_opt_double(individual_depth_py),
+            to_opt_double(individual_depth_init_py),
             to_opt_double(group_depth_py),
+            to_opt_double(group_depth_init_py),
             to_opt_double(ties_parameter_py),
             to_opt_int(num_groups_py),
             num_chains, samples_per_chain,
@@ -516,7 +524,9 @@ PYBIND11_MODULE(MCMC_core, m) {
     py::arg("variation_out") = py::none(),
     py::arg("degree_correction") = py::none(),
     py::arg("individual_depth") = py::none(),
+    py::arg("initial_individual_depth") = py::none(),
     py::arg("group_depth") = py::none(),
+    py::arg("initial_group_depth") = py::none(),
     py::arg("ties_parameter") = py::none(),
     py::arg("num_groups") = py::none(),
     py::arg("num_chains") = 1,
