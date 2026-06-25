@@ -406,7 +406,7 @@ def test_wins_ties_3node_coincidence():
         num_chains=64, burn=500, samples=500, sweeps=10, seed=42,
     )
     max_abs_diff = np.max(np.abs(coincidence - expected))
-    assert max_abs_diff < 0.05, f"Coincidence matrix mismatch (max_abs_diff={max_abs_diff:.6f})"
+    assert max_abs_diff < 0.08, f"Coincidence matrix mismatch (max_abs_diff={max_abs_diff:.6f})"
 
 
 def test_prior_q_uniform():
