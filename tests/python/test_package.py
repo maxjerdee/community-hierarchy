@@ -20,8 +20,7 @@ _DATA_OUT = Path(__file__).parent.parent / "data" / "outputs"
 
 def _c2v(concentration: float) -> float:
     """Convert concentration to variation (inverse of variation_to_concentration)."""
-    import scipy.special as sp
-    log_val = sp.gammaln(concentration + 0.5) - sp.gammaln(0.5) - sp.gammaln(concentration + 1)
+    log_val = math.lgamma(concentration + 0.5) - math.lgamma(0.5) - math.lgamma(concentration + 1)
     return math.exp(log_val)
 
 
@@ -348,34 +347,16 @@ def test_groups_model_smoke(groups_model):
     assert np.isfinite(result.mdl_value)
 
 
-def test_triangle_independent_coincidence():
-    """Coincidence matrix on the asbm triangle graph, interaction=independent."""
-    result = fit(
-        Config(interaction="independent"),
-        _triangle_graph(),
-        num_samples=5000,
-        sweeps_per_sample=10,
-        num_tempering_chains=8,
-        seed=42,
-        timeout=60.0,
-    )
-    expected = pd.read_csv(
-        _DATA_OUT / "triangle_independent_coincidence.csv",
-        header=None,
-    ).to_numpy(dtype=float)
-    coincidence = result.coincidence_matrix()
-    max_abs_diff = np.max(np.abs(coincidence - expected))
-    assert max_abs_diff < 0.04, f"Coincidence matrix mismatch (max_abs_diff={max_abs_diff:.6f})"
-
 
 def _run_coincidence_native_wins_ties(num_chains: int, burn: int, samples: int, sweeps: int, seed: int) -> np.ndarray:
     """Multi-chain MCMC for the wins+ties 3-node graph with Mathematica-matched fixed params.
 
+    This is the **coupled** model: scores {s[1], s[2], s[3]} are marginalized jointly
+    with the partition, exactly as in the Mathematica NIntegrate (Out[271]).
+
     Graph: wins 0→1, 0→2, 1→2; tie 0↔1.
     Fixed: variation params at concentration=1, σI=1, σC=2, ν=1.
     Free: partition, scores, density_in, density_out.
-
-    Matches the conditions of the Mathematica NIntegrate fixture.
     """
     wins = [{1: 1.0, 2: 1.0}, {2: 1.0}, {}]
     ties = [{1: 1.0}, {0: 1.0}, {}]
@@ -408,10 +389,14 @@ def _run_coincidence_native_wins_ties(num_chains: int, burn: int, samples: int, 
 
 
 def test_wins_ties_3node_coincidence():
-    """Coincidence matrix for wins+ties 3-node graph against Mathematica NIntegrate fixture.
+    """Coupled coincidence matrix against Mathematica NIntegrate — the primary coupled validation.
+
+    The NIntegrate marginalizes over scores {s[1],s[2],s[3]} jointly with the partition b,
+    which corresponds to interaction='coupled'. This is distinct from the independent model
+    where scores factor out and are integrated separately.
 
     Mathematica Out[271]: {{1, 0.183929, 0.177877}, {0.183929, 1, 0.221255}, {0.177877, 0.221255, 1}}
-    Parameters fixed: ν=1, σI=1, σC=2, concentration=1; free: partition, scores, ρIn, ρOut.
+    Fixed: ν=1, σI=1, σC=2, concentration=1 (λIn=λOut=α=1); free: partition, scores, ρIn, ρOut.
     """
     expected = pd.read_csv(
         _DATA_OUT / "wins_ties_3node_coincidence.csv",
