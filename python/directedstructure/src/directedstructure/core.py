@@ -1,0 +1,445 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Optional
+import logging
+
+import numpy as np
+import networkx as nx
+import pandas as pd
+
+from .input_output import (
+    _UNSET,
+    _check_input_validity,
+    _get_node_data,
+    _set_model_parameters,
+    get_neighbors,
+)
+from .MCMC_core import fit_backend as _fit_backend
+
+logger = logging.getLogger(__name__)
+
+_VALID_GROUPS_MODELS = frozenset({
+    "general_canonical",
+    "traditional_SBM",
+    "traditional_DCSBM",
+    "traditional_GDCSBM",
+    "simple_ASBM",
+    "hybrid_ASBM",
+    "planted_partition",
+    "general_ASBM",
+})
+
+_VALID_HIERARCHY_MODELS = frozenset({"bradley_terry", "bradley_terry_ties"})
+_VALID_INTERACTIONS = frozenset({"coupled", "independent"})
+
+
+@dataclass(frozen=True)
+class Config:
+    """Model configuration for directed structure inference.
+
+    Parameters
+    ----------
+    groups_model : str
+        Community structure model preset. Controls which parameters are fixed vs inferred.
+    hierarchy_model : str
+        Hierarchy model. Auto-selected from edge types if not given.
+    interaction : str
+        Coupling between communities and hierarchy: 'coupled' or 'independent'.
+    assortative : bool
+        Whether to allow assortative community structure. Default: use model preset.
+    mixing_variation : str
+        Variation in mixing weights ('general', 'simple', 'none', 'internal', 'external').
+        Default: use model preset.
+    variation_in, variation_out : float or None
+        Fixed intra/inter-group mixing variation. None = infer freely. Default: model preset.
+    degree_correction : float or None
+        Fixed degree correction. None = infer freely. Default: model preset.
+    mean_degree_scaling : float or None
+        Fixed mean-degree scaling (gamma). None = infer. Default: model preset.
+    individual_depth : float or None
+        Spread of individual scores within groups. None = infer. Default: model preset.
+    group_depth : float or None
+        Spread of group scores. None = infer. Default: model preset.
+    ties_parameter : float or None
+        Frequency of ties in the hierarchy. None = infer. Default: model preset.
+    num_groups : int or None
+        Fixed number of communities. None = infer. Default: model preset.
+    group_attribute : str or None
+        Node attribute name with fixed group labels.
+    hierarchy_attribute : str or None
+        Node attribute name with fixed hierarchy scores.
+    """
+
+    groups_model: str = "general_canonical"
+    hierarchy_model: object = _UNSET  # str | _UNSET
+    interaction: str = "coupled"
+    assortative: object = _UNSET  # bool | _UNSET
+    mixing_variation: object = _UNSET  # str | _UNSET
+    variation_in: object = _UNSET  # float | None | _UNSET
+    variation_out: object = _UNSET  # float | None | _UNSET
+    degree_correction: object = _UNSET  # float | None | _UNSET
+    individual_depth: object = _UNSET  # float | None | _UNSET
+    group_depth: object = _UNSET  # float | None | _UNSET
+    ties_parameter: object = _UNSET  # float | None | _UNSET
+    num_groups: object = _UNSET  # int | None | _UNSET
+    group_attribute: Optional[str] = None
+    hierarchy_attribute: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        if self.groups_model not in _VALID_GROUPS_MODELS:
+            raise ValueError(
+                f"Unknown groups_model '{self.groups_model}'. "
+                f"Valid options: {sorted(_VALID_GROUPS_MODELS)}"
+            )
+        if self.hierarchy_model is not _UNSET and self.hierarchy_model not in _VALID_HIERARCHY_MODELS:
+            raise ValueError(
+                f"Unknown hierarchy_model '{self.hierarchy_model}'. "
+                f"Valid options: {sorted(_VALID_HIERARCHY_MODELS)}"
+            )
+        if self.interaction not in _VALID_INTERACTIONS:
+            raise ValueError(
+                f"Unknown interaction '{self.interaction}'. "
+                f"Valid options: {sorted(_VALID_INTERACTIONS)}"
+            )
+
+
+class Result:
+    """Posterior inference result for a directed graph.
+
+    Wraps the C++ FitResult and provides convenient summary methods.
+    Obtain via :func:`fit`.
+    """
+
+    def __init__(self, native_result, node_order: tuple, config: Config) -> None:
+        self._native = native_result
+        self._node_order = node_order
+        self._config = config
+
+    # ------------------------------------------------------------------
+    # Point estimates — delegated to C++
+    # ------------------------------------------------------------------
+
+    @property
+    def mdl_value(self) -> float:
+        """Minimum description length across all posterior samples."""
+        return float(self._native.mdl_value)
+
+    @property
+    def mdl_partition(self) -> np.ndarray:
+        """Community partition from the sample achieving the minimum description length."""
+        return np.asarray(self._native.mdl_partition(), dtype=int)
+
+    def consensus_partition(self) -> np.ndarray:
+        """Posterior sample whose coincidence matrix is closest in L1 to the aggregate."""
+        return np.asarray(self._native.consensus_partition(), dtype=int)
+
+    @property
+    def score_means(self) -> np.ndarray:
+        """Posterior mean hierarchy score for each node, shape (n_nodes,)."""
+        return np.asarray(self._native.score_means(), dtype=float)
+
+    @property
+    def score_stds(self) -> np.ndarray:
+        """Posterior std of hierarchy score for each node, shape (n_nodes,)."""
+        return np.asarray(self._native.score_stds(), dtype=float)
+
+    # ------------------------------------------------------------------
+    # Distribution summaries
+    # ------------------------------------------------------------------
+
+    def coincidence_matrix(self) -> np.ndarray:
+        """Co-assignment frequency matrix, shape (n_nodes, n_nodes).
+
+        Entry [i, j] is the fraction of samples in which nodes i and j
+        are assigned to the same community. Diagonal entries are always 1.0.
+        """
+        return np.asarray(self._native.coincidence_matrix(), dtype=float)
+
+    def samples_df(self) -> pd.DataFrame:
+        """Raw posterior samples DataFrame.
+
+        Columns: ``{node}_group``, ``{node}_score`` for each node;
+        global parameters (``num_groups``, ``density_in``, etc.);
+        entropy decomposition (``H_A_b``, ``H_Adir_G_A_s_nu``,
+        ``H_s_G_b_depths``, etc.).
+        """
+        df = self._native.samples_df()
+        nodes = list(self._node_order)
+        n = len(nodes)
+        rename = {}
+        for i, node in enumerate(nodes):
+            rename[f"{i}_group"] = f"{node}_group"
+            rename[f"{i}_score"] = f"{node}_score"
+        return df.rename(columns=rename)
+
+    def network_properties(self) -> pd.DataFrame:
+        """Posterior summary of network-level parameters.
+
+        Returns a DataFrame with columns ``parameter``, ``mean``, ``std``.
+        """
+        df = self.samples_df()
+        parameters = [
+            "num_groups",
+            "density_in",
+            "density_out",
+            "variation_in",
+            "variation_out",
+            "degree_correction",
+            "individual_depth",
+            "group_depth",
+            "ties_parameter",
+        ]
+        return pd.DataFrame({
+            "parameter": parameters,
+            "mean": [df[p].mean() for p in parameters],
+            "std": [df[p].std() for p in parameters],
+        })
+
+    @property
+    def summary(self) -> dict:
+        """High-level summary: ``num_samples``, ``mean_num_groups``, ``mdl_value``."""
+        return dict(self._native.summary())
+
+
+def fit(
+    config: Config,
+    G: nx.DiGraph,
+    *,
+    num_chains: int = 1,
+    samples_per_chain: int = 1000,
+    sweeps_per_sample: int = 10,
+    burn_sweeps: int = 500,
+    thinning: int = 1,
+    beta: float = 1.0,
+    num_tempering_chains: int = 1,
+    initial_partition: Optional[list] = None,
+    initial_scores: Optional[list] = None,
+    seed: Optional[int] = None,
+    no_cache: bool = False,  # retained for API compatibility; no longer used
+    timeout: float = 60.0,
+    show_progress: bool = False,
+    # Legacy aliases
+    num_samples: Optional[int] = None,
+) -> Result:
+    """Run posterior inference on a directed graph.
+
+    Parameters
+    ----------
+    config : Config
+        Model specification.
+    G : nx.DiGraph
+        Directed NetworkX graph. Edges may have a ``type`` attribute
+        ('dominant' or 'neutral') and an optional ``weight``.
+    num_chains : int
+        Number of independent parallel chains. Default 1.
+    samples_per_chain : int
+        Posterior samples to collect per chain. Default 1000.
+    sweeps_per_sample : int
+        MCMC sweeps between recorded samples. Default 10.
+    burn_sweeps : int
+        Burn-in sweeps before sampling begins (per chain). Default 500.
+    thinning : int
+        Additional sweeps between samples (total = sweeps_per_sample * thinning). Default 1.
+    beta : float
+        Inverse temperature (0 = prior, 1 = posterior). Default 1.0.
+    num_tempering_chains : int
+        Parallel tempering chains within each independent chain. Default 1.
+    initial_partition : list[int], optional
+        Starting community assignment. Inferred via greedy modularity if None.
+    initial_scores : list[float], optional
+        Starting hierarchy scores. Inferred from win percentages if None.
+    seed : int, optional
+        Random seed for reproducibility.
+    timeout : float
+        Maximum wall-clock seconds to run. Default 60.0.
+    show_progress : bool
+        Print a running sample counter to stderr. Default False.
+    num_samples : int, optional
+        Legacy alias for ``samples_per_chain`` (used when ``num_chains=1``).
+
+    Returns
+    -------
+    Result
+    """
+    if num_samples is not None:
+        samples_per_chain = num_samples
+    if not isinstance(config, Config):
+        raise TypeError("config must be an instance of Config")
+    if not isinstance(G, nx.Graph):
+        raise TypeError("G must be a networkx.Graph")
+
+    _check_input_validity(
+        G=G,
+        group_attribute=config.group_attribute,
+        hierarchy_attribute=config.hierarchy_attribute,
+        groups_model=config.groups_model,
+        hierarchy_model=config.hierarchy_model,
+        interaction=config.interaction,
+        assortative=config.assortative,
+        mixing_variation=config.mixing_variation,
+        variation_in=config.variation_in,
+        variation_out=config.variation_out,
+        degree_correction=config.degree_correction,
+        individual_depth=config.individual_depth,
+        group_depth=config.group_depth,
+        ties_parameter=config.ties_parameter,
+        num_groups=config.num_groups,
+        initial_partition=initial_partition,
+        initial_scores=initial_scores,
+        seed=seed,
+        num_samples=samples_per_chain,
+        beta=beta,
+        num_tempering_chains=num_tempering_chains,
+        no_cache=no_cache,
+        timeout=timeout,
+        verbose=show_progress,
+    )
+
+    node_group_list, _, node_score_list = _get_node_data(
+        G,
+        group_attribute=config.group_attribute,
+        hierarchy_attribute=config.hierarchy_attribute,
+    )
+
+    partition_fixed = False
+    if node_group_list is not None:
+        if initial_partition is not None:
+            logger.warning("initial_partition will be overwritten by node attribute data.")
+        initial_partition = node_group_list
+        partition_fixed = True
+
+    scores_fixed = False
+    if node_score_list is not None:
+        if initial_scores is not None:
+            logger.warning("initial_scores will be overwritten by node attribute data.")
+        initial_scores = node_score_list
+        scores_fixed = True
+
+    # Split edges into wins / ties graphs
+    G_wins = nx.DiGraph()
+    G_ties = nx.Graph()
+    G_wins.add_nodes_from(G.nodes(data=True))
+    G_ties.add_nodes_from(G.nodes(data=True))
+    hierarchy_model = config.hierarchy_model
+    for u, v, d in G.edges(data=True):
+        if d.get("type") == "neutral":
+            if hierarchy_model != "bradley_terry":
+                if G_ties.has_edge(u, v):
+                    G_ties[u][v]["weight"] += d.get("weight", 1.0)
+                else:
+                    G_ties.add_edge(u, v, weight=d.get("weight", 1.0))
+        else:
+            if G_wins.has_edge(u, v):
+                G_wins[u][v]["weight"] += d.get("weight", 1.0)
+            else:
+                G_wins.add_edge(u, v, weight=d.get("weight", 1.0))
+
+    # Resolve model parameters
+    (
+        assortative,
+        mixing_variation,
+        variation_in,
+        variation_out,
+        degree_correction,
+        individual_depth,
+        group_depth,
+        ties_parameter,
+        num_groups,
+    ) = _set_model_parameters(
+        config.groups_model,
+        config.hierarchy_model,
+        config.interaction,
+        config.assortative,
+        config.mixing_variation,
+        config.variation_in,
+        config.variation_out,
+        config.degree_correction,
+        config.individual_depth,
+        config.group_depth,
+        config.ties_parameter,
+        config.num_groups,
+    )
+
+    if seed is None:
+        seed = int(np.random.randint(0, 1_000_000))
+
+    # Generate initial state if not provided
+    if initial_partition is None:
+        initial_partition = _gen_initial_partition(G_wins, G_ties, num_groups)
+    if initial_scores is None:
+        initial_scores = _gen_initial_scores(G_wins, G_ties)
+
+    wins_adj = get_neighbors(G_wins)
+    ties_adj = get_neighbors(G_ties)
+
+    node_order = tuple(G.nodes())
+
+    native_result = _fit_backend(
+        wins=wins_adj,
+        ties=ties_adj,
+        initial_partition=list(initial_partition),
+        partition_fixed=bool(partition_fixed),
+        initial_scores=list(initial_scores),
+        scores_fixed=bool(scores_fixed),
+        assortative=bool(assortative),
+        variation_in=None if variation_in is None else float(variation_in),
+        variation_out=None if variation_out is None else float(variation_out),
+        degree_correction=None if degree_correction is None else float(degree_correction),
+        individual_depth=None if individual_depth is None else float(individual_depth),
+        group_depth=None if group_depth is None else float(group_depth),
+        ties_parameter=None if ties_parameter is None else float(ties_parameter),
+        num_groups=None if num_groups is None else int(num_groups),
+        num_chains=int(num_chains),
+        samples_per_chain=int(samples_per_chain),
+        sweeps_per_sample=int(sweeps_per_sample),
+        burn_sweeps=int(burn_sweeps),
+        thinning=int(thinning),
+        beta=float(beta),
+        num_tempering_chains=int(num_tempering_chains),
+        seed=int(seed),
+        timeout=float(timeout),
+        show_progress=bool(show_progress),
+    )
+
+    return Result(native_result, node_order, config)
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+def _gen_initial_partition(
+    G_wins: nx.DiGraph, G_ties: nx.Graph, num_groups, seed: int = 0
+) -> list:
+    G_undirected = nx.Graph()
+    G_undirected.add_nodes_from(G_wins.nodes())
+    for u, v in G_wins.edges():
+        G_undirected.add_edge(u, v)
+    for u, v in G_ties.edges():
+        G_undirected.add_edge(u, v)
+
+    if num_groups is not None:
+        communities = nx.community.greedy_modularity_communities(
+            G_undirected, cutoff=num_groups, best_n=num_groups
+        )
+    else:
+        communities = nx.community.greedy_modularity_communities(G_undirected)
+
+    node_to_index = {node: i for i, node in enumerate(G_undirected.nodes())}
+    partition = [0] * G_undirected.number_of_nodes()
+    for i, community in enumerate(communities):
+        for node in community:
+            partition[node_to_index[node]] = i
+    return partition
+
+
+def _gen_initial_scores(G_wins: nx.DiGraph, G_ties: nx.Graph) -> list:
+    node_to_index = {node: i for i, node in enumerate(G_wins.nodes())}
+    scores = [0.0] * G_wins.number_of_nodes()
+    for node in G_wins.nodes():
+        wins = G_wins.out_degree(node)
+        losses = G_wins.in_degree(node)
+        ties = G_ties.degree(node)
+        scores[node_to_index[node]] = (wins - losses) / (wins + losses + ties + 1e-6)
+    return scores

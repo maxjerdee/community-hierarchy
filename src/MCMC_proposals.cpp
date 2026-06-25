@@ -10,58 +10,42 @@
 
 /**
  * propose_move: Select and execute a random MCMC proposal
- * 
- * Randomly selects a proposal type (single-site, merge, split, or parameter)
+ *
+ * Randomly selects a proposal type (single-site, score, or parameter)
  * weighted by proposal_weights, then dispatches to the appropriate handler.
- * 
+ *
  * Proposal types:
  * - single_site_move: Move one node to a different group (weight: n)
- * - merge_move: Merge two groups into one (weight: 1)
- * - split_move: Split one group into two (weight: 1)
+ * - score_move: Update a node's hierarchy score (weight: n)
  * - parameter_move: Update a model parameter (weight: # free parameters)
  */
 void MCMC::propose_move() {
     start_time = std::chrono::high_resolution_clock::now();
-    
+
     double p = uniform_random(rng);
     double cumulative_weight = 0.0;
     double total_weight = 0.0;
-    
-    // Calculate total weight
-    for (const auto& proposal_entry : proposal_weights) {
-        const std::string& proposal_type = proposal_entry.first;
-        double weight = proposal_entry.second;
+
+    for (const auto& [proposal_type, weight] : proposal_weights) {
         total_weight += weight;
     }
-    
-    // Select proposal type by weighted sampling
-    for (const auto& proposal_entry : proposal_weights) {
-        const std::string& proposal_type = proposal_entry.first;
-        double weight = proposal_entry.second;
+
+    for (const auto& [proposal_type, weight] : proposal_weights) {
         cumulative_weight += weight;
         if (p < cumulative_weight / total_weight) {
             if (proposal_type == "single_site_move") {
                 propose_single_site_move();
-            } else if (proposal_type == "merge_move") {
-                propose_merge_move();
-            } else if (proposal_type == "split_move") {
-                propose_split_move();
             } else if (proposal_type == "parameter_move") {
                 propose_parameter_move();
             } else if (proposal_type == "score_move") {
                 propose_score_move();
             }
-            
-            // Track timing for this proposal
+
             end_time = std::chrono::high_resolution_clock::now();
             duration = std::chrono::duration<double>(end_time - start_time).count();
-            
+
             if (proposal_type == "single_site_move") {
                 time_single_site_proposals += duration;
-            } else if (proposal_type == "merge_move") {
-                time_merge_proposals += duration;
-            } else if (proposal_type == "split_move") {
-                time_split_proposals += duration;
             } else if (proposal_type == "parameter_move") {
                 time_parameter_proposals += duration;
             }
@@ -72,97 +56,73 @@ void MCMC::propose_move() {
 
 /**
  * propose_single_site_move: Move a single node to a different group
- * 
- * Two types of moves:
- * - Type II (probability q/(n+1)): Move node to NEW group (increases num_groups)
- * - Type I (probability n/(n+1)): Move node to EXISTING group
- * 
- * Accept/reject based on Metropolis-Hastings criterion using entropy change.
- * If rejected, flip the node back to its original group.
+ *
+ * Proposal samples from the partition prior so the Hastings ratio exactly
+ * cancels H_b; acceptance is based only on the full likelihood change
+ * (H_A_G_b + H_s_G_b_depths).  See arXiv:2501.07668.
+ *
+ * Node selection: pick a group uniformly, then a node uniformly from that group.
+ * - Singleton node (empties group): with prob (K-1)/n do nothing; otherwise merge
+ *   into one of the K-1 remaining groups chosen uniformly.
+ * - Non-singleton node: with prob K/n split into a new group; otherwise move to
+ *   one of the K existing groups uniformly (same group = no-op).
+ *
+ * Rejection undo:
+ * - merge (is_merge=true): compaction renamed groups, so undo by splitting the
+ *   node back out into a brand-new singleton (flip to num_groups).
+ * - split / standard move: old_group label is still valid, flip back directly.
  */
 void MCMC::propose_single_site_move() {
     single_site_proposals++;
     if (verbose) {
         print("Proposing single site move =================================");
     }
-    double p = uniform_random(rng);
-    int old_group;
-    int new_group;
-    int node;
-    
-    // Type II move: Create new group with probability q/(n+1)
-    if (p < static_cast<double>(num_groups) / (n + 1)) {
-        if(verbose){
-            print("Proposing type II move to new group ==================================");
-        }
-        // Simple implementation (breaks permutation symmetry)
-        // Select random group and node from it
-        old_group = std::uniform_int_distribution<int>(0, num_groups - 1)(rng);
-        if (node_counts[old_group] > 1) {
-            node = group_members[old_group][std::uniform_int_distribution<int>(0, node_counts[old_group] - 1)(rng)];
-        } else {
-            return;  // Can't move if it would empty the only node in the group
-        }
-        new_group = num_groups;  // New group index
 
-        // Original implementation (preserves permutation symmetry)
-       // Come up with a version of this that also preserves the s
-    } else {
-        // Type I move: Move to existing group
-        if(num_groups <= 1){  // Need at least 2 groups to move between
-            return;
+    double p = uniform_random(rng);
+    int old_group, new_group, node;
+    bool is_merge = false;
+
+    // Sample a random group, then a random node from it
+    old_group = std::uniform_int_distribution<int>(0, num_groups - 1)(rng);
+    node = group_members[old_group][std::uniform_int_distribution<int>(0, node_counts[old_group] - 1)(rng)];
+    bool empties_group = node_counts[old_group] == 1;
+
+    if (empties_group) {
+        // Singleton: merge or no-op
+        if (p <= static_cast<double>(num_groups - 1) / n) {
+            return; // no-op: splitting a singleton and immediately reinstating it
         }
-        old_group = std::uniform_int_distribution<int>(0, num_groups - 1)(rng);
-        // Select different group (avoid selecting same group)
         new_group = std::uniform_int_distribution<int>(0, num_groups - 2)(rng);
-        if (new_group >= old_group) {
-            new_group += 1;  // Skip old_group in the selection
+        is_merge = true;
+    } else {
+        // Non-singleton: split or move (possibly same group = no-op)
+        if (p <= static_cast<double>(num_groups) / n) {
+            new_group = num_groups; // split into a new singleton group
+        } else {
+            new_group = std::uniform_int_distribution<int>(0, num_groups - 1)(rng);
+            if (new_group == old_group) return; // no-op
         }
-        node = group_members[old_group][std::uniform_int_distribution<int>(0, node_counts[old_group] - 1)(rng)];
     }
-    
+
     // Store old entropy values for acceptance calculation
     double H_A_G_b_old = H_A_G_b;
-    double H_parameters_old = H_parameters;
     double H_s_G_b_depths_old = H_s_G_b_depths;
-    int num_groups_old = num_groups;
-    
-    // Execute the proposed move
+
     flip_nodes({node}, new_group);
 
-    // // Check that the bookkeeping is correct after the move (before acceptance check)
-    // check_state_bookkeeping(true); // throw_error
-
-    // If Wang-Landau is enabled and num_groups has changed, adjust acceptance probability (inverse of density of states)
-    double wang_landau_adjustment = 0.0;
-    if(wang_landau_modification_factor > 0 && num_groups != num_groups_old){
-        wang_landau_adjustment = log_density_num_groups[num_groups] - log_density_num_groups[num_groups_old];
-    }
-    // Also if the proposed number of groups exceeds the cutoff, reject the move if it increases num_groups
-    if(max_num_groups_cutoff > 0 && num_groups > max_num_groups_cutoff && num_groups > num_groups_old){
-        wang_landau_adjustment = INFINITY;
-    }
-
-    // Metropolis-Hastings acceptance
-    double delta_H = H_A_G_b - H_A_G_b_old + H_parameters - H_parameters_old + H_s_G_b_depths - H_s_G_b_depths_old;
-    double acceptance_prob = std::exp(-beta * delta_H - wang_landau_adjustment);
-    if (uniform_random(rng) >= acceptance_prob) {
-        // print("Rejected single site move: node " + std::to_string(node) + " from group " + std::to_string(old_group) + " to group " + std::to_string(new_group));
-        // if(node == 0){  // Debugging: track moves of node 0
-        //     print("Rejected single site move for node 0: from group " + std::to_string(old_group) + " to group " + std::to_string(new_group) + " with delta_H " + std::to_string(delta_H));
-        //     // Print the old and new values of the entropies
-        //     print("H_A_G_b_old: " + std::to_string(H_A_G_b_old) + ", H_A_G_b: " + std::to_string(H_A_G_b));
-        //     print("H_parameters_old: " + std::to_string(H_parameters_old) + ", H_parameters: " + std::to_string(H_parameters));
-        //     print("H_s_G_b_depths_old: " + std::to_string(H_s_G_b_depths_old) + ", H_s_G_b_depths: " + std::to_string(H_s_G_b_depths));
-        //     print("num_groups_old: " + std::to_string(num_groups_old) + ", num_groups: " + std::to_string(num_groups));
-        // }
-        // Reject: flip node back to original group
-        flip_nodes({node}, old_group);
+    // Proposal cancels H_b exactly; parameter proposals use CDF-transformed distributions
+    // (exponential prior on density_in/density_out cancels in acceptance)
+    double delta_H = H_A_G_b - H_A_G_b_old + H_s_G_b_depths - H_s_G_b_depths_old;
+    if (uniform_random(rng) >= std::exp(-beta * delta_H)) {
+        // Reject: undo the move
+        if (is_merge) {
+            // Compaction occurred: old_group was removed, so undo by splitting
+            // the node back out into a new singleton group.
+            flip_nodes({node}, num_groups);
+        } else {
+            flip_nodes({node}, old_group);
+        }
     } else {
-        // if(node == 0){  // Debugging: track moves of node 0
-        //     print("Accepted single site move for node 0: from group " + std::to_string(old_group) + " to group " + std::to_string(new_group) + " with delta_H " + std::to_string(delta_H));
-        // }
-        // print("Accepted single site move: node " + std::to_string(node) + " from group " + std::to_string(old_group) + " to group " + std::to_string(new_group));
         accepted_single_site_proposals++;
     }
 }
@@ -178,7 +138,7 @@ void MCMC::propose_single_site_move() {
  * the old value to restore the state.
  * 
  * Parameters can include: variation_in, variation_out, degree_correction,
- * mean_degree_scaling, weight_in, weight_out
+ * density_in, density_out
  */
 void MCMC::propose_parameter_move() {
     parameter_proposals++;
@@ -206,15 +166,12 @@ void MCMC::propose_parameter_move() {
     } else if (parameter == "degree_correction") {
         old_value = degree_correction;
         new_value = uniform_proposal(degree_correction, DEGREE_CORRECTION_STEP_SIZE);
-    } else if (parameter == "mean_degree_scaling") {
-        old_value = mean_degree_scaling;
-        new_value = -uniform_proposal(-mean_degree_scaling, MEAN_DEGREE_SCALING_STEP_SIZE);  // Flip sign for proposal
-    } else if (parameter == "weight_in") {
-        old_value = weight_in;
-        new_value = positive_uniform_proposal(weight_in, WEIGHT_IN_STEP_SIZE);  // Must remain positive
-    } else if (parameter == "weight_out") {
-        old_value = weight_out;
-        new_value = positive_uniform_proposal(weight_out, WEIGHT_OUT_STEP_SIZE);  // Must remain positive
+    } else if (parameter == "density_in") {
+        old_value = density_in;
+        new_value = exponential_proposal(density_in, 1.0, PARAMETER_PROPOSAL_STEP_SIZE);
+    } else if (parameter == "density_out") {
+        old_value = density_out;
+        new_value = exponential_proposal(density_out, 1.0, PARAMETER_PROPOSAL_STEP_SIZE);
     } else if (parameter == "individual_depth") {
         old_value = individual_depth;
         new_value = half_cauchy_proposal(individual_depth, DEPTH_PRIOR_WIDTH, INDIVIDUAL_DEPTH_STEP_SIZE);
@@ -370,6 +327,14 @@ void MCMC::propose_score_move() {
  */
 void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     int old_group = partition[nodes[0]];
+
+    // Case 4: self-merge — caller passed new_group == old_group while the group would be
+    // emptied. Redirect to the last group so compaction renames it into old_group's slot.
+    bool empty_old_group_check = (node_counts[old_group] == static_cast<int>(nodes.size()));
+    if (empty_old_group_check && new_group == old_group) {
+        new_group = num_groups - 1;
+    }
+
     if (verbose) {
         std::string node_list;
         for (int node : nodes) {
@@ -388,8 +353,6 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         print("Computed H(M): " + std::to_string(H_M_check));
         print("density_in: " + std::to_string(density_in));
         print("density_out: " + std::to_string(density_out));
-        print("weight_in: " + std::to_string(weight_in));
-        print("weight_out: " + std::to_string(weight_out));
     }
 
     // Remove nodes that are already in the target group
@@ -515,8 +478,8 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         for(int s = 0; s < num_groups; s++){
             if(r == s){
                 // Within-group edges (undirected, so divide by 2)
-                H_M += log_neg_binom(edge_counts[r][r]/2.0, 
-                                    weight_in*std::pow(node_counts[r]*node_counts[r], mean_degree_scaling + 1)/2.0, 
+                H_M += log_neg_binom(edge_counts[r][r]/2.0,
+                                    density_in*node_counts[r]*node_counts[r]/2.0,
                                     concentration_in);
             }else{
                 // Between-group edges
@@ -525,8 +488,8 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
                 if(initial_impacted_groups.find(s) != initial_impacted_groups.end()){
                     symmetry_factor = 0.5;
                 }
-                H_M += symmetry_factor*log_neg_binom(edge_counts[r][s], 
-                                                     weight_out*std::pow(node_counts[r]*node_counts[s], mean_degree_scaling + 1), 
+                H_M += symmetry_factor*log_neg_binom(edge_counts[r][s],
+                                                     density_out*node_counts[r]*node_counts[s],
                                                      concentration_out);
             }
         }
@@ -577,11 +540,8 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         H_s_G_b_depths += std::log(f_normalization) + f_normalization*f_normalization*group_depth*group_depth*group_scaled_score_sums[r]*group_scaled_score_sums[r]/(individual_depth*individual_depth);
     }
 
-    // Subtract cached normalization terms (will be recalculated after update)
     for(int r: initial_impacted_groups){
         node_counts_norm_2 -= std::pow(node_counts[r],2);
-        node_counts_norm_scaling_plus_1 -= std::pow(node_counts[r],mean_degree_scaling + 1);
-        node_counts_norm_2scaling_plus_2 -= std::pow(node_counts[r],2*mean_degree_scaling + 2);
     }
 
     if(verbose){
@@ -595,41 +555,32 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
 
     /* === PHASE 2: Update partition and bookkeeping === */
     for(int node: filtered_nodes){
-        partition[node] = new_group;
-        
         // Remove node from old_group using swap-and-pop (O(1) removal)
         size_t node_index = node_indices_in_groups[old_group][node];
         int last_node = group_members[old_group].back();
-        group_members[old_group][node_index] = last_node;  // Move last node to removed position
-        node_indices_in_groups[old_group][last_node] = node_index;  // Update moved node's index
-        group_members[old_group].pop_back();  // Remove duplicate at end
-        node_indices_in_groups[old_group].erase(node);  // Remove node from index map
+        group_members[old_group][node_index] = last_node;
+        node_indices_in_groups[old_group][last_node] = node_index;
+        group_members[old_group].pop_back();
+        node_indices_in_groups[old_group].erase(node);
         node_counts[old_group]--;
 
-        if(verbose){
-            // Check if neighbors[96] has an entry for 0, if so print it
-            print("Neighbors of node 96:");
-            for(const auto& edge : neighbors[96]){
-                int j = edge.first;
-                double weight = edge.second;
-                print("  Node " + std::to_string(j) + " with weight " + std::to_string(weight));
+        // Update edge counts: subtract edges from old_group.
+        // partition[node] still holds old_group here, so self-loops (j==node) correctly
+        // read old_group as the neighbor group.  Skip the reverse direction for self-loops:
+        // neighbors[node][node] already encodes 2×weight, so treating both directions
+        // separately would subtract 4× instead of 2×.
+        for(const auto& [j, A_ij] : neighbors[node]){
+            int neighbor_group = partition[j];
+            edge_counts[old_group][neighbor_group] -= A_ij;
+            edge_counts_sum[old_group] -= A_ij;
+            if (j != node) {
+                edge_counts[neighbor_group][old_group] -= A_ij;
+                edge_counts_sum[neighbor_group] -= A_ij;
             }
         }
 
-        // Update edge counts: subtract edges from old_group
-        for(const auto& edge : neighbors[node]){
-            int j = edge.first;
-            double A_ij = edge.second;
-            if(verbose){
-                print("Updating edge counts for neighbor " + std::to_string(j) + " of node " + std::to_string(node) + " with A_ij = " + std::to_string(A_ij));
-                print(static_cast<int>(neighbors[node].size()));
-            }
-            int neighbor_group = partition[j];
-            edge_counts[old_group][neighbor_group] -= A_ij;
-            edge_counts[neighbor_group][old_group] -= A_ij;
-            edge_counts_sum[old_group] -= A_ij;
-            edge_counts_sum[neighbor_group] -= A_ij;
-        }
+        // Update partition AFTER edge subtraction so self-loop reads above are correct.
+        partition[node] = new_group;
 
         // Update group_scaled_score_sums: subtract scaled score from old_group
         group_scaled_score_sums[old_group] -= scaled_scores[node];
@@ -640,9 +591,9 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
             node_indices_in_groups.push_back(std::unordered_map<int, size_t>());
             node_counts.push_back(0);
             edge_counts_sum.push_back(0);
-            edge_counts.push_back(std::vector<int>(num_groups, 0));  // Add new row
+            edge_counts.push_back(std::vector<int>(num_groups, 0));
             for(auto& row: edge_counts){
-                row.push_back(0);  // Add new column to all rows
+                row.push_back(0);
             }
             group_scaled_score_sums.push_back(0.0);
             num_groups += 1;
@@ -652,16 +603,17 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         group_members[new_group].push_back(node);
         node_indices_in_groups[new_group][node] = group_members[new_group].size() - 1;
         node_counts[new_group]++;
-        
-        // Update edge counts: add edges to new_group
-        for(const auto& edge : neighbors[node]){
-            int j = edge.first;
-            double A_ij = edge.second;
+
+        // Update edge counts: add edges to new_group.
+        // Same self-loop guard: skip reverse direction when j==node.
+        for(const auto& [j, A_ij] : neighbors[node]){
             int neighbor_group = partition[j];
             edge_counts[new_group][neighbor_group] += A_ij;
-            edge_counts[neighbor_group][new_group] += A_ij;
             edge_counts_sum[new_group] += A_ij;
-            edge_counts_sum[neighbor_group] += A_ij;
+            if (j != node) {
+                edge_counts[neighbor_group][new_group] += A_ij;
+                edge_counts_sum[neighbor_group] += A_ij;
+            }
         }
 
         // Update group_scaled_score_sums: add scaled score to new_group
@@ -698,41 +650,15 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     }
 
     /* === PHASE 3: Add entropy terms from final configuration === */
-    
+
     // Normalizations
     for(int r: final_impacted_groups){
         node_counts_norm_2 += std::pow(node_counts[r],2);
-        node_counts_norm_scaling_plus_1 += std::pow(node_counts[r],mean_degree_scaling + 1);
-        node_counts_norm_2scaling_plus_2 += std::pow(node_counts[r],2*mean_degree_scaling + 2);
     }
-    
-    // In case the weight_out has never been computed, and we have more than one group, compute it now
-    if(weight_out == -1.0 && num_groups > 1){
+
+    // Enforce non-assortative constraint; initialize density_out on first split
+    if(!assortative || (density_out == -1.0 && num_groups > 1)){
         density_out = density_in;
-        weight_out = density_out * (n * n - node_counts_norm_2) / 
-                           (node_counts_norm_scaling_plus_1 * node_counts_norm_scaling_plus_1 - node_counts_norm_2scaling_plus_2);
-        if(verbose){
-            print("Initialized weight_out to: " + std::to_string(weight_out));
-            print("Initialized density_out to: " + std::to_string(density_out));
-        }
-    }
-
-    // Recompute density and parameter prior entropy
-    density_in = weight_in * node_counts_norm_2scaling_plus_2 / node_counts_norm_2;
-    if(num_groups > 1){
-        if(assortative){
-            density_out = weight_out * (node_counts_norm_scaling_plus_1 * node_counts_norm_scaling_plus_1 - node_counts_norm_2scaling_plus_2) / (n * n - node_counts_norm_2);
-        }else{ // Enforce non-assortative condition
-            density_out = density_in;
-            weight_out = density_out * (n * n - node_counts_norm_2) / 
-                               (node_counts_norm_scaling_plus_1 * node_counts_norm_scaling_plus_1 - node_counts_norm_2scaling_plus_2);
-        }
-    }
-
-    if(assortative){
-        H_parameters = density_in + density_out;
-    }else{
-        H_parameters = density_in;
     }
 
     // H(nb|q): Partition count with new num_groups
@@ -770,8 +696,8 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     for(int r: final_impacted_groups){
         for(int s = 0; s < num_groups; s++){
             if(r == s){
-                H_M -= log_neg_binom(edge_counts[r][r]/2.0, 
-                                    weight_in*std::pow(node_counts[r]*node_counts[r], mean_degree_scaling + 1)/2.0, 
+                H_M -= log_neg_binom(edge_counts[r][r]/2.0,
+                                    density_in*node_counts[r]*node_counts[r]/2.0,
                                     concentration_in);
             }else{
                 // Use symmetry_factor to avoid double-counting
@@ -779,8 +705,8 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
                 if(final_impacted_groups.find(s) != final_impacted_groups.end()){
                     symmetry_factor = 0.5;
                 }
-                H_M -= symmetry_factor*log_neg_binom(edge_counts[r][s], 
-                                                     weight_out*std::pow(node_counts[r]*node_counts[s], mean_degree_scaling + 1), 
+                H_M -= symmetry_factor*log_neg_binom(edge_counts[r][s],
+                                                     density_out*node_counts[r]*node_counts[s],
                                                      concentration_out);
             }
         }

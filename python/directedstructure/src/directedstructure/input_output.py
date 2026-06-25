@@ -71,7 +71,6 @@ def _check_input_validity(
     initial_scores: Optional[Iterable[float]] = None,
     seed: Optional[int] = None,
     num_samples: int = 1000,
-    merge_split_enabled: bool = True,
     beta: float = 1.0,
     num_tempering_chains: int = 1,
     no_cache: bool = False,
@@ -145,13 +144,13 @@ def _check_input_validity(
     # groups_model
     valid_models = [
         "general_canonical",
-        "general_unified",
         "traditional_SBM",
         "traditional_DCSBM",
         "traditional_GDCSBM",
         "simple_ASBM",
         "hybrid_ASBM",
         "planted_partition",
+        "general_ASBM",
     ]
     if groups_model not in valid_models:
         raise ValueError(
@@ -206,8 +205,6 @@ def _check_input_validity(
         variation_out = None
     if degree_correction is _UNSET:
         degree_correction = None
-    if mean_degree_scaling is _UNSET:
-        mean_degree_scaling = None
     if individual_depth is _UNSET:
         individual_depth = None
     if group_depth is _UNSET:
@@ -242,12 +239,6 @@ def _check_input_validity(
             raise TypeError("degree_correction must be a float in [0, 1] or None.")
         if not (0.0 <= float(degree_correction) <= 1.0):
             raise ValueError("degree_correction must be between 0 and 1 (inclusive).")
-
-    # mean_degree_scaling: None or float (no strict bounds here, but must be numeric)
-    if mean_degree_scaling is not None and not isinstance(
-        mean_degree_scaling, (int, float)
-    ):
-        raise TypeError("mean_degree_scaling must be a float (or None).")
 
     # individual_depth: None or float (positive, but must be numeric)
     if individual_depth is not None:
@@ -322,10 +313,6 @@ def _check_input_validity(
     # num_samples
     if not isinstance(num_samples, int) or num_samples <= 0:
         raise ValueError("num_samples must be a positive integer.")
-
-    # merge_split_enabled
-    if not isinstance(merge_split_enabled, bool):
-        raise TypeError("merge_split_enabled must be a boolean.")
 
     # beta (non-negative float)
     if not isinstance(beta, (int, float)) or float(beta) < 0.0:
@@ -454,7 +441,6 @@ def _set_model_parameters(
     variation_in: Optional[float] = _UNSET,
     variation_out: Optional[float] = _UNSET,
     degree_correction: Optional[float] = _UNSET,
-    mean_degree_scaling: Optional[float] = _UNSET,
     individual_depth: Optional[float] = _UNSET,
     group_depth: Optional[float] = _UNSET,
     ties_parameter: Optional[float] = _UNSET,
@@ -505,24 +491,6 @@ def _set_model_parameters(
             mixing_variation = "general"
         if degree_correction is _UNSET:
             degree_correction = 0.0
-    elif groups_model == "microcanonical_SBM":
-        if assortative is _UNSET:
-            assortative = False
-        if degree_correction is _UNSET:
-            degree_correction = 0.0
-        if mean_degree_scaling is _UNSET:
-            mean_degree_scaling = -1
-    elif groups_model == "microcanonical_DCSBM":
-        if assortative is _UNSET:
-            assortative = False
-        if degree_correction is _UNSET:
-            degree_correction = 0.5
-        if mean_degree_scaling is _UNSET:
-            mean_degree_scaling = -1
-    elif groups_model == "general_unified":
-        if mean_degree_scaling is _UNSET:
-            mean_degree_scaling = None  # infer
-
     # hierarchy_model
     if hierarchy_model == "bradley_terry":
         ties_parameter = 0.0
@@ -568,8 +536,6 @@ def _set_model_parameters(
         assortative = True
     if degree_correction is _UNSET:
         degree_correction = None
-    if mean_degree_scaling is _UNSET:
-        mean_degree_scaling = 0  # Defaults to canonical model scaling, but can be set to None to infer the best scaling from the data
     if num_groups is _UNSET:
         num_groups = None
     if variation_in is _UNSET:
@@ -589,7 +555,6 @@ def _set_model_parameters(
         variation_in,
         variation_out,
         degree_correction,
-        mean_degree_scaling,
         individual_depth,
         group_depth,
         ties_parameter,
@@ -598,87 +563,51 @@ def _set_model_parameters(
 
 
 def write_gml_with_inferences(
-    G: nx.Graph | str,
-    output_filename: str | nx.Graph,
-    network_properties_df: Optional[pd.DataFrame] = None,
-    node_properties_df: Optional[pd.DataFrame] = None,
-    **kwargs: Any,
+    G: nx.Graph,
+    output_filename: str,
+    result: "Result",
+    *,
+    partition: Optional[Any] = None,
 ) -> None:
-    """
-    Write the GML with inferred attributes
+    """Write the graph to GML with inferred node and network attributes attached.
 
     Parameters
     ----------
     G : nx.Graph
-        Input network. For backward compatibility, this function also accepts
-        the legacy argument order ``(output_filename, G, ...)``.
+        Input network.
     output_filename : str
         Filename to save the GML.
-    network_properties_df : pd.DataFrame, optional
-        DataFrame containing network properties. If not provided, properties will be inferred.
-    node_properties_df : pd.DataFrame, optional
-        DataFrame containing node properties. If not provided, properties will be inferred.
-    kwargs : Any
-        Additional keyword arguments, see :func:`directedstructure.core.samples` for details.
+    result : Result
+        Inference result from :func:`directedstructure.fit`.
+    partition : array-like, optional
+        Community partition for the ``inferred_group`` node attribute.
+        Defaults to ``result.mdl_partition``. Pass
+        ``result.consensus_partition()`` to use the consensus partition.
     """
-
-    # Support both write_gml_with_inferences(G, output_filename, ...)
-    # and the legacy write_gml_with_inferences(output_filename, G, ...).
-    if isinstance(G, str) and isinstance(output_filename, nx.Graph):
-        warnings.warn(
-            "Calling write_gml_with_inferences(output_filename, G, ...) is deprecated. "
-            "Use write_gml_with_inferences(G, output_filename, ...) instead.",
-            DeprecationWarning,
-        )
-        G, output_filename = output_filename, G
+    from .core import Result  # local import to avoid circular
 
     if not isinstance(G, nx.Graph):
-        raise TypeError(
-            "write_gml_with_inferences expected a NetworkX graph as its first argument "
-            "and an output filename as its second argument."
-        )
+        raise TypeError("G must be a NetworkX graph.")
     if not isinstance(output_filename, str):
         raise TypeError("output_filename must be a string path.")
+    if not isinstance(result, Result):
+        raise TypeError("result must be a directedstructure.Result instance.")
 
-    # If properties are not provided, infer them
-    if network_properties_df is None:
-        from .core import network_properties
-        network_properties_df = network_properties(G, **kwargs)
-        if node_properties_df is not None:
-            warnings.warn(
-                "network_properties_df was not provided and has been inferred, but node_properties_df was provided. This may lead to inconsistencies between the two dataframes.",
-                UserWarning,
-            )
-    
-    if node_properties_df is None:
-        from .core import node_properties
-        node_properties_df = node_properties(G, **kwargs)
-        if network_properties_df is not None:
-            warnings.warn(
-                "node_properties_df was not provided and has been inferred, but network_properties_df was provided. This may lead to inconsistencies between the two dataframes.",
-                UserWarning,
-            )
-    
+    if partition is None:
+        partition = result.mdl_partition
+    scores = result.score_means
+    network_properties_df = result.network_properties()
 
-    # Create a copy of the graph to add node attributes without modifying the original graph
     G_copy = G.copy()
-    for node in G_copy.nodes():
-        node_idx = list(G_copy.nodes()).index(node)
-        if node_idx < len(node_properties_df):
-            group = node_properties_df["consensus_group"].iloc[node_idx]
-            score_mean = node_properties_df["score_mean"].iloc[node_idx]
-            score_std = node_properties_df["score_std"].iloc[node_idx]
-            G_copy.nodes[node]["inferred_group"] = group
-            G_copy.nodes[node]["inferred_score_mean"] = score_mean
-            G_copy.nodes[node]["inferred_score_std"] = score_std
+    node_order = list(result._node_order)
+    for idx, node in enumerate(node_order):
+        if node in G_copy.nodes:
+            G_copy.nodes[node]["inferred_group"] = int(partition[idx])
+            G_copy.nodes[node]["inferred_score"] = float(scores[idx])
 
-    # Write the network attributes
     for _, row in network_properties_df.iterrows():
-        parameter = row["parameter"]
-        mean = row["mean"]
-        std = row["std"]
-        G_copy.graph[f"inferred_{parameter}_mean"] = mean
-        G_copy.graph[f"inferred_{parameter}_std"] = std
+        G_copy.graph[f"inferred_{row['parameter']}_mean"] = row["mean"]
+        G_copy.graph[f"inferred_{row['parameter']}_std"] = row["std"]
 
     _sanitize_graph_attributes_for_gml(G_copy)
     nx.write_gml(G_copy, output_filename)
@@ -723,74 +652,92 @@ def get_neighbors(G: nx.DiGraph | nx.Graph) -> Iterable[dict]:
 
 
 def plot_node_properties(
-    G: nx.Graph,
+    result: "Result",
     *,
+    partition: Optional[Any] = None,
     output_filename: Optional[str] = None,
-    **kwargs: Any,
+    show_legend: bool = False,
 ):
-    """
-    Infer node properties and plot individual scores against group scores.
+    """Plot individual node scores against group mean scores.
+
+    Scores on the y-axis are posterior means from :meth:`Result.expected_scores`.
+    The x-axis shows the mean score of the group each node belongs to.
 
     Parameters
     ----------
-    G : nx.Graph
-        Input network.
+    result : Result
+        Inference result from :func:`directedstructure.fit`.
+    partition : array-like, optional
+        Community partition to colour nodes by. Defaults to
+        ``result.mdl_partition``. Pass ``result.consensus_partition()``
+        to use the consensus partition instead.
     output_filename : str, optional
-        Filename to save the plot. If None, the figure is not saved.
-    kwargs : Any
-        Additional keyword arguments, see :func:`directedstructure.core.node_properties`
-        and :func:`directedstructure.core.samples` for details.
+        If given, save the figure to this path.
+    show_legend : bool
+        Whether to show a group legend. Default False.
     """
-    from .core import node_properties
+    import numpy as np
+    from .core import Result  # local import to avoid circular
 
-    node_properties_df = node_properties(G, **kwargs)
-    group_col = "consensus_group"
-    show_legend = kwargs.get("group_attribute") is not None
+    if not isinstance(result, Result):
+        raise TypeError("result must be a directedstructure.Result instance.")
 
-    group_order = (
-        node_properties_df[[group_col, "group_score_mean"]]
-        .drop_duplicates()
-        .sort_values("group_score_mean", ascending=False)
-    )
-    sorted_groups = group_order[group_col].to_list()
+    if partition is None:
+        partition = result.mdl_partition
+    partition = np.asarray(partition)
+    scores = result.score_means
+    groups = np.unique(partition)
+
+    # Mean score of each group
+    group_mean_score = {g: float(scores[partition == g].mean()) for g in groups}
+    sorted_groups = sorted(groups, key=lambda g: group_mean_score[g], reverse=True)
 
     fig, ax = plt.subplots(figsize=(10, 6))
     cmap = plt.get_cmap("tab10")
-    for idx, group in enumerate(sorted_groups):
-        group_df = node_properties_df[node_properties_df[group_col] == group]
-        group_score_mean = group_df["group_score_mean"].iloc[0]
-        individual_score_means = group_df["score_mean"].to_list()
+    for color_idx, group in enumerate(sorted_groups):
+        mask = partition == group
         ax.scatter(
-            [group_score_mean] * len(individual_score_means),
-            individual_score_means,
-            color=cmap(idx % 10),
+            [group_mean_score[group]] * int(mask.sum()),
+            scores[mask],
+            color=cmap(color_idx % 10),
             label=str(group),
         )
 
-    ax.set_xlabel("Group Score")
+    ax.set_xlabel("Group Mean Score")
     ax.set_ylabel("Node Score")
-    ax.set_title("Node Scores vs Group Scores")
+    ax.set_title("Node Scores vs Group Mean Scores")
 
-    handles, _ = ax.get_legend_handles_labels()
-    if show_legend and handles:
-        ax.legend(loc="lower right")
+    if show_legend:
+        handles, _ = ax.get_legend_handles_labels()
+        if handles:
+            ax.legend(loc="lower right")
 
     if output_filename is not None:
         fig.savefig(output_filename)
 
-    return node_properties_df, fig, ax
+    return fig, ax
 
 
 def plot_MCMC_entropy(
-    G: nx.Graph,
+    result: "Result",
     *,
     output_filename: Optional[str] = None,
-    **kwargs: Any,
 ):
-    """Plot total entropy over MCMC samples to inspect convergence."""
-    from .core import samples
+    """Plot total entropy over MCMC samples to inspect convergence.
 
-    samples_df = samples(G, **kwargs)
+    Parameters
+    ----------
+    result : Result
+        Inference result from :func:`directedstructure.fit`.
+    output_filename : str, optional
+        If given, save the figure to this path.
+    """
+    from .core import Result  # local import to avoid circular
+
+    if not isinstance(result, Result):
+        raise TypeError("result must be a directedstructure.Result instance.")
+
+    samples_df = result.samples_df()
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.plot(
         samples_df["H_A_b"]
@@ -804,5 +751,5 @@ def plot_MCMC_entropy(
     if output_filename is not None:
         fig.savefig(output_filename)
 
-    return samples_df, fig, ax
+    return fig, ax
 

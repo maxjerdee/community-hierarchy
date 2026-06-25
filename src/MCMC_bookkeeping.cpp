@@ -27,7 +27,7 @@
  * - edge_counts_sum[r]: Total degree of group r
  * - Normalization terms: node_counts_norm_* for efficient entropy calculation
  * - All entropy components: H_b, H_k, H_M, H_A_G_k_M_b, H_A_G_b, H_A_b
- * - Density/weight parameters: density_in, density_out, weight_in, weight_out
+ * - Density parameters: density_in, density_out
  * 
  * @param throw_error: If true, exit on inconsistency; if false, repair silently
  */
@@ -110,21 +110,11 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     }
 
     // === Recompute normalization terms ===
-    // These are cached for efficient entropy calculation
-    // node_counts_norm_2 = sum_r n[r]^2
-    // node_counts_norm_scaling_plus_1 = sum_r n[r]^(mean_degree_scaling+1)
-    // node_counts_norm_2scaling_plus_2 = sum_r n[r]^(2*mean_degree_scaling+2)
     double node_counts_norm_2_actual = 0;
-    double node_counts_norm_scaling_plus_1_actual = 0;
-    double node_counts_norm_2scaling_plus_2_actual = 0;
     for (int r = 0; r < num_groups; r++) {
         node_counts_norm_2_actual += std::pow(node_counts[r], 2);
-        node_counts_norm_scaling_plus_1_actual += std::pow(node_counts[r], mean_degree_scaling + 1);
-        node_counts_norm_2scaling_plus_2_actual += std::pow(node_counts[r], 2 * mean_degree_scaling + 2);
     }
     node_counts_norm_2 = value_check(node_counts_norm_2_actual, node_counts_norm_2, NUMERICAL_CHECK_EPSILON, throw_error, "node_counts_norm_2");
-    node_counts_norm_scaling_plus_1 = value_check(node_counts_norm_scaling_plus_1_actual, node_counts_norm_scaling_plus_1, NUMERICAL_CHECK_EPSILON, throw_error, "node_counts_norm_scaling_plus_1");
-    node_counts_norm_2scaling_plus_2 = value_check(node_counts_norm_2scaling_plus_2_actual, node_counts_norm_2scaling_plus_2, NUMERICAL_CHECK_EPSILON, throw_error, "node_counts_norm_2scaling_plus_2");
 
     // === Recompute edge_counts matrix ===
     // edge_counts[r][s] = total edge weight from group r to group s
@@ -188,26 +178,6 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
         density_out = density_in;
     }
     
-    // Compute weight parameters from densities and normalization terms
-
-    double weight_in_actual = density_in * node_counts_norm_2 / node_counts_norm_2scaling_plus_2;
-    double weight_out_actual;
-    weight_in = value_check(weight_in_actual, weight_in, NUMERICAL_CHECK_EPSILON, throw_error, "weight_in");
-    if(num_groups > 1){
-        if(verbose){
-            print("node_counts_norm_2: " + std::to_string(node_counts_norm_2));
-            print("n: " + std::to_string(n));
-            print("node_counts_norm_2scaling_plus_2: " + std::to_string(node_counts_norm_2scaling_plus_2));
-            print("node_counts_norm_scaling_plus_1: " + std::to_string(node_counts_norm_scaling_plus_1));
-            print("density_out: " + std::to_string(density_out));
-        }
-        weight_out_actual = density_out * (n * n - node_counts_norm_2) / 
-                           (node_counts_norm_scaling_plus_1 * node_counts_norm_scaling_plus_1 - node_counts_norm_2scaling_plus_2);
-        weight_out = value_check(weight_out_actual, weight_out, NUMERICAL_CHECK_EPSILON, throw_error, "weight_out");
-    }else{
-        weight_out_actual = 0.0;  // No between-group edges with single group
-    }
-
     // If not assortative, check density_out = density_in
     if (!assortative) {
         if(num_groups > 1){
@@ -275,15 +245,6 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
         }
     }
 
-
-    // === Compute H_parameters: Parameter prior entropy ===
-    // Uses exponential prior on densities: -density_in - density_out
-    double H_parameters_actual = 0.0;
-    H_parameters_actual += density_in;  // Exponential prior on within-group density
-    if (assortative) {
-        H_parameters_actual += density_out;  // Exponential prior on between-group density
-    }
-    H_parameters = value_check(H_parameters_actual, H_parameters, NUMERICAL_CHECK_EPSILON, throw_error, "H_parameters");
 
     // === Compute H_b: Partition entropy ===
     // H_b = H(b|n,q) = log(n) + log(C(n-1, q-1)) + log(n!) - sum_r log(n[r]!)
@@ -368,7 +329,7 @@ double MCMC::calculate_H_k() {
         
         // Subtract normalization for each node's degree
         for(int i = 0; i < n; i++) {
-            H_k_actual -= log_binom(neighbors[i].size() + degree_correction_concentration - 1, 
+            H_k_actual -= log_binom(node_degrees[i] + degree_correction_concentration - 1, 
                                 degree_correction_concentration - 1);
         } 
     }else{
@@ -378,13 +339,13 @@ double MCMC::calculate_H_k() {
             H_k_actual += edge_counts_sum[r]*std::log(node_counts[r]);
         }
         for(int i = 0; i < n; i++) {
-            H_k_actual += log_factorial(neighbors[i].size());
+            H_k_actual += log_factorial(node_degrees[i]);
         }
     }
     if(verbose){
         printf("Degrees k_i:\n");
         for(int i = 0; i < n; i++){
-            printf("%d ", neighbors[i].size());
+            printf("%d ", node_degrees[i]);
         }
         print("");
         printf("edge_counts_sum[r]:\n");
@@ -403,8 +364,8 @@ double MCMC::calculate_H_k() {
  * Models edge counts M_{rs} between groups as negative binomial distributions.
  * 
  * Expected edge counts scale with group sizes:
- * - Within-group: E[M_{rr}/2] = weight_in * n[r]^(2*mean_degree_scaling+2) / 2
- * - Between-group: E[M_{rs}] = weight_out * n[r]^(mean_degree_scaling+1) * n[s]^(mean_degree_scaling+1)
+ * - Within-group: E[M_{rr}/2] = density_in * n[r]^2 / 2
+ * - Between-group: E[M_{rs}] = density_out * n[r] * n[s]
  * 
  * Concentration parameters control overdispersion:
  * - concentration=1: Geometric distribution (high variance)
@@ -415,8 +376,8 @@ double MCMC::calculate_H_k() {
 double MCMC::calculate_H_M() {
     if(verbose){
         print("Calculating H_M with current edge counts and parameters:");
-        print("weight_in: " + std::to_string(weight_in) + ", weight_out: " + std::to_string(weight_out));
-        print("concentration_in: " + std::to_string(concentration_in) + ", concentration_out: " + std::to_string(concentration_out) + ", mean_degree_scaling: " + std::to_string(mean_degree_scaling));
+        print("density_in: " + std::to_string(density_in) + ", density_out: " + std::to_string(density_out));
+        print("concentration_in: " + std::to_string(concentration_in) + ", concentration_out: " + std::to_string(concentration_out));
     }
     
     double H_M_actual = 0.0; 
@@ -426,13 +387,13 @@ double MCMC::calculate_H_M() {
         for(int s = r; s < num_groups; s++){
             if(r == s){
                 // Within-group edges (undirected, so divide by 2)
-                H_M_actual -= log_neg_binom(edge_counts[r][r]/2.0, 
-                                           weight_in*std::pow(node_counts[r]*node_counts[r], mean_degree_scaling + 1)/2.0, 
+                H_M_actual -= log_neg_binom(edge_counts[r][r]/2.0,
+                                           density_in*node_counts[r]*node_counts[r]/2.0,
                                            concentration_in);
             }else{
                 // Between-group edges
-                H_M_actual -= log_neg_binom(edge_counts[r][s], 
-                                           weight_out*std::pow(node_counts[r]*node_counts[s], mean_degree_scaling + 1), 
+                H_M_actual -= log_neg_binom(edge_counts[r][s],
+                                           density_out*node_counts[r]*node_counts[s],
                                            concentration_out);
             }
         }
@@ -471,7 +432,7 @@ double MCMC::calculate_H_A_G_k_M_b() {
             }
         }
         // Normalize by degree factorial
-        H_A_G_k_M_b_actual -= log_factorial(neighbors[i].size());
+        H_A_G_k_M_b_actual -= log_factorial(node_degrees[i]);
     }
     
     // Subtract group-level edge count factorials (unique pairs only)
@@ -520,7 +481,7 @@ double MCMC::calculate_H_Adir_G_A_s_nu() {
             int j = edge.first;
             double Aties_ij = edge.second;
             if(i < j){
-                double log_p_tie_ij = std::log(ties_parameter) + scores[i]/2.0 + scores[j]/2.0 - log_sum_exp(std::vector<double>{scores[i], scores[j], std::log(ties_parameter) + scores[i]/2.0 + scores[j]/2.0}); // P(i <-> j|i - j)
+                double log_p_tie_ij = std::log(ties_parameter) + scores[i]/2.0 + scores[j]/2.0 - log_sum_exp(std::vector<double>{scores[i], scores[j], std::log(ties_parameter) + scores[i]/2.0 + scores[j]/2.0}); // P(i <-> j|i - j): ν·exp((si+sj)/2) / Z
                 H_Adir_G_A_s_nu_actual += log_factorial(Aties_ij) - Aties_ij * log_p_tie_ij;
                 if(verbose){
                     print("Edge (" + std::to_string(i) + " <-> " + std::to_string(j) + "): Aties_ij = " + std::to_string(Aties_ij) + ", log_p_tie_ij = " + std::to_string(log_p_tie_ij) + ", contribution = " + std::to_string(log_factorial(Aties_ij) - Aties_ij * log_p_tie_ij));

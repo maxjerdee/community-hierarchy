@@ -1,51 +1,46 @@
 graph [
   directed 1
-  inferred_num_groups_mean 12.0
-  inferred_num_groups_std NAN
-  inferred_density_in_mean 0.03547404148244134
-  inferred_density_in_std NAN
-  inferred_density_out_mean 0.03547404148244134
-  inferred_density_out_std NAN
+  inferred_num_groups_mean 54.789
+  inferred_num_groups_std 43.45856792539448
+  inferred_density_in_mean 0.13522335759731482
+  inferred_density_in_std 0.21031838567372943
+  inferred_density_out_mean 0.13522335759731482
+  inferred_density_out_std 0.21031838567372943
   inferred_variation_in_mean 0.5
-  inferred_variation_in_std NAN
+  inferred_variation_in_std 0.0
   inferred_variation_out_mean 0.5
-  inferred_variation_out_std NAN
-  inferred_degree_correction_mean 0.5
-  inferred_degree_correction_std NAN
-  inferred_mean_degree_scaling_mean 0.0
-  inferred_mean_degree_scaling_std NAN
-  inferred_individual_depth_mean 0.5391428586833966
-  inferred_individual_depth_std NAN
+  inferred_variation_out_std 0.0
+  inferred_degree_correction_mean 0.0
+  inferred_degree_correction_std 0.0
+  inferred_individual_depth_mean 2.153048576430558
+  inferred_individual_depth_std 0.25121326913324715
   inferred_group_depth_mean 0.0
-  inferred_group_depth_std NAN
+  inferred_group_depth_std 0.0
   inferred_ties_parameter_mean 0.0
-  inferred_ties_parameter_std NAN
+  inferred_ties_parameter_std 0.0
   node [
     id 0
     label "0"
     group 0
     status -5.912467
-    inferred_group 3
-    inferred_score_mean 1.051287273992671
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.8938620540230351
   ]
   node [
     id 1
     label "1"
     group 0
     status -7.977583
-    inferred_group 7
-    inferred_score_mean -0.5428784082802305
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.4024273295152079
   ]
   node [
     id 2
     label "2"
     group 0
     status -5.876149
-    inferred_group 1
-    inferred_score_mean -0.3463647964020342
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.8408834925261663
   ]
   node [
     id 3
@@ -53,71 +48,63 @@ graph [
     group 0
     status -7.151906
     inferred_group 0
-    inferred_score_mean -0.33608078761424015
-    inferred_score_std NAN
+    inferred_score -0.642774110255177
   ]
   node [
     id 4
     label "4"
     group 0
     status -7.608913
-    inferred_group 1
-    inferred_score_mean -0.5442087503383989
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.7436494913086267
   ]
   node [
     id 5
     label "5"
     group 0
     status -6.37279
-    inferred_group 1
-    inferred_score_mean -0.18764267778369192
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.0485210990274187
   ]
   node [
     id 6
     label "6"
     group 0
     status -6.971672
-    inferred_group 7
-    inferred_score_mean 0.35512137660953935
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.7516585957707662
   ]
   node [
     id 7
     label "7"
     group 0
     status -6.44979
-    inferred_group 5
-    inferred_score_mean -0.6364498701910918
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.4506750142257998
   ]
   node [
     id 8
     label "8"
     group 0
     status -8.175132
-    inferred_group 1
-    inferred_score_mean -0.6665932784394764
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -2.0887867845929153
   ]
   node [
     id 9
     label "9"
     group 0
     status -7.082774
-    inferred_group 1
-    inferred_score_mean -0.8235835390122649
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.7531792484373954
   ]
   node [
     id 10
     label "10"
     group 0
     status -6.253578
-    inferred_group 5
-    inferred_score_mean -0.8736279620882946
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.7792271123526688
   ]
   node [
     id 11
@@ -125,44 +112,39 @@ graph [
     group 0
     status -6.351536
     inferred_group 0
-    inferred_score_mean -0.668403980734504
-    inferred_score_std NAN
+    inferred_score -1.7465262218932158
   ]
   node [
     id 12
     label "12"
     group 0
     status -7.224393
-    inferred_group 10
-    inferred_score_mean -0.006883970032824569
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.3108034944747607
   ]
   node [
     id 13
     label "13"
     group 0
     status -5.906595
-    inferred_group 1
-    inferred_score_mean 0.2741815122196325
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.04426040566719726
   ]
   node [
     id 14
     label "14"
     group 0
     status -6.94562
-    inferred_group 2
-    inferred_score_mean -0.49369489306782527
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.2087863402692598
   ]
   node [
     id 15
     label "15"
     group 0
     status -5.713553
-    inferred_group 2
-    inferred_score_mean -0.17649249092362698
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.10369136699207514
   ]
   node [
     id 16
@@ -170,53 +152,47 @@ graph [
     group 0
     status -6.623593
     inferred_group 0
-    inferred_score_mean -1.2958921101838343
-    inferred_score_std NAN
+    inferred_score -2.1577402150630705
   ]
   node [
     id 17
     label "17"
     group 0
     status -6.279844
-    inferred_group 5
-    inferred_score_mean -0.34311240282347577
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.9359973587173651
   ]
   node [
     id 18
     label "18"
     group 0
     status -6.285034
-    inferred_group 3
-    inferred_score_mean -0.909833138613321
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.7894479933949465
   ]
   node [
     id 19
     label "19"
     group 0
     status -7.970233
-    inferred_group 5
-    inferred_score_mean -0.38047670389650284
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.4651944117220528
   ]
   node [
     id 20
     label "20"
     group 0
     status -6.789833
-    inferred_group 1
-    inferred_score_mean -0.25779114726192387
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.9659525538396421
   ]
   node [
     id 21
     label "21"
     group 0
     status -6.227224
-    inferred_group 1
-    inferred_score_mean 0.3697347011231777
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.02564649387883127
   ]
   node [
     id 22
@@ -224,8 +200,7 @@ graph [
     group 0
     status -6.448679
     inferred_group 0
-    inferred_score_mean -0.3182719813483397
-    inferred_score_std NAN
+    inferred_score -1.1823104036119303
   ]
   node [
     id 23
@@ -233,98 +208,87 @@ graph [
     group 0
     status -7.130573
     inferred_group 0
-    inferred_score_mean -0.1574406384641172
-    inferred_score_std NAN
+    inferred_score -1.1971663539193647
   ]
   node [
     id 24
     label "24"
     group 0
     status -7.164319
-    inferred_group 1
-    inferred_score_mean 0.8658906530871517
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.3526809186338804
   ]
   node [
     id 25
     label "25"
     group 0
     status -6.375058
-    inferred_group 7
-    inferred_score_mean -0.32232473966192743
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.599052800588479
   ]
   node [
     id 26
     label "26"
     group 0
     status -7.217319
-    inferred_group 6
-    inferred_score_mean -0.37737740345203574
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.0460044848145453
   ]
   node [
     id 27
     label "27"
     group 0
     status -8.332351
-    inferred_group 1
-    inferred_score_mean -0.7267045070091518
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.3203734277348744
   ]
   node [
     id 28
     label "28"
     group 0
     status -8.414353
-    inferred_group 1
-    inferred_score_mean -0.3996982795692165
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.0599593404340324
   ]
   node [
     id 29
     label "29"
     group 0
     status -6.806415
-    inferred_group 2
-    inferred_score_mean -0.7936205390037603
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -2.5566973367702355
   ]
   node [
     id 30
     label "30"
     group 0
     status -6.87171
-    inferred_group 1
-    inferred_score_mean -0.5850453476592932
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.516786174324958
   ]
   node [
     id 31
     label "31"
     group 0
     status -5.606485
-    inferred_group 1
-    inferred_score_mean 0.12474354097554137
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.4025421363967841
   ]
   node [
     id 32
     label "32"
     group 0
     status -6.716954
-    inferred_group 1
-    inferred_score_mean 0.30044019825815815
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.11552551744011468
   ]
   node [
     id 33
     label "33"
     group 0
     status -7.029621
-    inferred_group 5
-    inferred_score_mean -0.26031025879172837
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.5820904973234593
   ]
   node [
     id 34
@@ -332,17 +296,15 @@ graph [
     group 0
     status -5.582948
     inferred_group 0
-    inferred_score_mean -0.02468858563929644
-    inferred_score_std NAN
+    inferred_score -1.2264084360651644
   ]
   node [
     id 35
     label "35"
     group 0
     status -7.97288
-    inferred_group 1
-    inferred_score_mean -1.073352095094646
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.4716030859885323
   ]
   node [
     id 36
@@ -350,53 +312,47 @@ graph [
     group 0
     status -6.827481
     inferred_group 0
-    inferred_score_mean -0.5296053878045188
-    inferred_score_std NAN
+    inferred_score -0.8845076822481321
   ]
   node [
     id 37
     label "37"
     group 0
     status -5.174945
-    inferred_group 1
-    inferred_score_mean 0.5331293256700361
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.7719096103226276
   ]
   node [
     id 38
     label "38"
     group 0
     status -6.070258
-    inferred_group 7
-    inferred_score_mean -0.7277831644690406
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.876978771813726
   ]
   node [
     id 39
     label "39"
     group 0
     status -7.098433
-    inferred_group 7
-    inferred_score_mean -0.4991639556842695
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.4706380638409517
   ]
   node [
     id 40
     label "40"
     group 0
     status -6.725263
-    inferred_group 1
-    inferred_score_mean 0.0
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.43378429037964394
   ]
   node [
     id 41
     label "41"
     group 0
     status -6.691625
-    inferred_group 1
-    inferred_score_mean -0.18634255908669337
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.5990124838487698
   ]
   node [
     id 42
@@ -404,116 +360,103 @@ graph [
     group 0
     status -5.442719
     inferred_group 0
-    inferred_score_mean -0.050479110849239346
-    inferred_score_std NAN
+    inferred_score -0.28156715114277947
   ]
   node [
     id 43
     label "43"
     group 0
     status -6.654165
-    inferred_group 1
-    inferred_score_mean -0.5638183611904058
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.0810753439562824
   ]
   node [
     id 44
     label "44"
     group 0
     status -5.963629
-    inferred_group 7
-    inferred_score_mean 0.9982941691790352
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.8273874188272499
   ]
   node [
     id 45
     label "45"
     group 0
     status -7.426154
-    inferred_group 1
-    inferred_score_mean -1.12544341579223
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.075268227239044
   ]
   node [
     id 46
     label "46"
     group 0
     status -7.204558
-    inferred_group 2
-    inferred_score_mean 0.00034172173329549764
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.1716895266746983
   ]
   node [
     id 47
     label "47"
     group 0
     status -7.489326
-    inferred_group 2
-    inferred_score_mean -0.3366805952019427
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.7114283428623914
   ]
   node [
     id 48
     label "48"
     group 0
     status -7.767146
-    inferred_group 11
-    inferred_score_mean -0.6681264592596903
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -2.2878221843179043
   ]
   node [
     id 49
     label "49"
     group 0
     status -6.39277
-    inferred_group 5
-    inferred_score_mean -0.2992500630312326
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.9436734512091005
   ]
   node [
     id 50
     label "50"
     group 1
     status -2.277682
-    inferred_group 2
-    inferred_score_mean 0.014258469154023755
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.20910344639800918
   ]
   node [
     id 51
     label "51"
     group 1
     status -2.092096
-    inferred_group 1
-    inferred_score_mean -0.35723000637017593
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.4999491939097755
   ]
   node [
     id 52
     label "52"
     group 1
     status -2.09183
-    inferred_group 1
-    inferred_score_mean 0.29595174793953044
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.1897802742807797
   ]
   node [
     id 53
     label "53"
     group 1
     status -2.533765
-    inferred_group 5
-    inferred_score_mean 0.8953381367108759
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.685215155072835
   ]
   node [
     id 54
     label "54"
     group 1
     status -0.025838
-    inferred_group 2
-    inferred_score_mean -0.5941275239278003
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.5898215872295763
   ]
   node [
     id 55
@@ -521,53 +464,47 @@ graph [
     group 1
     status -2.528464
     inferred_group 0
-    inferred_score_mean -0.5185655218364218
-    inferred_score_std NAN
+    inferred_score -0.525186375672034
   ]
   node [
     id 56
     label "56"
     group 1
     status -2.449953
-    inferred_group 4
-    inferred_score_mean 0.47664641080540965
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.08737773542831023
   ]
   node [
     id 57
     label "57"
     group 1
     status -2.894383
-    inferred_group 3
-    inferred_score_mean -0.3521636969547324
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.503305986510503
   ]
   node [
     id 58
     label "58"
     group 1
     status -2.957673
-    inferred_group 4
-    inferred_score_mean -1.1661238992496867
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.9035119681805311
   ]
   node [
     id 59
     label "59"
     group 1
     status -2.590456
-    inferred_group 6
-    inferred_score_mean -0.3332574018736581
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.3699217019448233
   ]
   node [
     id 60
     label "60"
     group 1
     status -3.604925
-    inferred_group 4
-    inferred_score_mean -0.7030481471668306
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -2.566407587075305
   ]
   node [
     id 61
@@ -575,62 +512,55 @@ graph [
     group 1
     status -3.7369
     inferred_group 0
-    inferred_score_mean -0.5045164952729607
-    inferred_score_std NAN
+    inferred_score -1.3669407939024953
   ]
   node [
     id 62
     label "62"
     group 1
     status -2.258233
-    inferred_group 3
-    inferred_score_mean 0.13968013173233504
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.23417820771550857
   ]
   node [
     id 63
     label "63"
     group 1
     status -2.259874
-    inferred_group 3
-    inferred_score_mean 0.003384444038874148
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.9313321777348111
   ]
   node [
     id 64
     label "64"
     group 1
     status -3.913765
-    inferred_group 9
-    inferred_score_mean -0.5468072845552115
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.9238591260107339
   ]
   node [
     id 65
     label "65"
     group 1
     status -1.105952
-    inferred_group 3
-    inferred_score_mean -0.7298648968843299
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.895266173847922
   ]
   node [
     id 66
     label "66"
     group 1
     status -1.340082
-    inferred_group 8
-    inferred_score_mean 0.006352002322197473
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.16628662163096544
   ]
   node [
     id 67
     label "67"
     group 1
     status -2.431099
-    inferred_group 3
-    inferred_score_mean -0.8628941538467062
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.0849266072982071
   ]
   node [
     id 68
@@ -638,44 +568,39 @@ graph [
     group 1
     status -1.806354
     inferred_group 0
-    inferred_score_mean -0.8310213459122887
-    inferred_score_std NAN
+    inferred_score -0.48384729420994743
   ]
   node [
     id 69
     label "69"
     group 1
     status -2.970382
-    inferred_group 4
-    inferred_score_mean -0.793107657723303
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -2.199894235033545
   ]
   node [
     id 70
     label "70"
     group 1
     status -2.067135
-    inferred_group 3
-    inferred_score_mean 0.6423341866863623
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.5665102956430634
   ]
   node [
     id 71
     label "71"
     group 1
     status -2.121431
-    inferred_group 6
-    inferred_score_mean 0.5601628287858239
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.497849800671564
   ]
   node [
     id 72
     label "72"
     group 1
     status -2.954646
-    inferred_group 7
-    inferred_score_mean -0.5995139342476696
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.7482963507374675
   ]
   node [
     id 73
@@ -683,17 +608,15 @@ graph [
     group 1
     status -1.298305
     inferred_group 0
-    inferred_score_mean -0.7488291642605135
-    inferred_score_std NAN
+    inferred_score -1.1613200267648065
   ]
   node [
     id 74
     label "74"
     group 1
     status -1.086994
-    inferred_group 3
-    inferred_score_mean 0.6073322245036216
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.6028146803699006
   ]
   node [
     id 75
@@ -701,35 +624,31 @@ graph [
     group 1
     status -1.290076
     inferred_group 0
-    inferred_score_mean -0.4658083231305452
-    inferred_score_std NAN
+    inferred_score -1.2690756558501453
   ]
   node [
     id 76
     label "76"
     group 1
     status -2.240053
-    inferred_group 3
-    inferred_score_mean -0.008000516155445208
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.3298527769240477
   ]
   node [
     id 77
     label "77"
     group 1
     status -1.018915
-    inferred_group 5
-    inferred_score_mean 0.8089910382498632
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.8415499790760677
   ]
   node [
     id 78
     label "78"
     group 1
     status -2.312774
-    inferred_group 5
-    inferred_score_mean -0.6847113559737428
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.3682662863571509
   ]
   node [
     id 79
@@ -737,44 +656,39 @@ graph [
     group 1
     status -2.155243
     inferred_group 0
-    inferred_score_mean -0.02554195573880153
-    inferred_score_std NAN
+    inferred_score 0.1731809278894666
   ]
   node [
     id 80
     label "80"
     group 1
     status -2.340668
-    inferred_group 4
-    inferred_score_mean -0.6538677812254458
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -2.133185035356753
   ]
   node [
     id 81
     label "81"
     group 1
     status -2.162311
-    inferred_group 4
-    inferred_score_mean 0.007422727856973382
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.1676022721089106
   ]
   node [
     id 82
     label "82"
     group 1
     status -1.421173
-    inferred_group 5
-    inferred_score_mean 0.3490658426041012
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.10718409780353348
   ]
   node [
     id 83
     label "83"
     group 1
     status -2.800069
-    inferred_group 3
-    inferred_score_mean -0.3935926143108013
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.490192831659338
   ]
   node [
     id 84
@@ -782,44 +696,39 @@ graph [
     group 1
     status -2.97309
     inferred_group 0
-    inferred_score_mean 0.010609595810709624
-    inferred_score_std NAN
+    inferred_score -0.1013342750997233
   ]
   node [
     id 85
     label "85"
     group 1
     status -2.842771
-    inferred_group 1
-    inferred_score_mean 0.054766441650715356
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.21153503481328356
   ]
   node [
     id 86
     label "86"
     group 1
     status -2.951847
-    inferred_group 3
-    inferred_score_mean 0.11226065010404279
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.7839277982802617
   ]
   node [
     id 87
     label "87"
     group 1
     status -2.515836
-    inferred_group 2
-    inferred_score_mean -0.013125538989089011
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.49751629033830047
   ]
   node [
     id 88
     label "88"
     group 1
     status -2.449677
-    inferred_group 5
-    inferred_score_mean -0.9932679326305547
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.845259783231517
   ]
   node [
     id 89
@@ -827,44 +736,39 @@ graph [
     group 1
     status -3.025243
     inferred_group 0
-    inferred_score_mean -0.014559859210984153
-    inferred_score_std NAN
+    inferred_score -0.40383082812992527
   ]
   node [
     id 90
     label "90"
     group 1
     status -2.148587
-    inferred_group 3
-    inferred_score_mean -0.0014313964009207308
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.14805677234334372
   ]
   node [
     id 91
     label "91"
     group 1
     status -2.475411
-    inferred_group 8
-    inferred_score_mean 0.3137391520166599
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.519606037735846
   ]
   node [
     id 92
     label "92"
     group 1
     status -2.311981
-    inferred_group 3
-    inferred_score_mean -0.38482497951930633
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.2817029040603156
   ]
   node [
     id 93
     label "93"
     group 1
     status -1.813785
-    inferred_group 5
-    inferred_score_mean 0.20595213780328178
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.2865800222193323
   ]
   node [
     id 94
@@ -872,8 +776,7 @@ graph [
     group 1
     status -2.978468
     inferred_group 0
-    inferred_score_mean -0.2804475653521556
-    inferred_score_std NAN
+    inferred_score -0.9950623074148582
   ]
   node [
     id 95
@@ -881,8 +784,7 @@ graph [
     group 1
     status -3.252418
     inferred_group 0
-    inferred_score_mean -1.1835880852867888
-    inferred_score_std NAN
+    inferred_score -2.3517287950924337
   ]
   node [
     id 96
@@ -890,8 +792,7 @@ graph [
     group 1
     status -2.385011
     inferred_group 0
-    inferred_score_mean 0.23198452622420218
-    inferred_score_std NAN
+    inferred_score -0.35176837366647085
   ]
   node [
     id 97
@@ -899,17 +800,15 @@ graph [
     group 1
     status -1.636105
     inferred_group 0
-    inferred_score_mean -0.2995150838282207
-    inferred_score_std NAN
+    inferred_score -0.9697287645902767
   ]
   node [
     id 98
     label "98"
     group 1
     status -3.157217
-    inferred_group 3
-    inferred_score_mean -0.2771935007318313
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.988812091670165
   ]
   node [
     id 99
@@ -917,26 +816,23 @@ graph [
     group 1
     status -2.71386
     inferred_group 0
-    inferred_score_mean -0.3279192268170699
-    inferred_score_std NAN
+    inferred_score -0.7444800784336272
   ]
   node [
     id 100
     label "100"
     group 2
     status 2.365046
-    inferred_group 5
-    inferred_score_mean 0.48943486130442876
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.13778311890624825
   ]
   node [
     id 101
     label "101"
     group 2
     status 3.437846
-    inferred_group 4
-    inferred_score_mean -0.22290530641420392
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.253162271613855
   ]
   node [
     id 102
@@ -944,80 +840,71 @@ graph [
     group 2
     status 3.867809
     inferred_group 0
-    inferred_score_mean 0.8521946662321558
-    inferred_score_std NAN
+    inferred_score 1.6046388251781547
   ]
   node [
     id 103
     label "103"
     group 2
     status 1.533131
-    inferred_group 2
-    inferred_score_mean -0.46463396639413995
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.6120160620674956
   ]
   node [
     id 104
     label "104"
     group 2
     status 4.025219
-    inferred_group 7
-    inferred_score_mean -0.0025231781666020013
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.5580576546621938
   ]
   node [
     id 105
     label "105"
     group 2
     status 1.472356
-    inferred_group 2
-    inferred_score_mean 0.2856640757140188
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.42793016918849036
   ]
   node [
     id 106
     label "106"
     group 2
     status 2.78103
-    inferred_group 7
-    inferred_score_mean 0.03269312474745451
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.42010432768069456
   ]
   node [
     id 107
     label "107"
     group 2
     status 1.387318
-    inferred_group 1
-    inferred_score_mean 0.19872038320716096
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.20513296842779563
   ]
   node [
     id 108
     label "108"
     group 2
     status 2.673512
-    inferred_group 4
-    inferred_score_mean 0.17845520981622373
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.35843903562084717
   ]
   node [
     id 109
     label "109"
     group 2
     status 2.899243
-    inferred_group 3
-    inferred_score_mean -1.0051780257336629
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.892430544477291
   ]
   node [
     id 110
     label "110"
     group 2
     status 2.895179
-    inferred_group 2
-    inferred_score_mean 0.32100664119823613
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.6329814913226702
   ]
   node [
     id 111
@@ -1025,8 +912,7 @@ graph [
     group 2
     status 2.319755
     inferred_group 0
-    inferred_score_mean -0.21013086695768354
-    inferred_score_std NAN
+    inferred_score -0.7595911872667692
   ]
   node [
     id 112
@@ -1034,17 +920,15 @@ graph [
     group 2
     status 2.201922
     inferred_group 0
-    inferred_score_mean 0.16403643312663851
-    inferred_score_std NAN
+    inferred_score 0.3531918068891844
   ]
   node [
     id 113
     label "113"
     group 2
     status 0.542699
-    inferred_group 1
-    inferred_score_mean -0.7342872446469488
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.1253477759369195
   ]
   node [
     id 114
@@ -1052,17 +936,15 @@ graph [
     group 2
     status 2.767078
     inferred_group 0
-    inferred_score_mean 0.8149733035009503
-    inferred_score_std NAN
+    inferred_score 1.3539219902542656
   ]
   node [
     id 115
     label "115"
     group 2
     status 1.799604
-    inferred_group 6
-    inferred_score_mean -0.3357884838468818
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.29910963154911197
   ]
   node [
     id 116
@@ -1070,44 +952,39 @@ graph [
     group 2
     status 1.929059
     inferred_group 0
-    inferred_score_mean -0.015731215302679968
-    inferred_score_std NAN
+    inferred_score -0.09853986591449705
   ]
   node [
     id 117
     label "117"
     group 2
     status 2.31593
-    inferred_group 2
-    inferred_score_mean 0.3115521439701189
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.6844208985334419
   ]
   node [
     id 118
     label "118"
     group 2
     status 2.589732
-    inferred_group 1
-    inferred_score_mean 0.5424646326306586
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.25023219482562
   ]
   node [
     id 119
     label "119"
     group 2
     status 1.911377
-    inferred_group 7
-    inferred_score_mean 0.5322119237405566
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.743174730976622
   ]
   node [
     id 120
     label "120"
     group 2
     status 3.140785
-    inferred_group 4
-    inferred_score_mean -1.248140043078508
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.2411220102670772
   ]
   node [
     id 121
@@ -1115,26 +992,23 @@ graph [
     group 2
     status 1.771759
     inferred_group 0
-    inferred_score_mean 0.34495421220368405
-    inferred_score_std NAN
+    inferred_score 0.5662195696409241
   ]
   node [
     id 122
     label "122"
     group 2
     status 2.658332
-    inferred_group 2
-    inferred_score_mean 0.22586002961050203
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.5894023504000984
   ]
   node [
     id 123
     label "123"
     group 2
     status 2.309904
-    inferred_group 2
-    inferred_score_mean 0.17625836833159872
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.7510550233070974
   ]
   node [
     id 124
@@ -1142,8 +1016,7 @@ graph [
     group 2
     status 0.691748
     inferred_group 0
-    inferred_score_mean -0.21096572906455308
-    inferred_score_std NAN
+    inferred_score -0.458120310629236
   ]
   node [
     id 125
@@ -1151,8 +1024,7 @@ graph [
     group 2
     status 1.549766
     inferred_group 0
-    inferred_score_mean -0.45096574454079275
-    inferred_score_std NAN
+    inferred_score -0.3089837778409599
   ]
   node [
     id 126
@@ -1160,26 +1032,23 @@ graph [
     group 2
     status 1.473637
     inferred_group 0
-    inferred_score_mean 0.14843619777314299
-    inferred_score_std NAN
+    inferred_score 0.822827732560239
   ]
   node [
     id 127
     label "127"
     group 2
     status 1.944888
-    inferred_group 1
-    inferred_score_mean 0.17171742480672872
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.006199288433624
   ]
   node [
     id 128
     label "128"
     group 2
     status 1.87877
-    inferred_group 7
-    inferred_score_mean 0.5769417591572322
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.3353980024983279
   ]
   node [
     id 129
@@ -1187,26 +1056,23 @@ graph [
     group 2
     status 2.13744
     inferred_group 0
-    inferred_score_mean -0.003960904491808137
-    inferred_score_std NAN
+    inferred_score -0.09469796212395579
   ]
   node [
     id 130
     label "130"
     group 2
     status 1.050226
-    inferred_group 5
-    inferred_score_mean -0.6292572565347954
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.72597458837934
   ]
   node [
     id 131
     label "131"
     group 2
     status 1.019435
-    inferred_group 2
-    inferred_score_mean -0.4844564743942064
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.2104953641381249
   ]
   node [
     id 132
@@ -1214,8 +1080,7 @@ graph [
     group 2
     status 1.622967
     inferred_group 0
-    inferred_score_mean 0.7638335125473725
-    inferred_score_std NAN
+    inferred_score 1.8370273508469623
   ]
   node [
     id 133
@@ -1223,35 +1088,31 @@ graph [
     group 2
     status 3.874555
     inferred_group 0
-    inferred_score_mean 0.7249466996130985
-    inferred_score_std NAN
+    inferred_score 2.0745267186084053
   ]
   node [
     id 134
     label "134"
     group 2
     status 2.404631
-    inferred_group 5
-    inferred_score_mean 0.3799612839179782
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.06874361058155025
   ]
   node [
     id 135
     label "135"
     group 2
     status 3.359531
-    inferred_group 1
-    inferred_score_mean 0.9115708935081834
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.7735470053748263
   ]
   node [
     id 136
     label "136"
     group 2
     status 2.74391
-    inferred_group 8
-    inferred_score_mean -0.0011299448347607162
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.6258839704123598
   ]
   node [
     id 137
@@ -1259,44 +1120,39 @@ graph [
     group 2
     status 2.686954
     inferred_group 0
-    inferred_score_mean -0.23887370119060408
-    inferred_score_std NAN
+    inferred_score -0.4200854573350494
   ]
   node [
     id 138
     label "138"
     group 2
     status 2.92203
-    inferred_group 6
-    inferred_score_mean -0.034216693060587104
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.29250214056064994
   ]
   node [
     id 139
     label "139"
     group 2
     status 2.895688
-    inferred_group 3
-    inferred_score_mean 0.5301067967405447
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.9690242537373673
   ]
   node [
     id 140
     label "140"
     group 2
     status 1.390878
-    inferred_group 2
-    inferred_score_mean -0.848604754352304
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.5613380781345514
   ]
   node [
     id 141
     label "141"
     group 2
     status 3.467273
-    inferred_group 2
-    inferred_score_mean -0.32798115176866394
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.3443096261643632
   ]
   node [
     id 142
@@ -1304,17 +1160,15 @@ graph [
     group 2
     status 2.35089
     inferred_group 0
-    inferred_score_mean 0.22634807021240072
-    inferred_score_std NAN
+    inferred_score 0.8877713791216209
   ]
   node [
     id 143
     label "143"
     group 2
     status 2.491122
-    inferred_group 8
-    inferred_score_mean 0.002876793299905947
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.49066235205405934
   ]
   node [
     id 144
@@ -1322,8 +1176,7 @@ graph [
     group 2
     status 2.012917
     inferred_group 0
-    inferred_score_mean 1.0827715647165166
-    inferred_score_std NAN
+    inferred_score 2.1027874877941746
   ]
   node [
     id 145
@@ -1331,17 +1184,15 @@ graph [
     group 2
     status 2.663796
     inferred_group 0
-    inferred_score_mean 0.0009896903025059895
-    inferred_score_std NAN
+    inferred_score -0.042777956510302154
   ]
   node [
     id 146
     label "146"
     group 2
     status 2.670229
-    inferred_group 2
-    inferred_score_mean 0.055881870063308685
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.14694349556546416
   ]
   node [
     id 147
@@ -1349,26 +1200,23 @@ graph [
     group 2
     status 2.945007
     inferred_group 0
-    inferred_score_mean 0.19270524342287154
-    inferred_score_std NAN
+    inferred_score 0.7618102359938989
   ]
   node [
     id 148
     label "148"
     group 2
     status 1.352797
-    inferred_group 3
-    inferred_score_mean -0.3183546336449146
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.3916675566542621
   ]
   node [
     id 149
     label "149"
     group 2
     status 0.617751
-    inferred_group 4
-    inferred_score_mean -0.3275948840373923
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.19917591730809897
   ]
   node [
     id 150
@@ -1376,62 +1224,55 @@ graph [
     group 3
     status 7.049964
     inferred_group 0
-    inferred_score_mean 0.9895514714723546
-    inferred_score_std NAN
+    inferred_score 1.0867804614025507
   ]
   node [
     id 151
     label "151"
     group 3
     status 6.050036
-    inferred_group 2
-    inferred_score_mean -0.0008433277184359025
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.30843886852251795
   ]
   node [
     id 152
     label "152"
     group 3
     status 6.781569
-    inferred_group 4
-    inferred_score_mean -0.0013129407290099976
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.8370121568284659
   ]
   node [
     id 153
     label "153"
     group 3
     status 7.38117
-    inferred_group 4
-    inferred_score_mean 0.9732588785256603
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.3493906398739743
   ]
   node [
     id 154
     label "154"
     group 3
     status 7.035542
-    inferred_group 4
-    inferred_score_mean 0.9470673555119564
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.7608754620966447
   ]
   node [
     id 155
     label "155"
     group 3
     status 5.693258
-    inferred_group 3
-    inferred_score_mean -0.12378584123116886
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.024567284008819787
   ]
   node [
     id 156
     label "156"
     group 3
     status 7.205416
-    inferred_group 6
-    inferred_score_mean 0.8234681085887434
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 2.003012603790984
   ]
   node [
     id 157
@@ -1439,98 +1280,87 @@ graph [
     group 3
     status 7.792808
     inferred_group 0
-    inferred_score_mean 0.6748520810132546
-    inferred_score_std NAN
+    inferred_score 2.613164801835257
   ]
   node [
     id 158
     label "158"
     group 3
     status 7.349058
-    inferred_group 3
-    inferred_score_mean 0.8861734366874681
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 2.639709921632973
   ]
   node [
     id 159
     label "159"
     group 3
     status 6.617132
-    inferred_group 2
-    inferred_score_mean 0.48432291959460866
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.2573221784338662
   ]
   node [
     id 160
     label "160"
     group 3
     status 6.866812
-    inferred_group 4
-    inferred_score_mean 0.15881439547278042
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.28083891391123167
   ]
   node [
     id 161
     label "161"
     group 3
     status 6.483863
-    inferred_group 6
-    inferred_score_mean 0.5127447370636741
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.936587898559571
   ]
   node [
     id 162
     label "162"
     group 3
     status 6.206881
-    inferred_group 6
-    inferred_score_mean 0.36058892886131055
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.4035335753516136
   ]
   node [
     id 163
     label "163"
     group 3
     status 6.687084
-    inferred_group 4
-    inferred_score_mean 0.4724224028462357
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.3705504597830598
   ]
   node [
     id 164
     label "164"
     group 3
     status 6.265629
-    inferred_group 6
-    inferred_score_mean 0.589427279390969
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.6797830841025857
   ]
   node [
     id 165
     label "165"
     group 3
     status 8.137568
-    inferred_group 3
-    inferred_score_mean 0.5751511093633954
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 2.0063327804357285
   ]
   node [
     id 166
     label "166"
     group 3
     status 7.151156
-    inferred_group 1
-    inferred_score_mean 0.609890396634704
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.7168080124606824
   ]
   node [
     id 167
     label "167"
     group 3
     status 7.792563
-    inferred_group 2
-    inferred_score_mean 0.8710499302685328
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 2.5760120411257392
   ]
   node [
     id 168
@@ -1538,26 +1368,23 @@ graph [
     group 3
     status 6.336554
     inferred_group 0
-    inferred_score_mean 0.2757301823115995
-    inferred_score_std NAN
+    inferred_score 0.8704800865940489
   ]
   node [
     id 169
     label "169"
     group 3
     status 8.097283
-    inferred_group 4
-    inferred_score_mean 0.7610635680078808
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.771625293032046
   ]
   node [
     id 170
     label "170"
     group 3
     status 7.554323
-    inferred_group 2
-    inferred_score_mean 0.3076594200410347
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.4261239513558128
   ]
   node [
     id 171
@@ -1565,17 +1392,15 @@ graph [
     group 3
     status 6.128108
     inferred_group 0
-    inferred_score_mean 0.6694602076722276
-    inferred_score_std NAN
+    inferred_score 1.7581143429292039
   ]
   node [
     id 172
     label "172"
     group 3
     status 6.585203
-    inferred_group 3
-    inferred_score_mean -0.002204153045524692
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.8697335026657804
   ]
   node [
     id 173
@@ -1583,53 +1408,47 @@ graph [
     group 3
     status 6.511557
     inferred_group 0
-    inferred_score_mean 0.48327626901162046
-    inferred_score_std NAN
+    inferred_score 1.728084020321622
   ]
   node [
     id 174
     label "174"
     group 3
     status 8.129195
-    inferred_group 4
-    inferred_score_mean 0.6858286402067588
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.0574867635474705
   ]
   node [
     id 175
     label "175"
     group 3
     status 7.071271
-    inferred_group 8
-    inferred_score_mean 0.6080500012129131
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.7884105447652539
   ]
   node [
     id 176
     label "176"
     group 3
     status 8.264187
-    inferred_group 2
-    inferred_score_mean 1.2605704615654736
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.9837488132234506
   ]
   node [
     id 177
     label "177"
     group 3
     status 5.422194
-    inferred_group 4
-    inferred_score_mean -0.8053100545937697
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.2765491602859516
   ]
   node [
     id 178
     label "178"
     group 3
     status 6.621712
-    inferred_group 3
-    inferred_score_mean -0.36455469659681566
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -0.3889525668861936
   ]
   node [
     id 179
@@ -1637,26 +1456,23 @@ graph [
     group 3
     status 6.630447
     inferred_group 0
-    inferred_score_mean -0.016840092106811314
-    inferred_score_std NAN
+    inferred_score 0.7253831649203832
   ]
   node [
     id 180
     label "180"
     group 3
     status 5.994046
-    inferred_group 4
-    inferred_score_mean -0.0029360731048585407
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.49160507086868843
   ]
   node [
     id 181
     label "181"
     group 3
     status 6.9916
-    inferred_group 6
-    inferred_score_mean -0.15223094081099192
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.7501690016799781
   ]
   node [
     id 182
@@ -1664,8 +1480,7 @@ graph [
     group 3
     status 6.058223
     inferred_group 0
-    inferred_score_mean 0.2574374166419594
-    inferred_score_std NAN
+    inferred_score 0.40777600157457317
   ]
   node [
     id 183
@@ -1673,71 +1488,63 @@ graph [
     group 3
     status 7.807989
     inferred_group 0
-    inferred_score_mean 1.1737848544962954
-    inferred_score_std NAN
+    inferred_score 2.630007683163601
   ]
   node [
     id 184
     label "184"
     group 3
     status 6.572037
-    inferred_group 2
-    inferred_score_mean 0.021025569699113813
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.1510702812619564
   ]
   node [
     id 185
     label "185"
     group 3
     status 7.011698
-    inferred_group 3
-    inferred_score_mean 0.10982919596225627
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.49972225460293584
   ]
   node [
     id 186
     label "186"
     group 3
     status 6.544739
-    inferred_group 7
-    inferred_score_mean -0.6796635886948169
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.1460503843741237
   ]
   node [
     id 187
     label "187"
     group 3
     status 5.98484
-    inferred_group 2
-    inferred_score_mean -0.21882584356778037
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.11772129323274615
   ]
   node [
     id 188
     label "188"
     group 3
     status 6.950736
-    inferred_group 2
-    inferred_score_mean 0.23735053055327635
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.22725679692180867
   ]
   node [
     id 189
     label "189"
     group 3
     status 6.145277
-    inferred_group 3
-    inferred_score_mean 0.7746046621453453
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.1127228426979257
   ]
   node [
     id 190
     label "190"
     group 3
     status 6.659891
-    inferred_group 6
-    inferred_score_mean 1.2053366938699857
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.781185694095899
   ]
   node [
     id 191
@@ -1745,53 +1552,47 @@ graph [
     group 3
     status 6.304479
     inferred_group 0
-    inferred_score_mean 0.6571151295432879
-    inferred_score_std NAN
+    inferred_score 1.9830523633185333
   ]
   node [
     id 192
     label "192"
     group 3
     status 7.062106
-    inferred_group 9
-    inferred_score_mean 0.28938256140358926
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.0401673612731903
   ]
   node [
     id 193
     label "193"
     group 3
     status 6.122721
-    inferred_group 6
-    inferred_score_mean 0.270886249992695
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.4100092487568283
   ]
   node [
     id 194
     label "194"
     group 3
     status 5.878364
-    inferred_group 3
-    inferred_score_mean -0.6376057169263978
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score -1.0010012048327714
   ]
   node [
     id 195
     label "195"
     group 3
     status 7.086711
-    inferred_group 6
-    inferred_score_mean 0.5698976754055896
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.9839626925135416
   ]
   node [
     id 196
     label "196"
     group 3
     status 7.201789
-    inferred_group 3
-    inferred_score_mean 0.34008489290410526
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 0.17587528850684048
   ]
   node [
     id 197
@@ -1799,26 +1600,23 @@ graph [
     group 3
     status 6.629718
     inferred_group 0
-    inferred_score_mean -0.20145748534886906
-    inferred_score_std NAN
+    inferred_score 0.23680399886706785
   ]
   node [
     id 198
     label "198"
     group 3
     status 6.42307
-    inferred_group 2
-    inferred_score_mean 0.7404922083487608
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.1390625675146355
   ]
   node [
     id 199
     label "199"
     group 3
     status 6.800508
-    inferred_group 3
-    inferred_score_mean -0.1954066431145428
-    inferred_score_std NAN
+    inferred_group 0
+    inferred_score 1.1092866192384585
   ]
   edge [
     source 0

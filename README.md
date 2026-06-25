@@ -25,18 +25,17 @@
 
 ##### Maximilian Jerdee, Elizabeth Bruch, Mark Newman
 
-This python package uses Bayesian inference to identify communities and hierarchies of nodes in a directed network, as well as measure the interaction between those structures. 
+This Python package uses Bayesian inference to identify communities and hierarchies of nodes in a directed network, as well as measure the interaction between those structures.
 
 We model community structure using a stochastic block model, hierarchy structure with a Bradley-Terry model, and their interaction according to our work here [link paper].
 
 ## Installation
 
-`directedstructure` can be installed using 
 ```bash
 pip install directedstructure
 ```
 
-or built locally by cloning this repository and running
+Or build locally by cloning this repository and running
 
 ```bash
 pip install .
@@ -44,63 +43,109 @@ pip install .
 
 in the base directory (requires a C++ compiler).
 
-## Typical usage
-Once installed, the package can be used to identify the network structures.
+## Usage
+
+The public API has three objects: `Config`, `fit`, and `Result`.
 
 ### Load a network
-We recommend using [NetworkX](https://networkx.org/) to load the network and then using the `directedstructure` package to infer the node grouping and hierarchy.
-
 
 ```python
 import directedstructure as ds
 import networkx as nx
-import pandas as pd
 
-# Load a network using NetworkX (this can also be read from an edgelist or other format)
 G = nx.read_gml("examples/data/networks/friends.gml")
 ```
 
-### Infer node properties
-```python
-node_properties_df = ds.node_properties(G) # pandas DataFrame of inferred community identity and hierarchical position of each node in the network
+Edges may carry a `type` attribute (`'dominant'` or `'neutral'`) to distinguish directed pairwise comparisons from symmetric ties. If no type information is provided all edges are treated as dominant.
 
+### Configure the model
+
+```python
+config = ds.Config(
+    groups_model="general_canonical",   # community structure preset
+    hierarchy_model="bradley_terry_ties",  # auto-selected if omitted
+    interaction="coupled",              # coupling between communities and hierarchy
+)
 ```
 
-### Infer network properties
-```python
-network_properties_df = ds.network_properties(G) # pandas DataFrame of network properties (for example depth of hierarchy within and between communities) inferred by the model, as well as their uncertainities
+`Config` is a frozen dataclass — see the API docs for the full list of parameters (mixing variation, degree correction, individual/group depth, etc.).
 
+### Run inference
+
+```python
+result = ds.fit(
+    config, G,
+    num_samples=1000,       # posterior samples to collect
+    sweeps_per_sample=10,   # MCMC sweeps between samples
+    timeout=60.0,           # wall-clock limit in seconds
+    seed=42,
+)
+```
+
+### Inspect results
+
+```python
+# Per-node hierarchy scores: posterior mean and uncertainty
+scores = result.score_means    # np.ndarray, shape [n_nodes]
+uncertainty = result.score_stds  # np.ndarray, shape [n_nodes]
+
+# Network-level parameter summary: mean and std of each inferred parameter
+net_df = result.network_properties()
+
+# Integer community labels for the consensus sample
+partition = result.consensus_partition()
+
+# n×n co-assignment frequency matrix
+comatrix = result.coincidence_matrix()
+
+# High-level summary dict
+print(result.summary)
+# {'num_samples': 500, 'mean_num_groups': 3.2, 'mdl_value': 412.1}
+
+# Full posterior samples DataFrame
+samples_df = result.samples_df()
 ```
 
 ### Visualization
-Plot the inferred community and hiearchy of the nodes
+
 ```python
 import matplotlib.pyplot as plt
 
-ds.plot_node_properties(G) 
-plt.savefig("examples/data/figures/friends.png")
+fig, ax = ds.plot_node_properties(result)
+plt.savefig("node_scores.png")
+
+fig, ax = ds.plot_MCMC_entropy(result)   # convergence diagnostic
 ```
 
-To plot the network itself we recommend first saving it along with the inferences as attributes and using dedicated network visualization software like [Gephi](https://gephi.org/).
-```python 
-ds.write_gml_with_inferences(G) # Saves inferred attributes like groups to a .gml file that can be accessed by other software
-```
+Export the graph with inferred attributes for use in Gephi or other tools:
 
-
-### Full samples
-To get a more complete picture of the inference, we can consider the full posterior distribution of Monte Carlo samples
 ```python
-samples_df = ds.samples(G)
+ds.write_gml_with_inferences(G, "output.gml", result)
 ```
 
-With these samples we can ask more detailed questions like what is the posterior distribution of possible numbers of groups?
+### Fixing model components
 
+Pass fixed values in `Config` to test submodels. For example, to fix group structure from node attributes and infer hierarchy only:
 
-### Customization
-As this package focuses on the potential link between community and hierarchy, we can swap out the models considered of either community or hierarchy in isolation. 
+```python
+config = ds.Config(group_attribute="department", interaction="independent")
+result = ds.fit(config, G)
+```
 
-Neutral interactions can also be considered within the model if further interaction type information is provided (either type = dominant or type = neutral). If no type information is provided all interactions will be assumed to be dominant. 
+Or fix the number of groups:
 
+```python
+config = ds.Config(num_groups=4)
+result = ds.fit(config, G)
+```
 
-Further usage examples can be found in the `examples` directory of the
+### Parallel tempering
+
+For complex posteriors, enable parallel tempering:
+
+```python
+result = ds.fit(config, G, num_tempering_chains=4, beta=1.0)
+```
+
+Further usage examples can be found in the `examples/python/` directory of the
 repository and the [package documentation][rtd-link].

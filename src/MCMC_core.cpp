@@ -1,19 +1,12 @@
 // Implementation stripped; this file now only wires the header to pybind.
 
 #include "MCMC_core.h"
-#include "consensus.h"
 #include "globals.h"
 #include "helpers.h"
 #include <algorithm>
 #include <iostream>
 #include <chrono>
 
-#ifdef DIRECTEDSTRUCTURE_PYBIND
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
-namespace py = pybind11;
-#endif
 
 /**
  * MCMC Constructor
@@ -46,15 +39,15 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
            const bool& variation_out_fixed,
            const double& degree_correction,
            const bool& degree_correction_fixed,
-           const double& mean_degree_scaling,
-           const bool& mean_degree_scaling_fixed,
            const double& individual_depth,
            const bool& individual_depth_fixed,
            const double& group_depth,
            const bool& group_depth_fixed,
            const double& ties_parameter,
            const bool& ties_parameter_fixed,
-           int seed)
+           int seed,
+           double density_in_initial,
+           double density_out_initial)
     : n(0),
       m(0),
       wins(wins),  // Copy wins adjacency list from const reference
@@ -63,7 +56,6 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
       neighbors(),
       free_parameters(),
       beta(0.0),  // Inverse temperature (set during MCMC_sweep)
-      merge_split_enabled(true),
       proposal_weights(),
       partition(partition),  // Copy initial partition from const reference
       partition_fixed(partition_fixed),
@@ -73,13 +65,9 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
     variation_in(variation_in),  // Copy variation parameters (stored as values)
     variation_out(variation_out),
     degree_correction(degree_correction),
-    mean_degree_scaling(mean_degree_scaling),
-    weight_in(0.0),  // Computed during initial bookkeeping
-    weight_out(0.0),
     variation_in_fixed(variation_in_fixed),
     variation_out_fixed(variation_out_fixed),
       degree_correction_fixed(degree_correction_fixed),
-      mean_degree_scaling_fixed(mean_degree_scaling_fixed),
       individual_depth(individual_depth),
       individual_depth_fixed(individual_depth_fixed),
       group_depth(group_depth),
@@ -88,7 +76,6 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
       ties_parameter_fixed(ties_parameter_fixed),
       num_groups_fixed(num_groups_fixed),
       assortative(assortative),
-      H_parameters(0.0),  // Entropy components (computed during bookkeeping)
       H_b(0.0),
       H_M(0.0),
       H_k(0.0),
@@ -105,28 +92,17 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
       concentration_in(0.0),  // Negative binomial concentration parameters
       concentration_out(0.0),
       degree_correction_concentration(0.0),
-      node_counts_norm_2(0.0),  // Cached normalizations for efficiency
-      node_counts_norm_scaling_plus_1(0.0),
-      node_counts_norm_2scaling_plus_2(0.0),
+      node_counts_norm_2(0.0),
       density_in(0.0),
       density_out(0.0),
-      wang_landau_modification_factor(-1),
-      log_density_num_groups(),
-      max_num_groups_cutoff(-1),
       time_H_k(0.0),  // Performance profiling timers
       time_H_M(0.0),
       time_H_A_G_k_M_b(0.0),
       time_params(0.0),
       time_single_site_proposals(0.0),
-      time_merge_proposals(0.0),
-      time_split_proposals(0.0),
       time_parameter_proposals(0.0),
       total_proposals(0),
       accepted_proposals(0),
-      merge_proposals(0),
-      accepted_merge_proposals(0),
-      split_proposals(0),
-      accepted_split_proposals(0),
       single_site_proposals(0),
       accepted_single_site_proposals(0),
       parameter_proposals(0),
@@ -136,9 +112,7 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
       variation_in_proposals(0),
       accepted_variation_in_proposals(0),
       variation_out_proposals(0),
-      accepted_variation_out_proposals(0),
-      mean_degree_scaling_proposals(0),
-      accepted_mean_degree_scaling_proposals(0) {
+      accepted_variation_out_proposals(0) {
 
     
     // Seed random number generator for reproducibility
@@ -265,11 +239,17 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
   Node 0 with weight 0.000000
     */
 
-    m = 0; // Number of edges (will be computed from adjacency list)
-    for (const auto& node_neighbors : this->neighbors) {
-        m += node_neighbors.size();  // Sum all edge occurrences
+    double m_sum = 0.0;
+    node_degrees.resize(n);
+    for (int i = 0; i < n; ++i) {
+        int deg = 0;
+        for (const auto& edge : this->neighbors[i]) {
+            deg += static_cast<int>(std::llround(edge.second));
+            m_sum += edge.second;
+        }
+        node_degrees[i] = deg;
     }
-    m /= 2; // Each undirected edge is counted twice in adjacency list
+    m = static_cast<int>(std::llround(m_sum / 2.0));
 
     // Reset execution timers for performance profiling
     time_H_k = 0.0;
@@ -298,9 +278,6 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
     if (!degree_correction_fixed) {
         free_parameters.push_back("degree_correction");
     }
-    if (!mean_degree_scaling_fixed) {
-        free_parameters.push_back("mean_degree_scaling");
-    }
     if (!individual_depth_fixed) {
         free_parameters.push_back("individual_depth");
     }
@@ -311,95 +288,58 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
         free_parameters.push_back("ties_parameter");
     }
     if (assortative) {
-        free_parameters.push_back("weight_in");
-        free_parameters.push_back("weight_out");
+        free_parameters.push_back("density_in");
+        free_parameters.push_back("density_out");
     } else {
-        free_parameters.push_back("weight_in"); // weight_out determined by weight_in and the non-assortative density_in = density_out constraint
+        free_parameters.push_back("density_in"); // density_out == density_in when non-assortative
     }
 
-    // Set the density and weight parameters to -1 to indicate the initial bookkeeping has not occurred.
-    weight_in = -1.0;
-    weight_out = -1.0;
-    density_in = -1.0;
-    density_out = -1.0;
+    // Sentinel: -1 means "initialize from data"; use explicit values if provided.
+    density_in = density_in_initial;
+    density_out = (density_out_initial >= 0.0) ? density_out_initial : density_in_initial;
 
     // Run the initial bookkeeping without throwing errors to set initial values
     check_state_bookkeeping(false);
-
-    // Initialize the density of state estimate for Wang-Landau
-    log_density_num_groups.resize(n + 1, 0.0); // Track from 0 to n groups
 }
 
 /**
  * MCMC_sweep: Perform one full MCMC sweep
- * 
+ *
  * A sweep consists of n proposal attempts (one per node on average).
  * Each proposal randomly selects a move type weighted by proposal_weights,
  * then accepts/rejects based on Metropolis-Hastings criterion.
- * 
+ *
  * @param beta: Inverse temperature (higher = more selective), defaults to 1.0
- * @param merge_split_enabled: Enable/disable merge and split moves, defaults to true
- * @param wang_landau_modification_factor: If > 0, use Wang-Landau with this modification factor, defaults to -1 (disabled)
- * @param max_num_groups_cutoff: Maximum number of groups to track in Wang-Landau, defaults to -1 (no cutoff)
  * @param num_sweeps: Number of sweeps to run, defaults to 1
- * 
  */
-void MCMC::MCMC_sweep(double beta, bool merge_split_enabled, double wang_landau_modification_factor, int max_num_groups_cutoff, int num_sweeps) {
+void MCMC::MCMC_sweep(double beta, int num_sweeps) {
     auto sweep_start_time = std::chrono::high_resolution_clock::now();
-    
-    this->beta = beta;  // Set inverse temperature for this sweep
-    this->merge_split_enabled = merge_split_enabled;  // Toggle merge/split proposals
-    this->wang_landau_modification_factor = wang_landau_modification_factor; // Set Wang-Landau modification factor
-    this->max_num_groups_cutoff = max_num_groups_cutoff; // Set maximum number of groups to track in Wang-Landau
 
-    // Set proposal weights based on enabled moves
+    this->beta = beta;
+
+    // Set proposal weights
     proposal_weights = {
         {"parameter_move", static_cast<double>(free_parameters.size())}
     };
-    if(!partition_fixed){ // Infer partition only if it's not fixed
+    if (!partition_fixed) {
         proposal_weights["single_site_move"] = static_cast<double>(n);
-        if(merge_split_enabled){
-            proposal_weights["merge_move"] = 1.0;
-            proposal_weights["split_move"] = 1.0;
-        };
     }
-    if(!scores_fixed){ // Infer scores only if they're not fixed
+    if (!scores_fixed) {
         proposal_weights["score_move"] = static_cast<double>(n);
     }
 
-    // // Testing just the score distribution move
-    // proposal_weights = {{"score_move", 1.0}};
-
-    // // Temporarily only test the merge/split moves
-    // proposal_weights = {
-    //     {"merge_move", 1.0},
-    //     {"split_move", 1.0}
-    // };
-    
-    // Perform num_sweeps sweeps; each sweep has n proposal attempts (expected: one per node)
-    int total_proposals_before = total_proposals;
-    for(int sweep = 0; sweep < num_sweeps; sweep++){
-        for(int i = 0; i < n; i++){
-            if(verbose){
+    for (int sweep = 0; sweep < num_sweeps; sweep++) {
+        for (int i = 0; i < n; i++) {
+            if (verbose) {
                 print("MCMC sweep " + std::to_string(sweep + 1) + ", proposal " + std::to_string(i + 1) + " of " + std::to_string(n));
             }
-            propose_move();  // Generate and accept/reject a random proposal
-
-            // If Wang-Landau is enabled, update log density of states
-            if(wang_landau_modification_factor > 0){
-                log_density_num_groups[num_groups] += wang_landau_modification_factor;
-            }
-            // // Print the entropies
-            // print("H_A_b: " + std::to_string(H_A_b) + ", H_A_G_b: " + std::to_string(H_A_G_b) + ", H_k: " + std::to_string(H_k) + ", H_M: " + std::to_string(H_M) + ", H_parameters: " + std::to_string(H_parameters) + ", H_b: " + std::to_string(H_b));
+            propose_move();
         }
     }
-    // Final bookkeeping check at end of all sweeps
     check_state_bookkeeping(true);
-    
+
     auto sweep_end_time = std::chrono::high_resolution_clock::now();
     auto sweep_duration = std::chrono::duration_cast<std::chrono::milliseconds>(sweep_end_time - sweep_start_time).count();
-    // Print time taken
-    // std::cout << "MCMC_sweep: " << sweep_duration << "ms, " << (total_proposals - total_proposals_before) << " proposals, n=" << n << std::endl;
 }
 
 /**
@@ -415,7 +355,7 @@ void MCMC::MCMC_sweep(double beta, bool merge_split_enabled, double wang_landau_
  * Different parameters affect different entropies:
  * - degree_correction, mean_degree_scaling -> H_k (degree sequence)
  * - variation_in, variation_out -> H_M (edge count distribution)
- * - weight_in, weight_out -> H_parameters (parameter prior)
+ * - density_in, density_out -> H_M (exponential prior cancels in acceptance)
  * 
  * @param param_name: Name of parameter to change
  * @param new_value: Proposed new value
@@ -494,154 +434,38 @@ void MCMC::change_parameter(const std::string& param_name, double new_value) {
             concentration_out = variation_to_concentration(variation_out);
             H_M = H_M_old;
         }
-    } else if (param_name == "mean_degree_scaling"){
-        mean_degree_scaling_proposals++;
-        double mean_degree_scaling_old = mean_degree_scaling;
+    } else if (param_name == "density_in"){
         double density_in_old = density_in;
         double density_out_old = density_out;
-        double node_counts_norm_scaling_plus_1_old = node_counts_norm_scaling_plus_1;
-        double node_counts_norm_2scaling_plus_2_old = node_counts_norm_2scaling_plus_2;
-        double H_k_old = H_k;
         double H_M_old = H_M;
-        double H_parameters_old = H_parameters;
-        
-        // Apply proposed change
-        mean_degree_scaling = new_value;
-        H_k = calculate_H_k();  // Recalculate degree sequence entropy
 
-        if(verbose){
-            print("Normalizations and densities before recalculation:");
-            print("  node_counts_norm_scaling_plus_1: " + std::to_string(node_counts_norm_scaling_plus_1_old));
-            print("  node_counts_norm_2scaling_plus_2: " + std::to_string(node_counts_norm_2scaling_plus_2_old));
-            print("  density_in: " + std::to_string(density_in_old));
-            print("  density_out: " + std::to_string(density_out_old));
-            print("  weight_in: " + std::to_string(weight_in));
-            print("  weight_out: " + std::to_string(weight_out));
-        }
-
-        // Recalculate cached normalizations
-        node_counts_norm_scaling_plus_1 = 0.0;
-        node_counts_norm_2scaling_plus_2 = 0.0;
-        for(int r = 0; r < num_groups; r++){
-            node_counts_norm_scaling_plus_1 += std::pow(node_counts[r], mean_degree_scaling + 1);
-            node_counts_norm_2scaling_plus_2 += std::pow(node_counts[r], 2 * (mean_degree_scaling + 1));
-        }
-
-        // Recalculate densities
-        density_in = weight_in * node_counts_norm_2scaling_plus_2 / node_counts_norm_2;
-        if(num_groups > 1){
-            density_out = weight_out * 
-                         (node_counts_norm_scaling_plus_1 * node_counts_norm_scaling_plus_1 - node_counts_norm_2scaling_plus_2) / (n * n - node_counts_norm_2);
-        }
-
-        // Recalculate H(M)
+        density_in = new_value;
+        if(!assortative) density_out = density_in;
         H_M = calculate_H_M();
 
-        // Update H_parameters
-        if(assortative){
-            H_parameters = density_in + density_out;
-        }else{
-            H_parameters = density_in;
-        }
-        
-        // Metropolis-Hastings acceptance
-        double delta_H = H_k - H_k_old + H_M - H_M_old + H_parameters - H_parameters_old;
-
-        double acceptance_prob = std::exp(-beta * delta_H);
-        if(uniform_random(rng) < acceptance_prob){
-            accepted_mean_degree_scaling_proposals++;
-            if(verbose){
-                print("Accepted change to mean_degree_scaling ============================");
-            }
-            H_A_G_b += H_k - H_k_old + H_M - H_M_old;
-            H_A_b += H_k - H_k_old + H_M - H_M_old;
+        double delta_H = H_M - H_M_old;
+        if(uniform_random(rng) < std::exp(-beta * delta_H)){
+            H_A_G_b += delta_H;
+            H_A_b += delta_H;
         } else {
-            if(verbose){
-                print("Rejected change to mean_degree_scaling ============================");
-            }
-            // Reject: restore old value
-            mean_degree_scaling = mean_degree_scaling_old;
-            H_k = H_k_old;
-            H_M = H_M_old;
-            H_parameters = H_parameters_old;
-
-            // Reset cached normalizations
-            node_counts_norm_scaling_plus_1 = node_counts_norm_scaling_plus_1_old;
-            node_counts_norm_2scaling_plus_2 = node_counts_norm_2scaling_plus_2_old;
-
-            // Reset densities
             density_in = density_in_old;
             density_out = density_out_old;
+            H_M = H_M_old;
         }
-    } else if (param_name == "weight_in"){
-        double weight_in_old = weight_in;
-        double weight_out_old = weight_out;
-        double density_in_old = density_in;
+    } else if (param_name == "density_out"){
         double density_out_old = density_out;
         double H_M_old = H_M;
-        double H_parameters_old = H_parameters;
-        
-        // Apply proposed change
-        weight_in = new_value;
-        density_in = weight_in * node_counts_norm_2scaling_plus_2 / node_counts_norm_2;
-        H_parameters += density_in - density_in_old;  // Update parameter prior entropy
-        
-        // Non-assortative constraint: density_in = density_out
-        if(!assortative){
-            density_out = density_in;
-            if(num_groups > 1){
-                weight_out = density_out * (n * n - node_counts_norm_2) / 
-                             (node_counts_norm_scaling_plus_1 * node_counts_norm_scaling_plus_1 - node_counts_norm_2scaling_plus_2);
-            }
-        }
-        
-        H_M = calculate_H_M();  // Recalculate edge count entropy
-        
-        // Metropolis-Hastings acceptance (includes both H_M and H_parameters changes)
-        double delta_H = H_M - H_M_old + H_parameters - H_parameters_old;
-        double acceptance_prob = std::exp(-beta * delta_H);
-        if(uniform_random(rng) < acceptance_prob){
-            H_A_G_b += (H_M - H_M_old);
-            H_A_b += (H_M - H_M_old);
+
+        density_out = new_value;
+        H_M = calculate_H_M();
+
+        double delta_H = H_M - H_M_old;
+        if(uniform_random(rng) < std::exp(-beta * delta_H)){
+            H_A_G_b += delta_H;
+            H_A_b += delta_H;
         } else {
-            // Reject: restore all affected values
-            H_M = H_M_old;
-            H_parameters = H_parameters_old;
-            density_in = density_in_old;
-            density_out = density_out_old;
-            weight_in = weight_in_old;
-            weight_out = weight_out_old;
-        }
-    } else if (param_name == "weight_out"){
-        double weight_out_old = weight_out;
-        double H_M_old = H_M;
-        double density_out_old = density_out;
-        double H_parameters_old = H_parameters;
-        
-        // Apply proposed change
-        weight_out = new_value;
-        density_out = weight_out * (node_counts_norm_scaling_plus_1 * node_counts_norm_scaling_plus_1 - node_counts_norm_2scaling_plus_2) / (n * n - node_counts_norm_2);
-        H_parameters += density_out - density_out_old;  // Update parameter prior entropy
-        H_M = calculate_H_M();  // Recalculate edge count entropy
-        
-        // Metropolis-Hastings acceptance (includes both H_M and H_parameters changes)
-        double delta_H = H_M - H_M_old + H_parameters - H_parameters_old;
-        double acceptance_prob = std::exp(-beta * delta_H);
-        if(uniform_random(rng) < acceptance_prob){
-            if(verbose){
-                print("Accepted change to weight_out ============================");
-            }
-            H_A_G_b += (H_M - H_M_old);
-            H_A_b += (H_M - H_M_old);
-        } else {
-            if(verbose){
-                print("Rejected change to weight_out ============================");
-            }
-            // Reject: restore old values
-            weight_out = weight_out_old;
             density_out = density_out_old;
             H_M = H_M_old;
-            H_parameters = H_parameters_old;
         }
     } else if (param_name == "individual_depth"){
         individual_depth_proposals++;
@@ -721,105 +545,3 @@ void MCMC::change_parameter(const std::string& param_name, double new_value) {
         }
     }
 }
-
-#ifdef DIRECTEDSTRUCTURE_PYBIND
-PYBIND11_MODULE(MCMC_core, m) {
-    py::class_<MCMC>(m, "MCMC")
-        .def(py::init<
-                 std::vector<std::unordered_map<int, double>>,
-                 std::vector<std::unordered_map<int, double>>,
-                 std::vector<int>,
-                 const bool&,
-                 std::vector<double>,
-                 const bool&,
-                 int,
-                 const bool&,
-                 const bool&,
-                 const double&,
-                 const bool&,
-                 const double&,
-                 const bool&,
-                 const double&,
-                 const bool&,
-                 const double&,
-                 const bool&,
-                 const double&,
-                 const bool&,
-                 const double&,
-                 const bool&,
-                 const double&,
-                 const bool&,
-                 int> (),
-             py::arg("wins"),
-             py::arg("ties"),
-             py::arg("partition"),
-             py::arg("partition_fixed") = false,
-             py::arg("scores"),
-             py::arg("scores_fixed") = false,
-             py::arg("num_groups"),
-             py::arg("num_groups_fixed") = false,
-             py::arg("assortative") = true,
-             py::arg("variation_in") = 1.0,
-             py::arg("variation_in_fixed") = false,
-             py::arg("variation_out") = 1.0,
-             py::arg("variation_out_fixed") = false,
-             py::arg("degree_correction") = 1.0,
-             py::arg("degree_correction_fixed") = false,
-             py::arg("mean_degree_scaling") = 0.0,
-             py::arg("mean_degree_scaling_fixed") = false,
-             py::arg("individual_depth") = 1.0,
-             py::arg("individual_depth_fixed") = false,
-             py::arg("group_depth") = 1.0,
-             py::arg("group_depth_fixed") = false,
-             py::arg("ties_parameter") = 1.0,
-             py::arg("ties_parameter_fixed") = false,
-             py::arg("seed") = 0)
-           .def_readonly("num_groups", &MCMC::num_groups)
-           .def_readonly("partition", &MCMC::partition)
-           .def_readonly("scores", &MCMC::scores)
-           .def_readonly("density_in", &MCMC::density_in)
-           .def_readonly("density_out", &MCMC::density_out)
-           .def_readonly("variation_in", &MCMC::variation_in)
-           .def_readonly("variation_out", &MCMC::variation_out)
-           .def_readonly("degree_correction", &MCMC::degree_correction)
-           .def_readonly("mean_degree_scaling", &MCMC::mean_degree_scaling)
-           .def_readonly("individual_depth", &MCMC::individual_depth)
-           .def_readonly("group_depth", &MCMC::group_depth)
-           .def_readonly("ties_parameter", &MCMC::ties_parameter)
-           .def_readonly("H_A_b", &MCMC::H_A_b)
-           .def_readonly("H_b", &MCMC::H_b)
-           .def_readonly("H_M", &MCMC::H_M)
-           .def_readonly("H_k", &MCMC::H_k)
-           .def_readonly("H_A_G_k_M_b", &MCMC::H_A_G_k_M_b)
-           .def_readonly("H_A_G_b", &MCMC::H_A_G_b)
-           .def_readonly("H_Adir_G_A_s_nu", &MCMC::H_Adir_G_A_s_nu)
-           .def_readonly("H_s_G_b_depths", &MCMC::H_s_G_b_depths)
-           .def_readonly("time_H_k", &MCMC::time_H_k)
-           .def_readonly("time_H_M", &MCMC::time_H_M)
-           .def_readonly("time_H_A_G_k_M_b", &MCMC::time_H_A_G_k_M_b)
-           .def_readonly("time_single_site_proposals", &MCMC::time_single_site_proposals)
-           .def_readonly("time_merge_proposals", &MCMC::time_merge_proposals)
-           .def_readonly("time_split_proposals", &MCMC::time_split_proposals)
-           .def_readonly("time_parameter_proposals", &MCMC::time_parameter_proposals)
-           .def_readonly("wang_landau_modification_factor", &MCMC::wang_landau_modification_factor)
-           .def_readonly("max_num_groups_cutoff", &MCMC::max_num_groups_cutoff)
-           .def_readonly("log_density_num_groups", &MCMC::log_density_num_groups)
-           .def("MCMC_sweep", &MCMC::MCMC_sweep, py::arg("beta") = 1.0, py::arg("merge_split_enabled") = true, py::arg("wang_landau_modification_factor") = -1.0, py::arg("max_num_groups_cutoff") = -1, py::arg("num_sweeps") = 1)
-           .def("change_parameter", &MCMC::change_parameter, py::arg("param_name"), py::arg("new_value"));
-
-    // Bind ConsensusClustering class
-    py::class_<ConsensusClustering>(m, "ConsensusClustering")
-        .def_static("consensus_clustering", &ConsensusClustering::consensus_clustering,
-                    py::arg("clusterings"),
-                    py::arg("metric") = "L1",
-                    "Compute consensus clustering from a set of clusterings.\n\n"
-                    "Finds the clustering whose coincidence matrix is closest to the average\n"
-                    "coincidence matrix under the specified metric.\n\n"
-                    "Parameters:\n"
-                    "  clusterings: List of clusterings (each is a list of node assignments)\n"
-                    "  metric: 'L1' or 'L2' distance metric (default: 'L1')\n\n"
-                    "Returns:\n"
-                    "  The consensus clustering as a list of node group assignments");
-
-}
-#endif

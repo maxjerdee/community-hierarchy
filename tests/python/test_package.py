@@ -1,0 +1,585 @@
+from __future__ import annotations
+
+import importlib.metadata
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import networkx as nx
+import pytest
+
+import math
+
+import directedstructure as ds
+import directedstructure.MCMC_core as native
+from directedstructure import Config, Result, fit
+
+_DATA_IN  = Path(__file__).parent.parent / "data" / "inputs"
+_DATA_OUT = Path(__file__).parent.parent / "data" / "outputs"
+
+
+def _c2v(concentration: float) -> float:
+    """Convert concentration to variation (inverse of variation_to_concentration)."""
+    import scipy.special as sp
+    log_val = sp.gammaln(concentration + 0.5) - sp.gammaln(0.5) - sp.gammaln(concentration + 1)
+    return math.exp(log_val)
+
+
+def test_version():
+    assert importlib.metadata.version("directedstructure") == ds.__version__
+
+
+# ---------------------------------------------------------------------------
+# Config
+# ---------------------------------------------------------------------------
+
+def test_config_defaults():
+    config = Config()
+    assert config.groups_model == "general_canonical"
+    assert config.interaction == "coupled"
+
+
+def test_config_custom():
+    config = Config(groups_model="traditional_SBM", interaction="independent")
+    assert config.groups_model == "traditional_SBM"
+    assert config.interaction == "independent"
+
+
+def test_config_invalid_groups_model():
+    with pytest.raises(ValueError, match="Unknown groups_model"):
+        Config(groups_model="not_a_model")
+
+
+def test_config_invalid_hierarchy_model():
+    with pytest.raises(ValueError, match="Unknown hierarchy_model"):
+        Config(hierarchy_model="bogus")
+
+
+def test_config_invalid_interaction():
+    with pytest.raises(ValueError, match="Unknown interaction"):
+        Config(interaction="bad")
+
+
+def test_config_is_frozen():
+    config = Config()
+    with pytest.raises(Exception):
+        config.groups_model = "traditional_SBM"  # type: ignore[misc]
+
+
+# ---------------------------------------------------------------------------
+# Helpers: small directed graph fixture
+# ---------------------------------------------------------------------------
+
+def _small_graph() -> nx.DiGraph:
+    G = nx.DiGraph()
+    G.add_nodes_from(range(6))
+    # Two clique-like groups with directed edges
+    edges = [(0, 1), (1, 0), (0, 2), (2, 0), (1, 2), (2, 1),
+             (3, 4), (4, 3), (3, 5), (5, 3), (4, 5), (5, 4),
+             (0, 3), (3, 0)]
+    G.add_edges_from(edges)
+    return G
+
+
+# ---------------------------------------------------------------------------
+# fit() and Result
+# ---------------------------------------------------------------------------
+
+def test_fit_returns_result():
+    G = _small_graph()
+    config = Config()
+    result = fit(config, G, num_samples=20, timeout=10.0)
+    assert isinstance(result, Result)
+
+
+def test_fit_bad_config_type():
+    G = _small_graph()
+    with pytest.raises(TypeError, match="config must be an instance of Config"):
+        fit("not_a_config", G)  # type: ignore[arg-type]
+
+
+def test_fit_bad_graph_type():
+    config = Config()
+    with pytest.raises(TypeError, match="G must be a networkx"):
+        fit(config, "not_a_graph")  # type: ignore[arg-type]
+
+
+def test_result_samples_df_shape():
+    G = _small_graph()
+    result = fit(Config(), G, num_samples=20, timeout=10.0)
+    df = result.samples_df()
+    assert len(df) > 0
+    for node in G.nodes():
+        assert f"{node}_group" in df.columns
+        assert f"{node}_score" in df.columns
+    for param in ("num_groups", "density_in", "density_out", "H_A_b",
+                  "H_Adir_G_A_s_nu", "H_s_G_b_depths"):
+        assert param in df.columns
+
+
+def test_result_mdl_value():
+    G = _small_graph()
+    result = fit(Config(), G, num_samples=20, timeout=10.0)
+    assert isinstance(result.mdl_value, float)
+    df = result.samples_df()
+    total_dl = df["H_A_b"] + df["H_Adir_G_A_s_nu"] + df["H_s_G_b_depths"]
+    assert result.mdl_value == pytest.approx(float(total_dl.min()))
+
+
+def test_result_mdl_partition_shape():
+    G = _small_graph()
+    result = fit(Config(), G, num_samples=20, timeout=10.0)
+    p = result.mdl_partition
+    assert isinstance(p, np.ndarray)
+    assert len(p) == G.number_of_nodes()
+
+
+def test_result_score_means_shape():
+    G = _small_graph()
+    result = fit(Config(), G, num_samples=20, timeout=10.0)
+    s = result.score_means
+    assert isinstance(s, np.ndarray)
+    assert len(s) == G.number_of_nodes()
+    assert s.dtype == float
+
+
+def test_result_score_stds_shape():
+    G = _small_graph()
+    result = fit(Config(), G, num_samples=20, timeout=10.0)
+    s = result.score_stds
+    assert isinstance(s, np.ndarray)
+    assert len(s) == G.number_of_nodes()
+    assert s.dtype == float
+    assert np.all(s >= 0)
+
+
+def test_result_network_properties_params():
+    G = _small_graph()
+    result = fit(Config(), G, num_samples=20, timeout=10.0)
+    net_df = result.network_properties()
+    expected = {
+        "num_groups", "density_in", "density_out", "variation_in",
+        "variation_out", "degree_correction",
+        "individual_depth", "group_depth", "ties_parameter",
+    }
+    assert set(net_df["parameter"]) == expected
+    assert "mean" in net_df.columns
+    assert "std" in net_df.columns
+
+
+def test_result_consensus_partition_shape():
+    G = _small_graph()
+    result = fit(Config(), G, num_samples=20, timeout=10.0)
+    cp = result.consensus_partition()
+    assert isinstance(cp, np.ndarray)
+    assert len(cp) == G.number_of_nodes()
+    assert cp.dtype in (np.int32, np.int64, int)
+
+
+def test_result_coincidence_matrix_shape():
+    G = _small_graph()
+    result = fit(Config(), G, num_samples=20, timeout=10.0)
+    cm = result.coincidence_matrix()
+    n = G.number_of_nodes()
+    assert cm.shape == (n, n)
+    np.testing.assert_allclose(np.diag(cm), np.ones(n))
+
+
+def test_result_summary_keys():
+    G = _small_graph()
+    result = fit(Config(), G, num_samples=20, timeout=10.0)
+    s = result.summary
+    assert "num_samples" in s
+    assert "mean_num_groups" in s
+    assert "mdl_value" in s
+    assert s["num_samples"] > 0
+    assert s["mdl_value"] == result.mdl_value
+
+
+# ---------------------------------------------------------------------------
+# Coincidence fixture tests (same graph as asbm test cases)
+# ---------------------------------------------------------------------------
+
+def _triangle_graph() -> nx.DiGraph:
+    """3-node directed graph matching asbm's test3: edges 1→2 w=1, 2→3 w=2, 3→1 w=1."""
+    G = nx.DiGraph()
+    G.add_nodes_from([1, 2, 3])
+    G.add_edge(1, 2, weight=1.0)
+    G.add_edge(2, 3, weight=2.0)
+    G.add_edge(3, 1, weight=1.0)
+    return G
+
+
+# ---------------------------------------------------------------------------
+# fit() argument forwarding
+# ---------------------------------------------------------------------------
+
+def _make_fake_native_result(G):
+    """Return a minimal fake native result for monkeypatching _fit_backend."""
+    import directedstructure.MCMC_core as _nc
+    # Use a real tiny fit so we have a valid native object to introspect
+    # but capture the kwargs passed to it.
+    pass  # implemented inline below
+
+
+def test_fit_forwards_seed_and_chains_to_backend(monkeypatch):
+    """fit() must pass seed, num_chains, burn_sweeps, samples_per_chain to backend."""
+    import directedstructure.core as core_mod
+
+    captured = {}
+    _real_backend = core_mod._fit_backend
+
+    def _recording_backend(**kwargs):
+        captured.update(kwargs)
+        return _real_backend(**kwargs)
+
+    monkeypatch.setattr(core_mod, "_fit_backend", _recording_backend)
+
+    G = _small_graph()
+    fit(Config(), G, num_chains=2, samples_per_chain=5, burn_sweeps=10, seed=99, timeout=30.0)
+
+    assert captured["num_chains"] == 2
+    assert captured["samples_per_chain"] == 5
+    assert captured["burn_sweeps"] == 10
+    assert captured["seed"] == 99
+
+
+def test_fit_bad_config_type_raises():
+    with pytest.raises(TypeError, match="config must be an instance of Config"):
+        fit("not_a_config", _small_graph())  # type: ignore[arg-type]
+
+
+def test_fit_bad_graph_type_raises():
+    with pytest.raises(TypeError, match="G must be a networkx"):
+        fit(Config(), "not_a_graph")  # type: ignore[arg-type]
+
+
+def test_initial_partition_wrong_length_raises():
+    G = _small_graph()
+    with pytest.raises(ValueError, match="initial_partition length"):
+        fit(Config(), G, initial_partition=[0, 1], timeout=5.0)
+
+
+def test_initial_partition_explicit_is_used(monkeypatch):
+    """An explicit initial_partition of the correct length is forwarded to the backend."""
+    import directedstructure.core as core_mod
+
+    captured = {}
+    _real_backend = core_mod._fit_backend
+
+    def _recording_backend(**kwargs):
+        captured.update(kwargs)
+        return _real_backend(**kwargs)
+
+    monkeypatch.setattr(core_mod, "_fit_backend", _recording_backend)
+
+    G = _small_graph()
+    n = G.number_of_nodes()
+    init_p = list(range(n))  # each node in its own group
+    fit(Config(), G, initial_partition=init_p, num_samples=5, timeout=15.0)
+
+    assert captured["initial_partition"] == init_p
+
+
+# ---------------------------------------------------------------------------
+# planted_partition model smoke test
+# ---------------------------------------------------------------------------
+
+def test_planted_partition_fit_runs():
+    """planted_partition model must complete without error and return a Result."""
+    G = _small_graph()
+    n = G.number_of_nodes()
+    # Partition must use contiguous labels starting from 0
+    init_p = [i % 3 for i in range(n)]
+    result = fit(
+        Config(groups_model="planted_partition", interaction="coupled"),
+        G,
+        num_samples=20,
+        burn_sweeps=50,
+        initial_partition=init_p,
+        seed=7,
+        timeout=20.0,
+    )
+    assert isinstance(result, Result)
+    assert np.isfinite(result.mdl_value)
+    df = result.samples_df()
+    assert len(df) > 0
+    assert "num_groups" in df.columns
+
+
+def test_planted_partition_q_is_not_always_one():
+    """With a structured graph and random init, planted_partition should not collapse to q=1."""
+    G = _small_graph()
+    rng = np.random.default_rng(42)
+    init_p = [int(x) for x in rng.integers(0, 3, size=G.number_of_nodes())]
+    result = fit(
+        Config(groups_model="planted_partition", interaction="coupled"),
+        G,
+        num_samples=200,
+        burn_sweeps=500,
+        initial_partition=init_p,
+        seed=42,
+        timeout=30.0,
+    )
+    df = result.samples_df()
+    mean_q = df["num_groups"].mean()
+    # Should explore more than trivial q=1; any mean > 1 is acceptable
+    assert mean_q > 1.0, f"planted_partition collapsed to q=1 (mean_q={mean_q:.2f})"
+
+
+# ---------------------------------------------------------------------------
+# Additional groups_model smoke tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("groups_model", [
+    "traditional_SBM",
+    "traditional_DCSBM",
+    "simple_ASBM",
+    "planted_partition",
+    "general_ASBM",
+])
+def test_groups_model_smoke(groups_model):
+    """Every supported groups_model must produce a finite MDL value on the small graph."""
+    G = _small_graph()
+    result = fit(
+        Config(groups_model=groups_model),
+        G, num_samples=10, burn_sweeps=20, seed=0, timeout=20.0,
+    )
+    assert np.isfinite(result.mdl_value)
+
+
+def test_triangle_independent_coincidence():
+    """Coincidence matrix on the asbm triangle graph, interaction=independent."""
+    result = fit(
+        Config(interaction="independent"),
+        _triangle_graph(),
+        num_samples=5000,
+        sweeps_per_sample=10,
+        num_tempering_chains=8,
+        seed=42,
+        timeout=60.0,
+    )
+    expected = pd.read_csv(
+        _DATA_OUT / "triangle_independent_coincidence.csv",
+        header=None,
+    ).to_numpy(dtype=float)
+    coincidence = result.coincidence_matrix()
+    max_abs_diff = np.max(np.abs(coincidence - expected))
+    assert max_abs_diff < 0.04, f"Coincidence matrix mismatch (max_abs_diff={max_abs_diff:.6f})"
+
+
+def _run_coincidence_native_wins_ties(num_chains: int, burn: int, samples: int, sweeps: int, seed: int) -> np.ndarray:
+    """Multi-chain MCMC for the wins+ties 3-node graph with Mathematica-matched fixed params.
+
+    Graph: wins 0→1, 0→2, 1→2; tie 0↔1.
+    Fixed: variation params at concentration=1, σI=1, σC=2, ν=1.
+    Free: partition, scores, density_in, density_out.
+
+    Matches the conditions of the Mathematica NIntegrate fixture.
+    """
+    wins = [{1: 1.0, 2: 1.0}, {2: 1.0}, {}]
+    ties = [{1: 1.0}, {0: 1.0}, {}]
+    n = 3
+    vi = _c2v(1.0)
+    acc = np.zeros((n, n))
+    for chain in range(num_chains):
+        state = native.MCMC(
+            wins, ties,
+            list(range(n)), False,
+            [0.0] * n, False,
+            n, False,
+            True,
+            vi, True, vi, True, vi, True,
+            1.0, True, 2.0, True, 1.0, True,
+            seed + chain,
+        )
+        for _ in range(burn):
+            state.MCMC_sweep(1.0, sweeps)
+        counts = np.zeros((n, n))
+        for _ in range(samples):
+            state.MCMC_sweep(1.0, sweeps)
+            p = list(state.partition)
+            for i in range(n):
+                for j in range(n):
+                    if p[i] == p[j]:
+                        counts[i, j] += 1
+        acc += counts / samples
+    return acc / num_chains
+
+
+def test_wins_ties_3node_coincidence():
+    """Coincidence matrix for wins+ties 3-node graph against Mathematica NIntegrate fixture.
+
+    Mathematica Out[271]: {{1, 0.183929, 0.177877}, {0.183929, 1, 0.221255}, {0.177877, 0.221255, 1}}
+    Parameters fixed: ν=1, σI=1, σC=2, concentration=1; free: partition, scores, ρIn, ρOut.
+    """
+    expected = pd.read_csv(
+        _DATA_OUT / "wins_ties_3node_coincidence.csv",
+        header=None,
+    ).to_numpy(dtype=float)
+    coincidence = _run_coincidence_native_wins_ties(
+        num_chains=64, burn=500, samples=500, sweeps=10, seed=42,
+    )
+    max_abs_diff = np.max(np.abs(coincidence - expected))
+    assert max_abs_diff < 0.05, f"Coincidence matrix mismatch (max_abs_diff={max_abs_diff:.6f})"
+
+
+def test_prior_q_uniform():
+    """At beta=0 the proposal cancels H_b exactly, so q ~ Uniform(1,...,n).
+
+    The partition prior is P(b) ∝ prod_r n_r! / C(n-1,q-1).
+    Summing over all labeled partitions with q groups gives a constant n! for
+    every q, so P(q) = 1/n.  At beta=0 every proposal is accepted and the
+    chain draws purely from the proposal, so the empirical q distribution must
+    be uniform over {1,...,n}.
+    """
+    n = 8
+    # Ring of wins so edge counts are non-zero (empty graph gives NaN density_in)
+    wins = [{(i + 1) % n: 1.0} for i in range(n)]
+    ties = [{} for _ in range(n)]
+    vi = _c2v(1.0)
+
+    state = native.MCMC(
+        wins, ties,
+        list(range(n)), False,
+        [0.0] * n, False,
+        n, False,
+        False,
+        vi, True, vi, True, vi, True,
+        1.0, True, 1.0, True, 1.0, True,
+        0,
+    )
+
+    for _ in range(200):          # brief burn-in to escape q=n start
+        state.MCMC_sweep(0.0, 1)
+
+    num_samples = 40_000
+    counts = np.zeros(n + 1, dtype=float)   # index by q (1-based)
+    for _ in range(num_samples):
+        state.MCMC_sweep(0.0, 1)
+        counts[state.num_groups] += 1
+
+    q_vals = np.arange(1, n + 1)
+    obs = counts[1:]               # counts for q = 1,...,n
+    mean_q = float(np.dot(q_vals, obs)) / num_samples
+    expected_mean = (n + 1) / 2.0  # = 4.5 for n=8
+
+    # With 40 000 samples the SE of the mean is sqrt((n^2-1)/12 / N) ≈ 0.013
+    assert abs(mean_q - expected_mean) < 0.10, (
+        f"Mean q at beta=0 is {mean_q:.3f}, expected {expected_mean:.1f} "
+        f"(uniform prior P(q)=1/{n}).\nCounts per q: {obs.astype(int).tolist()}"
+    )
+
+    # No single bucket should deviate more than 15 % from the expected 1/n share
+    fracs = obs / num_samples
+    max_dev = float(np.max(np.abs(fracs - 1.0 / n)))
+    assert max_dev < 0.15, (
+        f"q bucket deviated {max_dev:.3f} from uniform (threshold 0.15).\n"
+        f"Fractions: {np.round(fracs, 3).tolist()}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Point-evaluation test against Mathematica fixture
+# ---------------------------------------------------------------------------
+
+def _parse_matrix_row(s: str) -> list[int]:
+    """Parse a Mathematica-style '{a, b, c}' vector into a list of ints."""
+    return [int(x) for x in s.strip().strip("{}").split(",")]
+
+
+def _parse_matrix_line(line: str) -> list[list[int]]:
+    """Parse a CSV line whose cells are '{...}' row-vectors into a 2-D list."""
+    import csv as _csv
+    cells = next(_csv.reader([line]))
+    return [_parse_matrix_row(c) for c in cells]
+
+
+def _wins_ties_from_rows(win_rows: list[list[int]], tie_rows: list[list[int]]):
+    """Convert dense win/tie matrices to list-of-dicts format."""
+    n = len(win_rows)
+    wins = [{} for _ in range(n)]
+    ties = [{} for _ in range(n)]
+    for i in range(n):
+        for j in range(n):
+            if win_rows[i][j]: wins[i][j] = float(win_rows[i][j])
+            if tie_rows[i][j]: ties[i][j] = float(tie_rows[i][j])
+    return wins, ties
+
+
+def test_point_eval_entropy_components():
+    """Entropy components for a 3-node directed graph against Mathematica fixture.
+
+    Reference: Mathematica HAwinsAtiesscoresbρInρOutλInλOutαNuσIσCParts[
+        Awins, Aties, {1,2,3}, {1,1,2}, 0.6, 0.4, 2, 3, 0.5, 0.6, 1, 2]
+    returns {HAb, HAwinsAtiesGAunscoresν, HscoresGbσIσC, Hν, HσI, HσC}
+           = {17.7264, 6.26974, 6.42043, 1.86013, 1.8985, 2.06102}
+
+    HAb includes H_b + H_k + H_M + H_A_G_k_M_b AND half-Cauchy priors on
+    (ρIn, ρOut, λIn, λOut, α), so HAb > sum of the four stored C++ components.
+    Hν, HσI, HσC are standalone half-Cauchy priors: log(π(w²+x²)/(2w)), w=4.
+    """
+    in_path  = _DATA_IN  / "wins_ties_3node_point_eval.csv"
+    out_path = _DATA_OUT / "wins_ties_3node_point_eval_components.csv"
+
+    lines = in_path.read_text().splitlines()
+    # Input file: two brace-lines (all rows of Awins, then all rows of Aties),
+    # followed by scalar lines (partition, scores, then one param per line).
+    brace_lines  = [ln for ln in lines if "{" in ln]
+    scalar_lines = [ln for ln in lines if ln and "{" not in ln]
+
+    win_rows = _parse_matrix_line(brace_lines[0])
+    tie_rows = _parse_matrix_line(brace_lines[1])
+    wins, ties = _wins_ties_from_rows(win_rows, tie_rows)
+
+    partition = [int(x) - 1 for x in scalar_lines[0].split(",")]
+    scores    = [float(x) for x in scalar_lines[1].split(",")]
+    rho_in, rho_out, c_in, c_out, alpha, nu, sigma_i, sigma_c = \
+        [float(scalar_lines[i]) for i in range(2, 10)]
+
+    ref = pd.read_csv(out_path)
+
+    state = native.MCMC(
+        wins, ties,
+        partition, True,
+        scores, True,
+        max(partition) + 1, True,
+        True,                        # assortative (ρIn ≠ ρOut)
+        _c2v(c_in),  True,           # variation_in  ← concentration c_in
+        _c2v(c_out), True,           # variation_out ← concentration c_out
+        alpha,       True,           # degree_correction (variation)
+        sigma_i,     True,           # individual_depth σI
+        sigma_c,     True,           # group_depth σC
+        nu,          True,           # ties_parameter ν
+        0,
+        rho_in,                      # density_in
+        rho_out,                     # density_out
+    )
+
+    # ── Components also checkable individually (Mathematica element 2 & 3) ──
+    np.testing.assert_allclose(
+        float(state.H_Adir_G_A_s_nu), ref["H_Adir"].iloc[0], rtol=1e-6)
+    np.testing.assert_allclose(
+        float(state.H_s_G_b_depths),  ref["H_s"].iloc[0],    rtol=1e-6)
+
+    # ── SBM components (part of Mathematica element 1, without param priors) ─
+    np.testing.assert_allclose(float(state.H_b),          ref["H_b"].iloc[0],          rtol=1e-6)
+    np.testing.assert_allclose(float(state.H_k),          ref["H_k"].iloc[0],          rtol=1e-6)
+    np.testing.assert_allclose(float(state.H_M),          ref["H_M"].iloc[0],          rtol=1e-6)
+    np.testing.assert_allclose(float(state.H_A_G_k_M_b), ref["H_A_G_k_M_b"].iloc[0], rtol=1e-6)
+
+    # ── Half-Cauchy priors: Hx = log(π(w²+x²)/(2w)), w=4 (Mathematica elements 4-6) ──
+    w = 4.0
+    def h_hc(x: float) -> float:
+        return math.log(math.pi * (w**2 + x**2) / (2.0 * w))
+
+    np.testing.assert_allclose(h_hc(nu),      ref["H_nu"].iloc[0],     rtol=1e-6)
+    np.testing.assert_allclose(h_hc(sigma_i), ref["H_sigmaI"].iloc[0], rtol=1e-6)
+    np.testing.assert_allclose(h_hc(sigma_c), ref["H_sigmaC"].iloc[0], rtol=1e-6)
+
+    # ── Internal consistency ─────────────────────────────────────────────────
+    np.testing.assert_allclose(
+        float(state.H_A_G_b),
+        float(state.H_M) + float(state.H_k) + float(state.H_A_G_k_M_b),
+        atol=1e-12,
+    )
