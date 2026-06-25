@@ -169,6 +169,8 @@ cython_debug/
 
 # setuptools_scm
 src/*/_version.py
+python/directedstructure/src/directedstructure/_version.py
+python/directedstructure/src/directedstructure/_version.pyi
 
 
 # ruff
