@@ -1,1 +1,0 @@
-# Measuring speed of inferences
