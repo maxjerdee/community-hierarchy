@@ -75,7 +75,7 @@ def _check_input_validity(
     num_tempering_chains: int = 1,
     no_cache: bool = False,
     timeout: float = 60.0,
-    verbose: bool = False,
+    verbose: bool = True,
 ) -> None:
     """Validate public API inputs and raise informative errors for invalid values.
 

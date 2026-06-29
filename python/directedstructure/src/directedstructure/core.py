@@ -234,7 +234,7 @@ def fit(
     seed: Optional[int] = None,
     no_cache: bool = False,  # retained for API compatibility; no longer used
     timeout: float = 60.0,
-    show_progress: bool = False,
+    show_progress: bool = True,
     # Legacy aliases
     num_samples: Optional[int] = None,
 ) -> Result:
