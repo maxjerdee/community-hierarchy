@@ -331,8 +331,29 @@ PYBIND11_MODULE(MCMC_core, m) {
                     std::cerr << '\n' << std::flush;
                 };
 
-                run_phase(warmup_done, warmup_total, "Warmup:   ");
-                run_phase(burn_done,   burn_total,   "Burn-in:  ");
+                // Show both param-warmup and burn-in under a single "Warmup:" line.
+                const int total_warmup_combined = warmup_total + burn_total;
+                if (total_warmup_combined > 0) {
+                    emit("Warmup:   ", 0, total_warmup_combined);
+                    int last = -1;
+                    while (true) {
+                        std::unique_lock<std::mutex> lock(mtx);
+                        int cur = warmup_done.load(std::memory_order_relaxed)
+                                + burn_done.load(std::memory_order_relaxed);
+                        cv.wait_for(lock, std::chrono::milliseconds(100),
+                            [&]{ return fit_finished || cur != last; });
+                        cur = warmup_done.load(std::memory_order_relaxed)
+                            + burn_done.load(std::memory_order_relaxed);
+                        bool stopping = fit_finished;
+                        lock.unlock();
+                        if (cur != last) { emit("Warmup:   ", cur, total_warmup_combined); last = cur; }
+                        if (cur >= total_warmup_combined || stopping) break;
+                    }
+                    int final_cur = warmup_done.load() + burn_done.load();
+                    if (final_cur < total_warmup_combined)
+                        emit("Warmup:   ", final_cur, total_warmup_combined);
+                    std::cerr << '\n' << std::flush;
+                }
                 run_phase(sample_done, sample_total, "Sampling: ");
             });
         }
