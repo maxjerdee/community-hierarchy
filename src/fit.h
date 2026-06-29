@@ -29,6 +29,7 @@ struct FitParams {
     std::optional<double> group_depth_init;      // starting value only, not fixed
     std::optional<double> ties_parameter;
     std::optional<int>    num_groups;
+    bool                  num_groups_fixed = false;
 
     int    num_chains           = 1;
     int    samples_per_chain    = 1000;

@@ -218,6 +218,7 @@ def fit(
     initial_scores: Optional[list] = None,
     initial_individual_depth: Optional[float] = None,
     initial_group_depth: Optional[float] = None,
+    num_groups_fixed: bool = False,
     seed: Optional[int] = None,
     no_cache: bool = False,  # retained for API compatibility; no longer used
     timeout: float = 60.0,
@@ -405,6 +406,7 @@ def fit(
         initial_group_depth=None if initial_group_depth is None else float(initial_group_depth),
         ties_parameter=None if ties_parameter is None else float(ties_parameter),
         num_groups=None if num_groups is None else int(num_groups),
+        num_groups_fixed=bool(num_groups_fixed),
         num_chains=int(num_chains),
         samples_per_chain=int(samples_per_chain),
         sweeps_per_sample=int(sweeps_per_sample),

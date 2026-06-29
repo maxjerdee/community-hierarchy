@@ -225,6 +225,7 @@ PYBIND11_MODULE(MCMC_core, m) {
         py::object group_depth_init_py,
         py::object ties_parameter_py,
         py::object num_groups_py,
+        bool   num_groups_fixed,
         int    num_chains,
         int    samples_per_chain,
         int    sweeps_per_sample,
@@ -261,6 +262,7 @@ PYBIND11_MODULE(MCMC_core, m) {
         params.group_depth_init     = to_opt_d(group_depth_init_py);
         params.ties_parameter       = to_opt_d(ties_parameter_py);
         params.num_groups           = to_opt_i(num_groups_py);
+        params.num_groups_fixed     = num_groups_fixed;
         params.num_chains           = num_chains;
         params.samples_per_chain    = samples_per_chain;
         params.sweeps_per_sample    = sweeps_per_sample;
@@ -339,6 +341,7 @@ PYBIND11_MODULE(MCMC_core, m) {
     py::arg("initial_group_depth")       = py::none(),
     py::arg("ties_parameter")            = py::none(),
     py::arg("num_groups")                = py::none(),
+    py::arg("num_groups_fixed")          = false,
     py::arg("num_chains")                = 1,
     py::arg("samples_per_chain")         = 1000,
     py::arg("sweeps_per_sample")         = 10,

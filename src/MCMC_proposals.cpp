@@ -92,11 +92,13 @@ void MCMC::propose_single_site_move() {
         if (p <= static_cast<double>(num_groups - 1) / n) {
             return; // no-op: splitting a singleton and immediately reinstating it
         }
+        if (num_groups_fixed) return;
         new_group = std::uniform_int_distribution<int>(0, num_groups - 2)(rng);
         is_merge = true;
     } else {
         // Non-singleton: split or move (possibly same group = no-op)
         if (p <= static_cast<double>(num_groups) / n) {
+            if (num_groups_fixed) return;
             new_group = num_groups; // split into a new singleton group
         } else {
             new_group = std::uniform_int_distribution<int>(0, num_groups - 1)(rng);

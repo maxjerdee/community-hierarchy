@@ -41,7 +41,7 @@ FitResult fit(FitParams p) {
                 p.wins, p.ties,
                 p.initial_partition, p.partition_fixed,
                 p.initial_scores,   p.scores_fixed,
-                ng, p.num_groups.has_value(),
+                ng, p.num_groups.has_value() || p.num_groups_fixed,
                 p.assortative,
                 vi,  p.variation_in.has_value(),
                 vo,  p.variation_out.has_value(),
