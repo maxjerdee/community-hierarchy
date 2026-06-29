@@ -71,11 +71,12 @@ FitResult fit(FitParams p) {
         std::mt19937_64 swap_rng(static_cast<std::uint64_t>(p.seed + chain_id) + 999983ULL);
         std::uniform_real_distribution<double> swap_unif(0.0, 1.0);
 
-        // H_b is handled entirely by the proposal (it cancels in the swap MH ratio).
-        // The β-scaled objective in every acceptance step is:
-        //   H_A_G_b + H_Adir_G_A_s_nu + H_s_G_b_depths
+        // Swap criterion: data likelihood terms only.
+        // H_b (partition prior) cancels via the asymmetric partition proposal.
+        // H_s_G_b_depths (score prior) cancels via the asymmetric score CDF proposal.
+        // Including H_s in the criterion causes systematic over-clustering (~0.06 bias).
         auto H_total = [](const MCMC& c) {
-            return c.H_A_G_b + c.H_Adir_G_A_s_nu + c.H_s_G_b_depths;
+            return c.H_A_G_b + c.H_Adir_G_A_s_nu;
         };
 
         auto do_swaps = [&]() {

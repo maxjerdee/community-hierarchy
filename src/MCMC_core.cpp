@@ -319,7 +319,7 @@ void MCMC::MCMC_sweep(double beta, int num_sweeps) {
 
     // Set proposal weights
     proposal_weights = {
-        {"parameter_move", std::sqrt(static_cast<double>(n)) * static_cast<double>(free_parameters.size())}
+        {"parameter_move", static_cast<double>(free_parameters.size())}
     };
     if (!partition_fixed) {
         proposal_weights["single_site_move"] = static_cast<double>(n);

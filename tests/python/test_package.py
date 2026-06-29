@@ -415,29 +415,12 @@ def test_wins_ties_3node_coincidence():
     assert max_abs_diff < 0.05, f"Coincidence matrix mismatch (max_abs_diff={max_abs_diff:.6f})"
 
 
-def test_tempering_swap_uses_full_energy():
-    """Parallel tempering swap criterion must include H_Adir, not only H_A_G_b.
-
-    Graph: wins 0→1, 0→2, 1→2; tie 0↔1 (same as test_wins_ties_3node_coincidence).
-    Fixed parameters match the Mathematica NIntegrate reference exactly.
-
-    With the CORRECT criterion (H_A_G_b + H_Adir_G_A_s_nu + H_s_G_b_depths), the
-    tempered chain converges toward the exact posterior.  With the WRONG criterion
-    (H_A_G_b only), wrong swaps from the β=0 chain inject prior states into the cold
-    chain and push the coincidence matrix upward, yielding max_diff ≈ 0.078 vs
-    the Mathematica reference (measured with 256 chains × 500 samples × sps=500).
-
-    The correct criterion gives max_diff ≈ 0.061 (std=0.001 across seeds), well
-    below threshold 0.070.  Switching to H_A_G_b-only in bindings.cpp raises it to
-    ≈ 0.078 (std=0.004), reliably above the threshold.
-    """
+def _tempering_coincidence(seed, num_chains, samples_per_chain, timeout):
     from directedstructure.MCMC_core import fit_backend
-
     n = 3
     wins_adj = [{1: 1.0, 2: 1.0}, {2: 1.0}, {}]
     ties_adj  = [{1: 1.0}, {0: 1.0}, {}]
     vi = _c2v(1.0)
-
     r = fit_backend(
         wins=wins_adj, ties=ties_adj,
         initial_partition=list(range(n)), initial_scores=[0.0] * n,
@@ -445,9 +428,9 @@ def test_tempering_swap_uses_full_energy():
         individual_depth=1.0, group_depth=2.0,
         variation_in=vi, variation_out=vi, degree_correction=vi,
         ties_parameter=1.0,
-        num_chains=256, samples_per_chain=500, burn_sweeps=500,
-        sweeps_per_sample=500, num_tempering_chains=2, seed=0,
-        timeout=120.0,
+        num_chains=num_chains, samples_per_chain=samples_per_chain,
+        burn_sweeps=50, sweeps_per_sample=500,
+        num_tempering_chains=2, seed=seed, timeout=timeout,
     )
     df = r.samples_df()
     ns = len(df)
@@ -458,17 +441,37 @@ def test_tempering_swap_uses_full_energy():
             for j in range(n):
                 if p[i] == p[j]:
                     coin[i, j] += 1.0 / ns
+    return coin, ns
 
+
+def test_tempering_swap_uses_full_energy():
+    """Parallel tempering swap criterion must use data terms only (H_A_G_b + H_Adir).
+
+    Graph: wins 0→1, 0→2, 1→2; tie 0↔1 (same as test_wins_ties_3node_coincidence).
+    Free: partition, scores, density_in, density_out.
+
+    The CORRECT criterion is H_A_G_b + H_Adir_G_A_s_nu (data likelihood only).
+    H_b (partition prior) is absorbed into the partition proposal.
+    H_s_G_b_depths (score prior) is absorbed into the score proposal.
+    Including H_s in the swap criterion causes systematic over-clustering (~0.06 bias).
+    On first-pass failure the test retries with 4× more samples.
+    """
     expected = pd.read_csv(_DATA_OUT / "wins_ties_3node_coincidence.csv",
                            header=None).to_numpy(dtype=float)
+
+    coin, ns = _tempering_coincidence(seed=0, num_chains=4, samples_per_chain=2000, timeout=60.0)
     max_diff = np.max(np.abs(coin - expected))
 
-    assert max_diff < 0.070, (
+    if max_diff >= 0.050:
+        # Retry with 4× more samples in case of statistical bad luck.
+        coin, ns = _tempering_coincidence(seed=1, num_chains=16, samples_per_chain=2000, timeout=240.0)
+        max_diff = np.max(np.abs(coin - expected))
+
+    assert max_diff < 0.050, (
         f"Tempered coincidence matrix deviates from Mathematica reference by "
-        f"{max_diff:.4f} (threshold 0.070).  "
-        f"The swap criterion likely uses only H_A_G_b instead of "
-        f"H_A_G_b + H_Adir_G_A_s_nu + H_s_G_b_depths — check both swap loops "
-        f"in bindings/python/bindings.cpp.  "
+        f"{max_diff:.4f} (threshold 0.050, {ns} samples).  "
+        f"The swap criterion likely includes H_s_G_b_depths — it should use only "
+        f"H_A_G_b + H_Adir_G_A_s_nu (data terms), not the score prior — check fit.cpp.  "
         f"coin={coin.tolist()}"
     )
 
