@@ -46,9 +46,11 @@ struct FitParams {
     int    seed                 = 0;
     double timeout              = 60.0;
 
-    // Optional callback invoked each time a sample is recorded (thread-safe).
-    // Receives (completed_samples, total_samples).
-    std::function<void(int, int)> on_sample;
+    // Optional callbacks for progress reporting (all thread-safe).
+    // Each receives (completed, total) where total = num_chains × phase_length.
+    std::function<void(int, int)> on_warmup;   // called once per sweep per chain (param warmup)
+    std::function<void(int, int)> on_burn_in;  // called once per sweep per chain (burn-in)
+    std::function<void(int, int)> on_sample;   // called once per recorded sample per chain
 };
 
 // Run parallel-tempered MCMC and return the collected samples.

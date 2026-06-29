@@ -274,40 +274,66 @@ PYBIND11_MODULE(MCMC_core, m) {
         params.seed                 = seed;
         params.timeout              = timeout;
 
-        // Progress reporting: drive a stderr thread from the on_sample callback.
+        // Progress reporting: phase-aware stderr display (pystan style).
         std::mutex mtx;
         std::condition_variable cv;
-        std::atomic<int> latest{0};
-        bool done = false;
+        std::atomic<int> warmup_done{0}, burn_done{0}, sample_done{0};
+        bool fit_finished = false;
         std::thread progress_thread;
 
         if (show_progress) {
-            params.on_sample = [&](int completed, int total) {
-                latest.store(completed, std::memory_order_relaxed);
+            params.on_warmup = [&](int completed, int) {
+                warmup_done.store(completed, std::memory_order_relaxed);
                 cv.notify_one();
-                (void)total;
             };
-            const int total = num_chains * samples_per_chain;
-            progress_thread = std::thread([&]() {
-                int last = -1;
-                auto emit = [&](int v) {
+            params.on_burn_in = [&](int completed, int) {
+                burn_done.store(completed, std::memory_order_relaxed);
+                cv.notify_one();
+            };
+            params.on_sample = [&](int completed, int) {
+                sample_done.store(completed, std::memory_order_relaxed);
+                cv.notify_one();
+            };
+
+            const int warmup_total = num_chains * param_warmup_sweeps;
+            const int burn_total   = num_chains * burn_sweeps;
+            const int sample_total = num_chains * samples_per_chain;
+
+            progress_thread = std::thread([&, warmup_total, burn_total, sample_total]() {
+                auto emit = [](const char* label, int cur, int total) {
+                    int pct = total > 0 ? static_cast<int>(100.0 * cur / total) : 100;
                     std::ostringstream ss;
-                    ss << '\r' << "Sampling progress: " << v << '/' << total
-                       << " (" << std::fixed << std::setprecision(1)
-                       << 100.0 * v / total << "%)";
+                    ss << '\r' << std::left  << std::setw(11) << label
+                       << std::right << std::setw(6) << cur << " / " << total
+                       << " [" << std::setw(3) << pct << "%]";
                     std::cerr << ss.str() << std::flush;
                 };
-                emit(0);
-                while (true) {
-                    std::unique_lock<std::mutex> lock(mtx);
-                    cv.wait_for(lock, std::chrono::milliseconds(100),
-                                [&]{ return done || latest.load() != last; });
-                    int cur = latest.load(std::memory_order_relaxed);
-                    bool stopping = done;
-                    lock.unlock();
-                    if (cur != last) { last = cur; emit(cur); }
-                    if (stopping) break;
-                }
+
+                auto run_phase = [&](std::atomic<int>& counter, int total,
+                                     const char* label) {
+                    if (total <= 0) return;
+                    emit(label, 0, total);
+                    int last = -1;
+                    while (true) {
+                        std::unique_lock<std::mutex> lock(mtx);
+                        cv.wait_for(lock, std::chrono::milliseconds(100),
+                            [&]{ return fit_finished || counter.load() != last; });
+                        int cur = counter.load(std::memory_order_relaxed);
+                        bool stopping = fit_finished;
+                        lock.unlock();
+                        if (cur != last) { emit(label, cur, total); last = cur; }
+                        if (cur >= total || stopping) break;
+                    }
+                    // Only print a final line if timeout ended the phase early.
+                    int final_cur = counter.load(std::memory_order_relaxed);
+                    if (final_cur < total)
+                        emit(label, final_cur, total);
+                    std::cerr << '\n' << std::flush;
+                };
+
+                run_phase(warmup_done, warmup_total, "Warmup:   ");
+                run_phase(burn_done,   burn_total,   "Burn-in:  ");
+                run_phase(sample_done, sample_total, "Sampling: ");
             });
         }
 
@@ -317,10 +343,9 @@ PYBIND11_MODULE(MCMC_core, m) {
         }();
 
         if (progress_thread.joinable()) {
-            { std::lock_guard<std::mutex> lock(mtx); done = true; }
+            { std::lock_guard<std::mutex> lock(mtx); fit_finished = true; }
             cv.notify_all();
             progress_thread.join();
-            if (show_progress) std::cerr << '\n' << std::flush;
         }
 
         return FitResultNative(std::move(result));

@@ -201,6 +201,18 @@ class Result:
         """High-level summary: ``num_samples``, ``mean_num_groups``, ``mdl_value``."""
         return dict(self._native.summary())
 
+    def __repr__(self) -> str:
+        s = self.summary
+        n = len(self._node_order)
+        return (
+            f"directedstructure.Result("
+            f"n={n}, "
+            f"samples={s['num_samples']}, "
+            f"mean_groups={s['mean_num_groups']:.1f}, "
+            f"mdl={s['mdl_value']:.3f}"
+            f")"
+        )
+
 
 def fit(
     config: Config,

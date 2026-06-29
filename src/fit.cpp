@@ -13,6 +13,8 @@ FitResult fit(FitParams p) {
     int initial_num_groups = *std::max_element(p.initial_partition.begin(),
                                                p.initial_partition.end()) + 1;
     const int total_samples = p.num_chains * p.samples_per_chain;
+    std::atomic<int> completed_warmup{0};
+    std::atomic<int> completed_burn{0};
     std::atomic<int> completed_samples{0};
 
     auto run_chain = [&](int chain_id) -> std::vector<SampleState> {
@@ -103,9 +105,14 @@ FitResult fit(FitParams p) {
                 chain_stack[ci].partition_fixed = true;
                 chain_stack[ci].scores_fixed    = true;
             }
-            for (int b = 0; b < p.param_warmup_sweeps && elapsed() < p.timeout; ++b)
+            for (int b = 0; b < p.param_warmup_sweeps && elapsed() < p.timeout; ++b) {
                 for (int ci = 0; ci < p.num_tempering_chains; ++ci)
                     chain_stack[ci].MCMC_sweep(betas[ci], p.sweeps_per_sample);
+                if (p.on_warmup) {
+                    int done = completed_warmup.fetch_add(1, std::memory_order_relaxed) + 1;
+                    p.on_warmup(done, p.num_chains * p.param_warmup_sweeps);
+                }
+            }
             for (int ci = 0; ci < p.num_tempering_chains; ++ci) {
                 chain_stack[ci].partition_fixed = p.partition_fixed;
                 chain_stack[ci].scores_fixed    = p.scores_fixed;
@@ -117,6 +124,10 @@ FitResult fit(FitParams p) {
             for (int ci = 0; ci < p.num_tempering_chains; ++ci)
                 chain_stack[ci].MCMC_sweep(betas[ci], p.sweeps_per_sample);
             do_swaps();
+            if (p.on_burn_in) {
+                int done = completed_burn.fetch_add(1, std::memory_order_relaxed) + 1;
+                p.on_burn_in(done, p.num_chains * p.burn_sweeps);
+            }
         }
 
         // Sampling
