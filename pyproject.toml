@@ -76,6 +76,7 @@ local_scheme = "no-local-version"
 
 [tool.cibuildwheel]
 build = "cp310-* cp311-* cp312-* cp313-*"
+skip = "*-manylinux_i686 *-musllinux_i686 *-win32"
 test-command = "pytest {project}/tests/python"
 test-requires = ["pytest"]
 
