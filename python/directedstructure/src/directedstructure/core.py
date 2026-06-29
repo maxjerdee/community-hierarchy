@@ -210,6 +210,7 @@ def fit(
     samples_per_chain: int = 1000,
     sweeps_per_sample: int = 10,
     burn_sweeps: int = 500,
+    param_warmup_sweeps: int = 0,
     thinning: int = 1,
     beta: float = 1.0,
     num_tempering_chains: int = 1,
@@ -408,6 +409,7 @@ def fit(
         samples_per_chain=int(samples_per_chain),
         sweeps_per_sample=int(sweeps_per_sample),
         burn_sweeps=int(burn_sweeps),
+        param_warmup_sweeps=int(param_warmup_sweeps),
         thinning=int(thinning),
         beta=float(beta),
         num_tempering_chains=int(num_tempering_chains),
@@ -434,11 +436,39 @@ def _gen_initial_partition(
         G_undirected.add_edge(u, v)
 
     if num_groups is not None:
-        communities = nx.community.greedy_modularity_communities(
+        communities = list(nx.community.greedy_modularity_communities(
             G_undirected, cutoff=num_groups, best_n=num_groups
-        )
+        ))
     else:
-        communities = nx.community.greedy_modularity_communities(G_undirected)
+        communities = list(nx.community.greedy_modularity_communities(G_undirected))
+        # Merge communities smaller than 5% of N into their best-connected neighbour.
+        # Greedy modularity tends to over-partition (resolution limit), producing many
+        # small satellites around the dominant communities.  Absorbing them gives the
+        # MCMC a much smaller number of groups to work with during burn-in.
+        N = G_undirected.number_of_nodes()
+        min_size = max(2, int(N * 0.05))
+        node_to_comm = {n: ci for ci, comm in enumerate(communities) for n in comm}
+        changed = True
+        while changed:
+            changed = False
+            new_comms = list(communities)
+            for ci, comm in enumerate(new_comms):
+                if len(comm) < min_size:
+                    edge_counts: dict = {}
+                    for n in comm:
+                        for nbr in G_undirected.neighbors(n):
+                            cj = node_to_comm[nbr]
+                            if cj != ci:
+                                edge_counts[cj] = edge_counts.get(cj, 0) + 1
+                    if not edge_counts:
+                        continue
+                    best = max(edge_counts, key=lambda k: edge_counts[k])
+                    new_comms[best] = frozenset(new_comms[best] | frozenset(comm))
+                    new_comms[ci] = frozenset()
+                    node_to_comm.update({n: best for n in comm})
+                    changed = True
+            communities = [c for c in new_comms if len(c) > 0]
+            node_to_comm = {n: ci for ci, comm in enumerate(communities) for n in comm}
 
     node_to_index = {node: i for i, node in enumerate(G_undirected.nodes())}
     partition = [0] * G_undirected.number_of_nodes()

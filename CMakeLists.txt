@@ -13,7 +13,8 @@ add_library(directedstructure_core STATIC
     src/MCMC_bookkeeping.cpp
     src/helpers.cpp
     src/globals.cpp
-    src/fit_result.cpp)
+    src/fit_result.cpp
+    src/fit.cpp)
 target_include_directories(directedstructure_core PUBLIC ${CMAKE_SOURCE_DIR}/src)
 set_target_properties(directedstructure_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_compile_features(directedstructure_core PUBLIC cxx_std_17)
@@ -53,6 +54,7 @@ if(BUILD_TESTING)
     src/helpers.cpp
     src/globals.cpp
     src/fit_result.cpp
+    src/fit.cpp
   )
   target_include_directories(mcmc_core_test PRIVATE tests src)
   target_compile_features(mcmc_core_test PRIVATE cxx_std_17)
