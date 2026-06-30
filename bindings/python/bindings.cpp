@@ -204,6 +204,8 @@ PYBIND11_MODULE(MCMC_core, m) {
         .def("coincidence_matrix",  &FitResultNative::coincidence_matrix_numpy)
         .def("score_means",         &FitResultNative::score_means)
         .def("score_stds",          &FitResultNative::score_stds)
+        .def("parameter_means",     &FitResultNative::parameter_means)
+        .def("parameter_stds",      &FitResultNative::parameter_stds)
         .def("samples_df",          &FitResultNative::samples_df)
         .def("summary",             &FitResultNative::summary);
 

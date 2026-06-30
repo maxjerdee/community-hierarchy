@@ -596,7 +596,7 @@ def write_gml_with_inferences(
     if partition is None:
         partition = result.mdl_partition
     scores = result.score_means
-    network_properties_df = result.network_properties()
+    network_properties_df = result.parameter_df
 
     G_copy = G.copy()
     node_order = list(result._node_order)

@@ -93,8 +93,11 @@ print(result)
 scores = result.score_means    # np.ndarray, shape [n_nodes]
 uncertainty = result.score_stds  # np.ndarray, shape [n_nodes]
 
-# Network-level parameter summary: mean and std of each inferred parameter
-net_df = result.network_properties()
+# Same scores organized as a DataFrame: columns node, mean, std
+scores_df = result.scores_df
+
+# Network-level parameter summary: columns parameter, mean, std
+param_df = result.parameter_df
 
 # Integer community labels for the consensus sample
 partition = result.consensus_partition()

@@ -152,10 +152,10 @@ def test_result_score_stds_shape():
     assert np.all(s >= 0)
 
 
-def test_result_network_properties_params():
+def test_result_parameter_df_params():
     G = _small_graph()
     result = fit(Config(), G, num_samples=20, timeout=10.0)
-    net_df = result.network_properties()
+    net_df = result.parameter_df
     expected = {
         "num_groups", "density_in", "density_out", "variation_in",
         "variation_out", "degree_correction",
@@ -164,6 +164,15 @@ def test_result_network_properties_params():
     assert set(net_df["parameter"]) == expected
     assert "mean" in net_df.columns
     assert "std" in net_df.columns
+
+
+def test_result_scores_df_shape():
+    G = _small_graph()
+    result = fit(Config(), G, num_samples=20, timeout=10.0)
+    scores_df = result.scores_df
+    assert list(scores_df.columns) == ["node", "mean", "std"]
+    assert len(scores_df) == G.number_of_nodes()
+    assert set(scores_df["node"]) == set(G.nodes())
 
 
 def test_result_consensus_partition_shape():

@@ -144,6 +144,41 @@ class Result:
         """Posterior std of hierarchy score for each node, shape (n_nodes,)."""
         return np.asarray(self._native.score_stds(), dtype=float)
 
+    @property
+    def scores_df(self) -> pd.DataFrame:
+        """Posterior hierarchy scores per node: columns ``node``, ``mean``, ``std``."""
+        return pd.DataFrame({
+            "node": list(self._node_order),
+            "mean": np.asarray(self._native.score_means(), dtype=float),
+            "std": np.asarray(self._native.score_stds(), dtype=float),
+        })
+
+    @property
+    def parameter_df(self) -> pd.DataFrame:
+        """Posterior summary of network-level parameters.
+
+        Returns a DataFrame with columns ``parameter``, ``mean``, ``std``.
+        Computed directly from the in-C++ samples; does not build ``samples_df``.
+        """
+        means = self._native.parameter_means()
+        stds = self._native.parameter_stds()
+        parameters = [
+            "num_groups",
+            "density_in",
+            "density_out",
+            "variation_in",
+            "variation_out",
+            "degree_correction",
+            "individual_depth",
+            "group_depth",
+            "ties_parameter",
+        ]
+        return pd.DataFrame({
+            "parameter": parameters,
+            "mean": [means[p] for p in parameters],
+            "std": [stds[p] for p in parameters],
+        })
+
     # ------------------------------------------------------------------
     # Distribution summaries
     # ------------------------------------------------------------------
@@ -173,28 +208,6 @@ class Result:
             rename[f"{i}_score"] = f"{node}_score"
         return df.rename(columns=rename)
 
-    def network_properties(self) -> pd.DataFrame:
-        """Posterior summary of network-level parameters.
-
-        Returns a DataFrame with columns ``parameter``, ``mean``, ``std``.
-        """
-        df = self.samples_df()
-        parameters = [
-            "num_groups",
-            "density_in",
-            "density_out",
-            "variation_in",
-            "variation_out",
-            "degree_correction",
-            "individual_depth",
-            "group_depth",
-            "ties_parameter",
-        ]
-        return pd.DataFrame({
-            "parameter": parameters,
-            "mean": [df[p].mean() for p in parameters],
-            "std": [df[p].std() for p in parameters],
-        })
 
     @property
     def summary(self) -> dict:

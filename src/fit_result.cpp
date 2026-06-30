@@ -3,7 +3,10 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <string>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 FitResult::FitResult(int num_nodes, std::vector<SampleState> samples)
     : num_nodes_(num_nodes), samples_(std::move(samples)) {}
@@ -109,5 +112,58 @@ std::vector<double> FitResult::score_stds() const {
         }
     }
     for (int i = 0; i < n; ++i) stds[i] = std::sqrt(vars[i] / (ns - 1));
+    return stds;
+}
+
+// The 9 network-level scalar parameters, in display order, paired with an
+// accessor into SampleState.  num_groups (int) is accumulated as a double.
+namespace {
+const std::vector<std::pair<std::string, double (*)(const SampleState&)>>&
+parameter_accessors() {
+    static const std::vector<std::pair<std::string, double (*)(const SampleState&)>> a = {
+        {"num_groups",        [](const SampleState& s) { return static_cast<double>(s.num_groups); }},
+        {"density_in",        [](const SampleState& s) { return s.density_in; }},
+        {"density_out",       [](const SampleState& s) { return s.density_out; }},
+        {"variation_in",      [](const SampleState& s) { return s.variation_in; }},
+        {"variation_out",     [](const SampleState& s) { return s.variation_out; }},
+        {"degree_correction", [](const SampleState& s) { return s.degree_correction; }},
+        {"individual_depth",  [](const SampleState& s) { return s.individual_depth; }},
+        {"group_depth",       [](const SampleState& s) { return s.group_depth; }},
+        {"ties_parameter",    [](const SampleState& s) { return s.ties_parameter; }},
+    };
+    return a;
+}
+}  // namespace
+
+std::map<std::string, double> FitResult::parameter_means() const {
+    int ns = static_cast<int>(samples_.size());
+    std::map<std::string, double> means;
+    for (const auto& [name, get] : parameter_accessors()) {
+        double sum = 0.0;
+        if (ns > 0) {
+            for (const auto& s : samples_) sum += get(s);
+            sum /= ns;
+        }
+        means[name] = sum;
+    }
+    return means;
+}
+
+std::map<std::string, double> FitResult::parameter_stds() const {
+    int ns = static_cast<int>(samples_.size());
+    auto means = parameter_means();
+    std::map<std::string, double> stds;
+    for (const auto& [name, get] : parameter_accessors()) {
+        double var = 0.0;
+        if (ns > 1) {
+            double m = means[name];
+            for (const auto& s : samples_) {
+                double d = get(s) - m;
+                var += d * d;
+            }
+            var /= (ns - 1);
+        }
+        stds[name] = std::sqrt(var);
+    }
     return stds;
 }

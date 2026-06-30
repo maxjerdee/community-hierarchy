@@ -3,6 +3,8 @@
 
 #include <vector>
 #include <limits>
+#include <map>
+#include <string>
 
 struct SampleState {
     int chain_id;
@@ -32,6 +34,8 @@ public:
     std::vector<double> coincidence_matrix() const;
     std::vector<double> score_means() const;
     std::vector<double> score_stds() const;
+    std::map<std::string, double> parameter_means() const;
+    std::map<std::string, double> parameter_stds() const;
 
     int num_nodes() const { return num_nodes_; }
     int num_samples() const { return static_cast<int>(samples_.size()); }
