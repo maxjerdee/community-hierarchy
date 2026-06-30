@@ -18,14 +18,21 @@ result = ds.fit(
     show_progress=True,
 )
 
-samples_df = result.samples_df()
-
 print("Nodes:", G.number_of_nodes())
 print("Edges:", G.number_of_edges())
-print("Samples:", len(samples_df))
 print(result)
 print("Consensus partition:", result.consensus_partition().tolist())
-print("Mean num_groups:", samples_df["num_groups"].mean())
+
+# Posterior parameter summary (cheap: computed from the in-C++ samples)
+print("\nParameter summary:")
+print(result.parameter_df.to_string(index=False))
+
+# Per-node hierarchy scores, organized with node labels
+print("\nTop hierarchy scores:")
+print(result.scores_df.sort_values("mean", ascending=False).head().to_string(index=False))
+
+# Full per-sample DataFrame is only materialized when explicitly requested
+samples_df = result.samples_df()
 
 fig, ax = plt.subplots(figsize=(8, 3))
 ax.plot(samples_df.index, samples_df["num_groups"], linewidth=1.5)
