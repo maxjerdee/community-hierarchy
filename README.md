@@ -85,6 +85,10 @@ result = ds.fit(
 ### Inspect results
 
 ```python
+# A concise summary is printed by the result itself
+print(result)
+# directedstructure.Result(n=62, samples=1000, mean_groups=3.2, mdl=412.100)
+
 # Per-node hierarchy scores: posterior mean and uncertainty
 scores = result.score_means    # np.ndarray, shape [n_nodes]
 uncertainty = result.score_stds  # np.ndarray, shape [n_nodes]
@@ -97,10 +101,6 @@ partition = result.consensus_partition()
 
 # n×n co-assignment frequency matrix
 comatrix = result.coincidence_matrix()
-
-# High-level summary dict
-print(result.summary)
-# {'num_samples': 500, 'mean_num_groups': 3.2, 'mdl_value': 412.1}
 
 # Full posterior samples DataFrame
 samples_df = result.samples_df()
