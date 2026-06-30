@@ -4,6 +4,7 @@
 #include "globals.h"
 #include "helpers.h"
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <chrono>
 
@@ -317,7 +318,12 @@ void MCMC::MCMC_sweep(double beta, int num_sweeps) {
 
     this->beta = beta;
 
-    // Set proposal weights
+    // Set proposal weights.
+    // NB: a sqrt(n) boost here was tried (to propose depths more often) and removed:
+    // it broke synthetic recoverability (steals proposals from free-partition moves)
+    // and does NOT help group_depth mixing -- the bottleneck is ridge traversal, not
+    // proposal frequency (single-variable depth moves can't climb the sigma_I/sigma_C
+    // ridge). The real fix is a joint (sigma_I, sigma_C) block proposal.
     proposal_weights = {
         {"parameter_move", static_cast<double>(free_parameters.size())}
     };
@@ -326,6 +332,12 @@ void MCMC::MCMC_sweep(double beta, int num_sweeps) {
     }
     if (!scores_fixed) {
         proposal_weights["score_move"] = static_cast<double>(n);
+        // Collective group-score-shift moves traverse the sigma_C ridge that
+        // per-node and single-depth moves cannot. Weight is state-INDEPENDENT
+        // (constant n, not num_groups) so the partition-move fraction does not
+        // depend on the current q -- otherwise the q-marginal is biased. The move
+        // is a no-op (early return) when num_groups <= 1.
+        proposal_weights["group_score_move"] = static_cast<double>(n);
     }
 
     for (int sweep = 0; sweep < num_sweeps; sweep++) {

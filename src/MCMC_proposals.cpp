@@ -39,6 +39,8 @@ void MCMC::propose_move() {
                 propose_parameter_move();
             } else if (proposal_type == "score_move") {
                 propose_score_move();
+            } else if (proposal_type == "group_score_move") {
+                propose_group_score_move();
             }
 
             end_time = std::chrono::high_resolution_clock::now();
@@ -308,8 +310,102 @@ void MCMC::propose_score_move() {
 }
 
 /**
+ * propose_group_score_move: shift every node's score in one random group by a
+ * common offset delta (random-walk in scaled-score units).
+ *
+ * This translates a whole group along the between-group (sigma_C) direction.
+ * Within-group score differences are invariant under the shift, so the
+ * orientation likelihood only changes for edges crossing the group boundary;
+ * the score prior changes via the per-node terms and the group term. Accept on
+ * the full delta_H (the proposal is a symmetric random walk on delta).
+ */
+void MCMC::propose_group_score_move() {
+    group_score_proposals++;
+    if (num_groups <= 1) return;  // no between-group structure to move
+    int r = std::uniform_int_distribution<int>(0, num_groups - 1)(rng);
+    if (group_members[r].empty()) return;
+    double delta = std::normal_distribution<double>(0.0, GROUP_SCORE_STEP_SIZE)(rng);
+    if (delta == 0.0) return;
+
+    double H_s_old = H_s_G_b_depths;
+    double H_A_old = H_Adir_G_A_s_nu;
+
+    // --- H_Adir_G_A_s_nu: remove old contributions of cross-group edges ---
+    for (int i : group_members[r]) {
+        for (const auto& edge : wins[i]) {
+            int j = edge.first; if (partition[j] == r) continue;
+            double lp = scores[i] - log_sum_exp(std::vector<double>{scores[i], scores[j], std::log(ties_parameter) + scores[i]/2.0 + scores[j]/2.0});
+            H_Adir_G_A_s_nu -= 0.0 - edge.second * lp;
+        }
+        for (const auto& edge : losses[i]) {
+            int j = edge.first; if (partition[j] == r) continue;
+            double lp = scores[j] - log_sum_exp(std::vector<double>{scores[j], scores[i], std::log(ties_parameter) + scores[j]/2.0 + scores[i]/2.0});
+            H_Adir_G_A_s_nu -= 0.0 - edge.second * lp;
+        }
+        for (const auto& edge : ties[i]) {
+            int j = edge.first; if (partition[j] == r) continue;
+            double lp = std::log(ties_parameter) + scores[i]/2.0 + scores[j]/2.0 - log_sum_exp(std::vector<double>{scores[i], scores[j], std::log(ties_parameter) + scores[i]/2.0 + scores[j]/2.0});
+            H_Adir_G_A_s_nu -= 0.0 - edge.second * lp;
+        }
+    }
+
+    // --- H_s_G_b_depths: net contribution of group r (sigma-dependent part) ---
+    auto group_H_s_contrib = [&]() {
+        double pernode = 0.0;
+        for (int i : group_members[r]) pernode += scaled_scores[i] * scaled_scores[i];
+        double S = group_scaled_score_sums[r];
+        double f = 1.0 / std::sqrt(1 + node_counts[r]*group_depth*group_depth/(individual_depth*individual_depth));
+        double group_term = std::log(f) + f*f*group_depth*group_depth*S*S/(individual_depth*individual_depth);
+        return pernode - group_term;  // matches calculate_H_s_G_b_depths (per-node added, group subtracted)
+    };
+    double old_contrib = group_H_s_contrib();
+
+    // Apply the shift to all members.
+    for (int i : group_members[r]) {
+        scaled_scores[i] += delta;
+        scores[i] = scaled_scores[i] * individual_depth;
+    }
+    group_scaled_score_sums[r] += node_counts[r] * delta;
+
+    H_s_G_b_depths += group_H_s_contrib() - old_contrib;
+
+    // --- H_Adir_G_A_s_nu: add new contributions of cross-group edges ---
+    for (int i : group_members[r]) {
+        for (const auto& edge : wins[i]) {
+            int j = edge.first; if (partition[j] == r) continue;
+            double lp = scores[i] - log_sum_exp(std::vector<double>{scores[i], scores[j], std::log(ties_parameter) + scores[i]/2.0 + scores[j]/2.0});
+            H_Adir_G_A_s_nu += 0.0 - edge.second * lp;
+        }
+        for (const auto& edge : losses[i]) {
+            int j = edge.first; if (partition[j] == r) continue;
+            double lp = scores[j] - log_sum_exp(std::vector<double>{scores[j], scores[i], std::log(ties_parameter) + scores[j]/2.0 + scores[i]/2.0});
+            H_Adir_G_A_s_nu += 0.0 - edge.second * lp;
+        }
+        for (const auto& edge : ties[i]) {
+            int j = edge.first; if (partition[j] == r) continue;
+            double lp = std::log(ties_parameter) + scores[i]/2.0 + scores[j]/2.0 - log_sum_exp(std::vector<double>{scores[i], scores[j], std::log(ties_parameter) + scores[i]/2.0 + scores[j]/2.0});
+            H_Adir_G_A_s_nu += 0.0 - edge.second * lp;
+        }
+    }
+
+    // Metropolis acceptance on the full change (symmetric RW proposal on delta).
+    double delta_H = (H_Adir_G_A_s_nu - H_A_old) + (H_s_G_b_depths - H_s_old);
+    if (uniform_random(rng) < std::exp(-beta * delta_H)) {
+        accepted_group_score_proposals++;
+    } else {
+        for (int i : group_members[r]) {
+            scaled_scores[i] -= delta;
+            scores[i] = scaled_scores[i] * individual_depth;
+        }
+        group_scaled_score_sums[r] -= node_counts[r] * delta;
+        H_s_G_b_depths = H_s_old;
+        H_Adir_G_A_s_nu = H_A_old;
+    }
+}
+
+/**
  * flip_nodes: Move a set of nodes from their current group to a new group
- * 
+ *
  * This is the core function for partition updates. It efficiently updates all
  * bookkeeping and entropy components by:
  * 1. Identifying impacted groups (before and after the move)

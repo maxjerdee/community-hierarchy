@@ -140,6 +140,8 @@ public:
     int accepted_single_site_proposals = 0; // Total number of single-site proposals accepted
     int score_proposals = 0; // Total number of score proposals attempted
     int accepted_score_proposals = 0; // Total number of score proposals accepted
+    int group_score_proposals = 0; // Total number of group-score-shift proposals attempted
+    int accepted_group_score_proposals = 0; // Total number of group-score-shift proposals accepted
     int parameter_proposals = 0; // Total number of parameter proposals attempted
     int accepted_parameter_proposals = 0; // Total number of parameter proposals accepted
     int degree_correction_proposals = 0; // Total number of degree correction proposals attempted
@@ -164,6 +166,7 @@ public:
     void propose_single_site_move(); // Generate and accept/reject a single site move
     void propose_parameter_move(); // Generate and accept/reject a change of a continuous parameter
     void propose_score_move(); // Generate and accept/reject a score change move
+    void propose_group_score_move(); // Shift all scores in a random group by a common offset (moves along the sigma_C ridge)
 
     // Functions that directly modify the Monte Carlo state (including the bookkeeping information like the entropy)
     void flip_nodes(const std::vector<int>& nodes, int new_group); // Flip multiple nodes of the same old_group to a single new_group
