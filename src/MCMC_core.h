@@ -18,6 +18,7 @@ public:
     //      ties_parameter, ties_parameter_fixed, seed)
     MCMC(const std::vector<std::unordered_map<int, double>>& wins,
         const std::vector<std::unordered_map<int, double>>& ties,
+        const std::vector<std::unordered_map<int, double>>& group_adj,
         const std::vector<int>& partition,
         const bool& partition_fixed,
         const std::vector<double>& scores,
@@ -39,7 +40,8 @@ public:
         const bool& ties_parameter_fixed,
         int seed = 0,
         double density_in_initial = -1.0,
-        double density_out_initial = -1.0);
+        double density_out_initial = -1.0,
+        bool weighted_SBM = false);
 
     /* Fixed information */
     // Graph variables
@@ -48,7 +50,10 @@ public:
     std::vector<std::unordered_map<int, double>> wins; // wins[i] is the list of wins for node i (dominant edges where i dominates j)
     std::vector<std::unordered_map<int, double>> losses; // losses[i] is the list of losses for node i (dominant edges where j dominates i)
     std::vector<std::unordered_map<int, double>> ties; // ties[i] is the list of ties for node i (neutral/reciprocated edges)
-    std::vector<std::unordered_map<int, double>> neighbors; // neighbors[i] is the list of neighbors of node i (undirected)
+    std::vector<std::unordered_map<int, double>> neighbors; // neighbors[i] is the list of neighbors of node i (undirected, from A — used for H_Adir normalization)
+    std::vector<std::unordered_map<int, double>> neighbors_com; // undirected adjacency used for group (SBM) structure (= neighbors in single-layer mode, = group_adj in two-layer mode)
+    bool two_layer_mode; // true when a separate group_adj graph drives community structure
+    bool weighted_SBM = false; // true → model real-valued edge weights via uniform simplex prior
 
     // Model & sampling parameters
     std::vector<std::string> free_parameters; // Names of free (tunable) parameters
@@ -92,7 +97,8 @@ public:
     double H_M; // Entropy of the edge count matrix given the partition, H(M|b,density_in,density_out,variation_in,variation_out) negative-binomial
     double H_k; // Entropy of the degrees given the edge counts and partition, H(k|M,b,degree_correction) Dirichlet-multinomial
     double H_A_G_k_M_b; // Entropy of the network given the degrees, edge counts, and partition, H(A|k,M,b) Poisson
-    double H_A_G_b; // Total entropy of the network given the partition, H(A|b) = H(k) + H(M|b,k) + H(A|k,M,b)
+    double H_W = 0.0; // Weighted SBM entropy H(W|A,μ̂,b) + H(μ̂) (zero in non-weighted mode)
+    double H_A_G_b; // Total entropy of the network given the partition, H(A|b) = H(k) + H(M|b,k) + H(A|k,M,b) [+ H_W in weighted mode]
 
     // Undirected description length, H(A,b)
     double H_A_b; // Total description length of the network and partition, H(A,b) = H(b) + H(A|b)
@@ -108,8 +114,11 @@ public:
     std::vector<int> node_counts; // Number of nodes in each community, nb
     std::vector<std::vector<int>> group_members; // List of nodes in each community, for efficient random access
     std::vector<std::unordered_map<int, size_t>> node_indices_in_groups; // Maps node ID to its index in group_members for efficient addition/removal
-    std::vector<std::vector<int>> edge_counts; // The edge count matrix M (the number of edges between each pair of groups)
-    std::vector<int> edge_counts_sum; // The margin of the edge count matrix M (the number of edge stubs in each group)
+    std::vector<std::vector<int>> edge_counts; // The edge count matrix M (binary counts in weighted mode, total weight otherwise)
+    std::vector<int> edge_counts_sum; // The margin of the edge count matrix M (binary degree stubs in weighted mode)
+    std::vector<std::vector<double>> weight_counts; // μ_rs: total real-valued weight between groups (only populated in weighted_SBM mode)
+    std::vector<double> weight_counts_sum; // total weight of each group (only in weighted_SBM mode)
+    double w_total = 0.0; // total undirected edge weight (constant; only in weighted_SBM mode)
     std::vector<double> group_scaled_score_sums; // Sum of scores in each group
 
     // Concentration versions of variation parameters
@@ -178,6 +187,7 @@ public:
     double calculate_H_k(); // Calculate the entropy of the degrees given the current state (H(k|M,b,alpha))
     double calculate_H_M(); // Calculate the entropy of the edge count matrix given the degrees in the current state (H(M|b,rho_in,rho_out) or H(M|m), etc.)
     double calculate_H_A_G_k_M_b(); // Calculate the entropy of the network given the edge count matrix in the current state (H(A|k,M,b))
+    double calculate_H_W(); // Calculate weighted SBM entropy H(W|A,μ̂,b) + H(μ̂) (only valid in weighted_SBM mode)
     double calculate_H_Adir_G_A_s_nu(); // Calculate the entropy of the directed edges given the undirected edges and scores (H(Adir|A,s,nu))
     double calculate_H_s_G_b_depths(); // Calculate the entropy of the scores given the partition and depth parameters (H(s|b,depths))
 

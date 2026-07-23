@@ -374,7 +374,7 @@ def _run_coincidence_native_wins_ties(num_chains: int, burn: int, samples: int, 
     acc = np.zeros((n, n))
     for chain in range(num_chains):
         state = native.MCMC(
-            wins, ties,
+            wins, ties, [],
             list(range(n)), False,
             [0.0] * n, False,
             n, False,
@@ -501,7 +501,7 @@ def test_prior_q_uniform():
     vi = _c2v(1.0)
 
     state = native.MCMC(
-        wins, ties,
+        wins, ties, [],
         list(range(n)), False,
         [0.0] * n, False,
         n, False,
@@ -601,7 +601,7 @@ def test_point_eval_entropy_components():
     ref = pd.read_csv(out_path)
 
     state = native.MCMC(
-        wins, ties,
+        wins, ties, [],
         partition, True,
         scores, True,
         max(partition) + 1, True,
@@ -644,3 +644,167 @@ def test_point_eval_entropy_components():
         float(state.H_M) + float(state.H_k) + float(state.H_A_G_k_M_b),
         atol=1e-12,
     )
+
+
+# ---------------------------------------------------------------------------
+# direction_probabilities
+# ---------------------------------------------------------------------------
+
+def _ranked_graph() -> nx.DiGraph:
+    """String-labelled graph with a clear dominant node for hierarchy tests."""
+    G = nx.DiGraph()
+    for _ in range(10):
+        for loser in ("B", "C", "D"):
+            w = G.get_edge_data("A", loser, {}).get("weight", 0)
+            G.add_edge("A", loser, weight=w + 1)
+    for _ in range(5):
+        for loser in ("C", "D"):
+            w = G.get_edge_data("B", loser, {}).get("weight", 0)
+            G.add_edge("B", loser, weight=w + 1)
+    return G
+
+
+@pytest.fixture(scope="module")
+def ranked_result():
+    G = _ranked_graph()
+    return fit(
+        Config(hierarchy_model="bradley_terry_ties"),
+        G, num_chains=2, samples_per_chain=100, seed=0, timeout=30.0, show_progress=False,
+    )
+
+
+def test_direction_probabilities_ties_allowed(ranked_result):
+    p = ranked_result.direction_probabilities("A", "D", ties_allowed=True)
+    assert set(p.keys()) == {"a_to_b", "tie", "b_to_a"}
+    assert sum(p.values()) == pytest.approx(1.0)
+    assert p["a_to_b"] > 0.5
+
+
+def test_direction_probabilities_no_ties(ranked_result):
+    p = ranked_result.direction_probabilities("A", "D", ties_allowed=False)
+    assert set(p.keys()) == {"a_to_b", "b_to_a"}
+    assert "tie" not in p
+    assert sum(p.values()) == pytest.approx(1.0)
+    assert p["a_to_b"] > 0.5
+
+
+def test_direction_probabilities_agrees_with_samples(ranked_result):
+    """C++ result must match the same formula applied to samples_df().
+
+    Uses the same numerically stable shift as the C++ implementation to avoid
+    exp overflow on samples with large score magnitudes.
+    """
+    samp = ranked_result.samples_df()
+    for ties_allowed in (True, False):
+        p_cpp = ranked_result.direction_probabilities("A", "D", ties_allowed=ties_allowed)
+        sa = samp["A_score"].values
+        sd = samp["D_score"].values
+        # Subtract per-sample max to match C++ overflow-safe computation
+        if ties_allowed:
+            nu    = samp["ties_parameter"].values
+            shift = np.maximum(np.maximum(sa, sd), (sa + sd) / 2.0)
+            tie   = nu * np.exp((sa + sd) / 2.0 - shift)
+        else:
+            shift = np.maximum(sa, sd)
+            tie   = np.zeros(len(sa))
+        ea = np.exp(sa - shift)
+        ed = np.exp(sd - shift)
+        Z  = ea + ed + tie
+        p_py = {"a_to_b": float((ea / Z).mean()), "b_to_a": float((ed / Z).mean())}
+        if ties_allowed:
+            p_py["tie"] = float((tie / Z).mean())
+        for key in p_cpp:
+            assert p_cpp[key] == pytest.approx(p_py[key], abs=1e-12)
+
+
+def test_direction_probabilities_unknown_node(ranked_result):
+    with pytest.raises(ValueError, match="node_a"):
+        ranked_result.direction_probabilities("X", "D")
+    with pytest.raises(ValueError, match="node_b"):
+        ranked_result.direction_probabilities("A", "X")
+
+
+# ---------------------------------------------------------------------------
+# Weighted SBM
+# ---------------------------------------------------------------------------
+
+def test_weighted_SBM_point_eval():
+    """Numerical ground truth for H_W on a 3-node, 2-group binary graph.
+
+    Graph: nodes {0,1} in group 0, node {2} in group 1.
+      W[0,1] = 1.97558  (within group 0)
+      W[0,2] = 1.13873  (between groups)
+      W[1,2] = 2.77927  (between groups)
+    group_adj encodes W as the SBM graph; A is binary (one edge per pair).
+
+    Expected from the formula (computed analytically):
+      K = 3, w_total = W01+W02+W12
+      H_mu = (K-1)*log(w_total) - log((K-1)!)
+      block (0,0): M_rr/2=1, mu_rr/2=W01  → (1-1)*log(W01) - log(0!) = 0
+      block (0,1): M_rs=2,   mu_rs=W02+W12 → (2-1)*log(mu_01) - log(1!) = log(mu_01)
+      H_W = H_mu + log(W02+W12)
+    """
+    import directedstructure.MCMC_core as native
+
+    w01, w02, w12 = 1.97558, 1.13873, 2.77927
+    w_total = w01 + w02 + w12
+    K = 3
+    expected = (K-1)*math.log(w_total) - math.lgamma(K) + math.log(w02 + w12)
+
+    n = 3
+    wins = [{} for _ in range(n)]
+    wins[0][1] = 1.0; wins[0][2] = 1.0; wins[1][2] = 1.0
+
+    group_adj = [{} for _ in range(n)]
+    group_adj[0][1] = w01; group_adj[1][0] = w01
+    group_adj[0][2] = w02; group_adj[2][0] = w02
+    group_adj[1][2] = w12; group_adj[2][1] = w12
+
+    mcmc = native.MCMC(
+        wins=wins,
+        ties=[{} for _ in range(n)],
+        group_adj=group_adj,
+        partition=[0, 0, 1],
+        scores=[0.0, 0.0, 0.0],
+        num_groups=2,
+        seed=0,
+        weighted_SBM=True,
+    )
+
+    assert abs(mcmc.H_W - expected) < 1e-6, f"H_W = {mcmc.H_W:.6f}, expected = {expected:.6f}"
+
+
+def test_weighted_SBM_unweighted_unchanged():
+    """weighted_SBM=False (default) must give identical results to the old code path."""
+    G = nx.DiGraph()
+    G.add_edge("A", "B", weight=3)
+    G.add_edge("B", "C", weight=2)
+    G.add_edge("A", "C", weight=1)
+
+    config_plain    = ds.Config(groups_model="general_canonical")
+    config_weighted = ds.Config(groups_model="general_canonical", weighted_SBM=False)
+
+    r1 = ds.fit(config_plain,    G, num_chains=1, samples_per_chain=50, burn_sweeps=50, seed=7)
+    r2 = ds.fit(config_weighted, G, num_chains=1, samples_per_chain=50, burn_sweeps=50, seed=7)
+
+    # Identical seeds → identical MDL
+    assert r1.mdl_value == pytest.approx(r2.mdl_value, rel=1e-6)
+    sdf1 = r1.samples_df()
+    sdf2 = r2.samples_df()
+    assert (sdf1["H_W"] == 0.0).all()
+    assert (sdf2["H_W"] == 0.0).all()
+
+
+def test_weighted_SBM_produces_nonzero_H_W():
+    """With weighted_SBM=True and non-unit weights, H_W must be nonzero."""
+    G = nx.DiGraph()
+    G.add_edge("A", "B", weight=3.5)
+    G.add_edge("B", "C", weight=2.1)
+    G.add_edge("A", "C", weight=1.7)
+    G.add_edge("C", "A", weight=0.8)
+
+    config = ds.Config(groups_model="general_canonical", weighted_SBM=True)
+    r = ds.fit(config, G, num_chains=1, samples_per_chain=50, burn_sweeps=50, seed=42)
+    sdf = r.samples_df()
+    assert (sdf["H_W"] > 0).all(), "H_W should be positive in weighted mode"
+    assert (sdf["weighted_SBM"] == True).all()

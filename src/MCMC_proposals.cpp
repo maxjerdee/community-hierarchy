@@ -513,6 +513,7 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     double H_k_old = H_k;
     double H_M_old = H_M;
     double H_A_G_k_M_b_old = H_A_G_k_M_b;
+    double H_W_old = H_W;
     double H_s_G_b_depths_old = H_s_G_b_depths;
 
     if(verbose){
@@ -528,7 +529,7 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     if(verbose){
         // Check if neighbors[96] has an entry for 0, if so print it
         print("Neighbors of node 96:");
-        for(const auto& edge : neighbors[96]){
+        for(const auto& edge : neighbors_com[96]){
             int j = edge.first;
             double weight = edge.second;
             print("  Node " + std::to_string(j) + " with weight " + std::to_string(weight));
@@ -665,15 +666,24 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         // Update edge counts: subtract edges from old_group.
         // partition[node] still holds old_group here, so self-loops (j==node) correctly
         // read old_group as the neighbor group.  Skip the reverse direction for self-loops:
-        // neighbors[node][node] already encodes 2×weight, so treating both directions
+        // neighbors_com[node][node] already encodes 2×weight, so treating both directions
         // separately would subtract 4× instead of 2×.
-        for(const auto& [j, A_ij] : neighbors[node]){
+        for(const auto& [j, A_ij] : neighbors_com[node]){
             int neighbor_group = partition[j];
-            edge_counts[old_group][neighbor_group] -= A_ij;
-            edge_counts_sum[old_group] -= A_ij;
+            int count_delta = weighted_SBM ? 1 : static_cast<int>(A_ij);
+            edge_counts[old_group][neighbor_group] -= count_delta;
+            edge_counts_sum[old_group] -= count_delta;
             if (j != node) {
-                edge_counts[neighbor_group][old_group] -= A_ij;
-                edge_counts_sum[neighbor_group] -= A_ij;
+                edge_counts[neighbor_group][old_group] -= count_delta;
+                edge_counts_sum[neighbor_group] -= count_delta;
+            }
+            if (weighted_SBM) {
+                weight_counts[old_group][neighbor_group] -= A_ij;
+                weight_counts_sum[old_group] -= A_ij;
+                if (j != node) {
+                    weight_counts[neighbor_group][old_group] -= A_ij;
+                    weight_counts_sum[neighbor_group] -= A_ij;
+                }
             }
         }
 
@@ -693,6 +703,13 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
             for(auto& row: edge_counts){
                 row.push_back(0);
             }
+            if (weighted_SBM) {
+                weight_counts_sum.push_back(0.0);
+                weight_counts.push_back(std::vector<double>(num_groups, 0.0));
+                for(auto& row: weight_counts){
+                    row.push_back(0.0);
+                }
+            }
             group_scaled_score_sums.push_back(0.0);
             num_groups += 1;
         }
@@ -704,13 +721,22 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
 
         // Update edge counts: add edges to new_group.
         // Same self-loop guard: skip reverse direction when j==node.
-        for(const auto& [j, A_ij] : neighbors[node]){
+        for(const auto& [j, A_ij] : neighbors_com[node]){
             int neighbor_group = partition[j];
-            edge_counts[new_group][neighbor_group] += A_ij;
-            edge_counts_sum[new_group] += A_ij;
+            int count_delta = weighted_SBM ? 1 : static_cast<int>(A_ij);
+            edge_counts[new_group][neighbor_group] += count_delta;
+            edge_counts_sum[new_group] += count_delta;
             if (j != node) {
-                edge_counts[neighbor_group][new_group] += A_ij;
-                edge_counts_sum[neighbor_group] += A_ij;
+                edge_counts[neighbor_group][new_group] += count_delta;
+                edge_counts_sum[neighbor_group] += count_delta;
+            }
+            if (weighted_SBM) {
+                weight_counts[new_group][neighbor_group] += A_ij;
+                weight_counts_sum[new_group] += A_ij;
+                if (j != node) {
+                    weight_counts[neighbor_group][new_group] += A_ij;
+                    weight_counts_sum[neighbor_group] += A_ij;
+                }
             }
         }
 
@@ -733,6 +759,13 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         for(auto& row: edge_counts){
             row.pop_back();  // Remove last column from all rows
         }
+        if (weighted_SBM) {
+            weight_counts.pop_back();
+            for(auto& row: weight_counts){
+                row.pop_back();
+            }
+            weight_counts_sum.pop_back();
+        }
         group_scaled_score_sums.pop_back();
         num_groups -= 1;
     }
@@ -745,6 +778,11 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         print("");
         print("Updated M: ");
         print(edge_counts);
+    }
+
+    // Recompute H_W after Phase 2 (bookkeeping fully updated at this point)
+    if (weighted_SBM) {
+        H_W = calculate_H_W();
     }
 
     /* === PHASE 3: Add entropy terms from final configuration === */
@@ -872,8 +910,8 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     }
 
     // Update total entropies: add delta from component changes
-    H_A_G_b += (H_k - H_k_old) + (H_M - H_M_old) + (H_A_G_k_M_b - H_A_G_k_M_b_old);
-    H_A_b += (H_b - H_b_old) + (H_k - H_k_old) + (H_M - H_M_old) + (H_A_G_k_M_b - H_A_G_k_M_b_old);
+    H_A_G_b += (H_k - H_k_old) + (H_M - H_M_old) + (H_A_G_k_M_b - H_A_G_k_M_b_old) + (H_W - H_W_old);
+    H_A_b += (H_b - H_b_old) + (H_k - H_k_old) + (H_M - H_M_old) + (H_A_G_k_M_b - H_A_G_k_M_b_old) + (H_W - H_W_old);
 
 
     if(verbose){
@@ -887,7 +925,7 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     if(verbose){
         // Check if neighbors[96] has an entry for 0, if so print it
         print("Neighbors of node 96:");
-        for(const auto& edge : neighbors[96]){
+        for(const auto& edge : neighbors_com[96]){
             int j = edge.first;
             double weight = edge.second;
             print("  Node " + std::to_string(j) + " with weight " + std::to_string(weight));
@@ -900,7 +938,7 @@ void MCMC::swap_groups(int group1, int group2) {
     std::swap(group_members[group1], group_members[group2]);
     std::swap(node_indices_in_groups[group1], node_indices_in_groups[group2]);
     std::swap(node_counts[group1], node_counts[group2]);
-    
+
     // Swap edge_counts matrix rows and columns
     for(int s = 0; s < num_groups; s++){
         std::swap(edge_counts[group1][s], edge_counts[group2][s]);
@@ -910,9 +948,20 @@ void MCMC::swap_groups(int group1, int group2) {
     }
     std::swap(edge_counts_sum[group1], edge_counts_sum[group2]);
 
+    // Swap weight_counts matrix rows and columns (weighted mode only)
+    if (weighted_SBM) {
+        for(int s = 0; s < num_groups; s++){
+            std::swap(weight_counts[group1][s], weight_counts[group2][s]);
+        }
+        for(int r = 0; r < num_groups; r++){
+            std::swap(weight_counts[r][group1], weight_counts[r][group2]);
+        }
+        std::swap(weight_counts_sum[group1], weight_counts_sum[group2]);
+    }
+
     // Swap group score sums
     std::swap(group_scaled_score_sums[group1], group_scaled_score_sums[group2]);
-    
+
     // Update partition references for moved nodes
     for(int node: group_members[group1]){
         partition[node] = group1;

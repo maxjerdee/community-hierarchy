@@ -40,7 +40,7 @@ FitResult fit(FitParams p) {
             int    ng  = p.num_groups.value_or(initial_num_groups);
 
             chain_stack.emplace_back(
-                p.wins, p.ties,
+                p.wins, p.ties, p.group_adj,
                 p.initial_partition, p.partition_fixed,
                 p.initial_scores,   p.scores_fixed,
                 ng, p.num_groups.has_value() || p.num_groups_fixed,
@@ -51,7 +51,9 @@ FitResult fit(FitParams p) {
                 id_, p.individual_depth.has_value(),
                 gd,  p.group_depth.has_value(),
                 tp,  p.ties_parameter.has_value(),
-                p.seed + chain_id * p.num_tempering_chains + ci
+                p.seed + chain_id * p.num_tempering_chains + ci,
+                -1.0, -1.0,
+                p.weighted_SBM
             );
         }
 
@@ -162,6 +164,9 @@ FitResult fit(FitParams p) {
             ss.H_A_G_b           = c.H_A_G_b;
             ss.H_Adir_G_A_s_nu   = c.H_Adir_G_A_s_nu;
             ss.H_s_G_b_depths    = c.H_s_G_b_depths;
+            ss.two_layer_mode    = c.two_layer_mode;
+            ss.weighted_SBM      = c.weighted_SBM;
+            ss.H_W               = c.H_W;
             samples.push_back(std::move(ss));
 
             int done = completed_samples.fetch_add(1, std::memory_order_relaxed) + 1;

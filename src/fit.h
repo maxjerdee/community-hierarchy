@@ -12,6 +12,8 @@
 struct FitParams {
     std::vector<std::unordered_map<int, double>> wins;
     std::vector<std::unordered_map<int, double>> ties;
+    std::vector<std::unordered_map<int, double>> group_adj; // empty = single-layer mode
+    bool weighted_SBM = false;
 
     std::vector<int>    initial_partition;
     bool                partition_fixed   = false;

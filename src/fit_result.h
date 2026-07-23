@@ -21,6 +21,9 @@ struct SampleState {
     double H_b, H_M, H_k, H_A_G_k_M_b, H_A_G_b;
     double H_Adir_G_A_s_nu;
     double H_s_G_b_depths;
+    bool two_layer_mode = false;
+    bool weighted_SBM = false;
+    double H_W = 0.0;
 };
 
 class FitResult {
@@ -34,6 +37,7 @@ public:
     std::vector<double> coincidence_matrix() const;
     std::vector<double> score_means() const;
     std::vector<double> score_stds() const;
+    std::vector<double> direction_probabilities(int node_a, int node_b, bool ties_allowed = true) const;
     std::map<std::string, double> parameter_means() const;
     std::map<std::string, double> parameter_stds() const;
 

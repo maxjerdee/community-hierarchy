@@ -117,16 +117,24 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     node_counts_norm_2 = value_check(node_counts_norm_2_actual, node_counts_norm_2, NUMERICAL_CHECK_EPSILON, throw_error, "node_counts_norm_2");
 
     // === Recompute edge_counts matrix ===
-    // edge_counts[r][s] = total edge weight from group r to group s
+    // In weighted mode: edge_counts = binary edge counts, weight_counts = real-valued weight sums.
+    // In unweighted mode: edge_counts = total weight (integer), weight_counts unused.
     std::vector<std::vector<int>> edge_counts_actual(num_groups, std::vector<int>(num_groups, 0));
     std::vector<int> edge_counts_sum_actual(num_groups, 0);
+    std::vector<std::vector<double>> weight_counts_actual(num_groups, std::vector<double>(num_groups, 0.0));
+    std::vector<double> weight_counts_sum_actual(num_groups, 0.0);
     for (int i = 0; i < n; i++) {
         int group_i = partition[i];
-        for (const auto& edge : neighbors[i]) {
+        for (const auto& edge : neighbors_com[i]) {
             int j = edge.first;
             double weight = edge.second;
             int group_j = partition[j];
-            edge_counts_actual[group_i][group_j] += weight;
+            if (weighted_SBM) {
+                edge_counts_actual[group_i][group_j] += 1;
+                weight_counts_actual[group_i][group_j] += weight;
+            } else {
+                edge_counts_actual[group_i][group_j] += weight;
+            }
         }
     }
     for (int r = 0; r < num_groups; r++) {
@@ -166,6 +174,17 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
             edge_counts.resize(num_groups);
             for (auto& row : edge_counts) {
                 row.resize(num_groups, 0);
+            }
+        }
+    }
+
+    // === Rebuild weight_counts (weighted mode only) ===
+    if (weighted_SBM) {
+        weight_counts = weight_counts_actual;
+        weight_counts_sum = weight_counts_sum_actual;
+        for (int r = 0; r < num_groups; r++) {
+            for (int s = 0; s < num_groups; s++) {
+                weight_counts_sum[r] += weight_counts[r][s];
             }
         }
     }
@@ -274,8 +293,12 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     H_A_G_k_M_b = value_check(H_A_G_k_M_b_actual, H_A_G_k_M_b, NUMERICAL_CHECK_EPSILON, throw_error, "H_A_G_k_M_b");
 
     // === Compute total entropies ===
-    // H(A,G,b) = H(A|G,k,M,b) + H(k) + H(M) + H(b)
-    double H_A_G_b_actual = H_A_G_k_M_b + H_k + H_M;
+    // In weighted mode: H(A,G,b) also includes H_W = H(W|A,μ̂,b) + H(μ̂)
+    if (weighted_SBM) {
+        double H_W_actual = calculate_H_W();
+        H_W = value_check(H_W_actual, H_W, NUMERICAL_CHECK_EPSILON, throw_error, "H_W");
+    }
+    double H_A_G_b_actual = H_A_G_k_M_b + H_k + H_M + H_W;
     H_A_G_b = value_check(H_A_G_b_actual, H_A_G_b, NUMERICAL_CHECK_EPSILON, throw_error, "H_A_G_b");
 
     // H(A,b) = H(A,G,b) + H(b)
@@ -418,19 +441,23 @@ double MCMC::calculate_H_M() {
 double MCMC::calculate_H_A_G_k_M_b() {
     double H_A_G_k_M_b_actual = 0.0;
     
-    // Sum over all edges (weighted by multiplicity)
-    for(int i = 0; i < n; i++){
-        for(const auto& edge : neighbors[i]){
-            int j = edge.first;
-            double A_ij = edge.second;
-            if(i == j){
-                // Self-edge uses double factorial
-                H_A_G_k_M_b_actual += log_factorial2(A_ij);
-            }else{
-                // Regular edge
-                H_A_G_k_M_b_actual += log_factorial(A_ij);
+    // Sum over all edges (weighted by multiplicity).
+    // In weighted mode, each edge is binary (A_ij=1), so log(A_ij!)=0 for all edges;
+    // the per-edge loop is skipped entirely.
+    if (!weighted_SBM) {
+        for(int i = 0; i < n; i++){
+            for(const auto& edge : neighbors_com[i]){
+                int j = edge.first;
+                double A_ij = edge.second;
+                if(i == j){
+                    H_A_G_k_M_b_actual += log_factorial2(A_ij);
+                }else{
+                    H_A_G_k_M_b_actual += log_factorial(A_ij);
+                }
             }
         }
+    }
+    for(int i = 0; i < n; i++){
         // Normalize by degree factorial
         H_A_G_k_M_b_actual -= log_factorial(node_degrees[i]);
     }
@@ -453,8 +480,43 @@ double MCMC::calculate_H_A_G_k_M_b() {
 }
 
 /**
+ * calculate_H_W: Weighted SBM entropy H(W|A,μ̂,b) + H(μ̂)
+ *
+ * Implements the uniform-simplex prior on per-block-pair weight distributions.
+ * Only valid (and called) when weighted_SBM == true.
+ *
+ * Formula:
+ *   H_W = (K-1)·log(w) − log((K-1)!)
+ *       + Σ_{r<s, M_rs>0} [(M_rs−1)·log(μ_rs) − log((M_rs−1)!)]
+ *       + Σ_{r,  M_rr>0} [(M_rr/2−1)·log(μ_rr/2) − log((M_rr/2−1)!)]
+ *
+ * where K = q(q+1)/2, w = w_total (constant), M_rs = edge_counts[r][s] (binary),
+ * μ_rs = weight_counts[r][s].  Diagonal entries are stored doubled (2×M_rr, 2×μ_rr).
+ */
+double MCMC::calculate_H_W() {
+    int K = num_groups * (num_groups + 1) / 2;
+    double h = (K - 1) * std::log(w_total) - log_factorial(K - 1);
+
+    for (int r = 0; r < num_groups; r++) {
+        // Diagonal: stored as 2× (double-counted by symmetric neighbor loop) → halve
+        int    m_rr  = edge_counts[r][r]   / 2;
+        double mu_rr = weight_counts[r][r] / 2.0;
+        if (m_rr > 0)
+            h += (m_rr - 1) * std::log(mu_rr) - log_factorial(m_rr - 1);
+
+        for (int s = r + 1; s < num_groups; s++) {
+            int    m_rs  = edge_counts[r][s];
+            double mu_rs = weight_counts[r][s];
+            if (m_rs > 0)
+                h += (m_rs - 1) * std::log(mu_rs) - log_factorial(m_rs - 1);
+        }
+    }
+    return h;
+}
+
+/**
  * calculate_H_Adir_G_A_s_nu: Compute directed edge entropy H(Adir|A,s,nu) using the Bradley-Terry model
- * 
+ *
  * P(Adir|A,s) = \sum_{(i,j)} A_ij!/(Adir_ij!Adir_ji!) p_ij^Adir_ij p_ji^Adir_ji
  */
 double MCMC::calculate_H_Adir_G_A_s_nu() {

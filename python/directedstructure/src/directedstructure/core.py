@@ -10,6 +10,7 @@ import pandas as pd
 
 from .input_output import (
     _UNSET,
+    _check_group_graph,
     _check_input_validity,
     _get_node_data,
     _set_model_parameters,
@@ -85,6 +86,7 @@ class Config:
     num_groups: object = _UNSET  # int | None | _UNSET
     group_attribute: Optional[str] = None
     hierarchy_attribute: Optional[str] = None
+    weighted_SBM: bool = False
 
     def __post_init__(self) -> None:
         if self.groups_model not in _VALID_GROUPS_MODELS:
@@ -209,10 +211,48 @@ class Result:
         return df.rename(columns=rename)
 
 
+    def direction_probabilities(self, node_a, node_b, ties_allowed: bool = True) -> dict[str, float]:
+        """Posterior-predictive probability of each directed outcome between node_a and node_b.
+
+        Parameters
+        ----------
+        node_a, node_b : node labels exactly as they appear in the graph passed to fit.
+        ties_allowed : if True (default), include tie probability using the inferred
+            ties_parameter. If False, use standard Bradley-Terry (no tie term);
+            the returned dict will not contain a ``"tie"`` key.
+
+        Returns
+        -------
+        dict with keys ``"a_to_b"``, ``"tie"`` (only when ties_allowed=True), ``"b_to_a"``.
+        Values are averaged over all posterior samples and sum to 1.0.
+
+        Raises
+        ------
+        ValueError if either node is not found in the fitted graph.
+        """
+        nodes = list(self._node_order)
+        for name, node in (("node_a", node_a), ("node_b", node_b)):
+            if node not in nodes:
+                raise ValueError(f"{name}={node!r} not found in fitted graph")
+        probs = self._native.direction_probabilities(
+            nodes.index(node_a), nodes.index(node_b), ties_allowed
+        )
+        if ties_allowed:
+            return {"a_to_b": probs[0], "tie": probs[1], "b_to_a": probs[2]}
+        return {"a_to_b": probs[0], "b_to_a": probs[1]}
+
     @property
     def summary(self) -> dict:
         """High-level summary: ``num_samples``, ``mean_num_groups``, ``mdl_value``."""
         return dict(self._native.summary())
+
+    def __getstate__(self) -> dict:
+        return {"native": self._native, "node_order": self._node_order, "config": self._config}
+
+    def __setstate__(self, state: dict) -> None:
+        self._native = state["native"]
+        self._node_order = state["node_order"]
+        self._config = state["config"]
 
     def __repr__(self) -> str:
         s = self.summary
@@ -231,6 +271,7 @@ def fit(
     config: Config,
     G: nx.DiGraph,
     *,
+    group_graph: Optional[nx.Graph] = None,
     num_chains: int = 1,
     samples_per_chain: int = 1000,
     sweeps_per_sample: int = 10,
@@ -395,7 +436,7 @@ def fit(
 
     # Generate initial state if not provided
     if initial_partition is None:
-        initial_partition = _gen_initial_partition(G_wins, G_ties, num_groups)
+        initial_partition = _gen_initial_partition(G_wins, G_ties, num_groups, group_graph=group_graph)
     if initial_scores is None:
         initial_scores = _gen_initial_scores(G_wins, G_ties)
     elif not scores_fixed:
@@ -414,9 +455,18 @@ def fit(
 
     node_order = tuple(G.nodes())
 
+    # Two-layer mode: validate and convert group_graph to an adjacency list
+    # indexed with the same node ordering as G.
+    if group_graph is not None:
+        _check_group_graph(G, group_graph)
+        group_adj = get_neighbors(group_graph, node_order=list(node_order))
+    else:
+        group_adj = []  # empty → single-layer mode in C++
+
     native_result = _fit_backend(
         wins=wins_adj,
         ties=ties_adj,
+        group_adj=group_adj,
         initial_partition=list(initial_partition),
         partition_fixed=bool(partition_fixed),
         initial_scores=list(initial_scores),
@@ -443,6 +493,7 @@ def fit(
         seed=int(seed),
         timeout=float(timeout),
         show_progress=bool(show_progress),
+        weighted_SBM=bool(config.weighted_SBM),
     )
 
     return Result(native_result, node_order, config)
@@ -453,14 +504,18 @@ def fit(
 # ---------------------------------------------------------------------------
 
 def _gen_initial_partition(
-    G_wins: nx.DiGraph, G_ties: nx.Graph, num_groups, seed: int = 0
+    G_wins: nx.DiGraph, G_ties: nx.Graph, num_groups, seed: int = 0,
+    group_graph: Optional[nx.Graph] = None,
 ) -> list:
-    G_undirected = nx.Graph()
-    G_undirected.add_nodes_from(G_wins.nodes())
-    for u, v in G_wins.edges():
-        G_undirected.add_edge(u, v)
-    for u, v in G_ties.edges():
-        G_undirected.add_edge(u, v)
+    if group_graph is not None:
+        G_undirected = group_graph
+    else:
+        G_undirected = nx.Graph()
+        G_undirected.add_nodes_from(G_wins.nodes())
+        for u, v in G_wins.edges():
+            G_undirected.add_edge(u, v)
+        for u, v in G_ties.edges():
+            G_undirected.add_edge(u, v)
 
     if num_groups is not None:
         communities = list(nx.community.greedy_modularity_communities(

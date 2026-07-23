@@ -27,6 +27,7 @@
  */
 MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
            const std::vector<std::unordered_map<int, double>>& ties,
+           const std::vector<std::unordered_map<int, double>>& group_adj,
            const std::vector<int>& partition,
            const bool& partition_fixed,
            const std::vector<double>& scores,
@@ -48,13 +49,17 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
            const bool& ties_parameter_fixed,
            int seed,
            double density_in_initial,
-           double density_out_initial)
+           double density_out_initial,
+           bool weighted_SBM)
     : n(0),
       m(0),
       wins(wins),  // Copy wins adjacency list from const reference
       losses(),
       ties(ties),  // Copy ties adjacency list from const reference
       neighbors(),
+      neighbors_com(),
+      two_layer_mode(false),
+      weighted_SBM(weighted_SBM),
       free_parameters(),
       beta(0.0),  // Inverse temperature (set during MCMC_sweep)
       proposal_weights(),
@@ -81,8 +86,10 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
       H_M(0.0),
       H_k(0.0),
       H_A_G_k_M_b(0.0),
+      H_W(0.0),
       H_A_G_b(0.0),
       H_A_b(0.0),
+      w_total(0.0),
       num_groups(num_groups),
       node_counts(),  // Will be resized and computed
       group_members(),  // group_members[r] = vector of node IDs in group r
@@ -146,6 +153,16 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
             neighbors[i][j] += weight; // Add to undirected neighbors (other direction will be present)
             // Ties don't contribute to wins/losses asymmetry
         }
+    }
+
+    // Build neighbors_com: uses group_adj if provided (two-layer mode),
+    // otherwise copies neighbors (single-layer — identical behaviour to before).
+    if (!group_adj.empty()) {
+        two_layer_mode = true;
+        neighbors_com = group_adj;
+    } else {
+        two_layer_mode = false;
+        neighbors_com = neighbors;
     }
 
     if(verbose){
@@ -244,13 +261,24 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
     node_degrees.resize(n);
     for (int i = 0; i < n; ++i) {
         int deg = 0;
-        for (const auto& edge : this->neighbors[i]) {
+        for (const auto& edge : this->neighbors_com[i]) {
             deg += static_cast<int>(std::llround(edge.second));
             m_sum += edge.second;
         }
         node_degrees[i] = deg;
     }
     m = static_cast<int>(std::llround(m_sum / 2.0));
+
+    if (this->weighted_SBM) {
+        // In weighted mode: edge counts are binary; record total weight separately.
+        w_total = m_sum / 2.0;  // constant total undirected weight
+        double m_binary = 0.0;
+        for (int i = 0; i < n; ++i) {
+            node_degrees[i] = static_cast<int>(this->neighbors_com[i].size());
+            m_binary += node_degrees[i];
+        }
+        m = static_cast<int>(std::llround(m_binary / 2.0));
+    }
 
     // Reset execution timers for performance profiling
     time_H_k = 0.0;

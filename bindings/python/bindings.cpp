@@ -78,6 +78,9 @@ public:
         fill("H_A_G_b",           [](const SampleState& s){ return s.H_A_G_b; });
         fill("H_Adir_G_A_s_nu",   [](const SampleState& s){ return s.H_Adir_G_A_s_nu; });
         fill("H_s_G_b_depths",    [](const SampleState& s){ return s.H_s_G_b_depths; });
+        fill("two_layer_mode",    [](const SampleState& s){ return s.two_layer_mode; });
+        fill("weighted_SBM",      [](const SampleState& s){ return s.weighted_SBM; });
+        fill("H_W",               [](const SampleState& s){ return s.H_W; });
         fill("chain_id",          [](const SampleState& s){ return s.chain_id; });
         fill("beta",              [](const SampleState& s){ return s.beta; });
 
@@ -106,6 +109,76 @@ public:
         py::module_ np = py::module_::import("numpy");
         return np.attr("reshape")(py::cast(flat), py::make_tuple(n, n));
     }
+
+    py::tuple getstate() const {
+        py::list lst;
+        for (const auto& s : samples_) {
+            py::dict d;
+            d["chain_id"]          = s.chain_id;
+            d["beta"]              = s.beta;
+            d["partition"]         = s.partition;
+            d["scores"]            = s.scores;
+            d["num_groups"]        = s.num_groups;
+            d["density_in"]        = s.density_in;
+            d["density_out"]       = s.density_out;
+            d["variation_in"]      = s.variation_in;
+            d["variation_out"]     = s.variation_out;
+            d["degree_correction"] = s.degree_correction;
+            d["individual_depth"]  = s.individual_depth;
+            d["group_depth"]       = s.group_depth;
+            d["ties_parameter"]    = s.ties_parameter;
+            d["H_A_b"]             = s.H_A_b;
+            d["H_b"]               = s.H_b;
+            d["H_M"]               = s.H_M;
+            d["H_k"]               = s.H_k;
+            d["H_A_G_k_M_b"]       = s.H_A_G_k_M_b;
+            d["H_A_G_b"]           = s.H_A_G_b;
+            d["H_Adir_G_A_s_nu"]   = s.H_Adir_G_A_s_nu;
+            d["H_s_G_b_depths"]    = s.H_s_G_b_depths;
+            d["two_layer_mode"]    = s.two_layer_mode;
+            d["weighted_SBM"]      = s.weighted_SBM;
+            d["H_W"]               = s.H_W;
+            lst.append(d);
+        }
+        return py::make_tuple(num_nodes_, lst);
+    }
+
+    static FitResultNative setstate(py::tuple state) {
+        int num_nodes = state[0].cast<int>();
+        auto lst = state[1].cast<py::list>();
+        std::vector<SampleState> samples;
+        samples.reserve(py::len(lst));
+        for (auto item : lst) {
+            auto d = item.cast<py::dict>();
+            SampleState s;
+            s.chain_id          = d["chain_id"].cast<int>();
+            s.beta              = d["beta"].cast<double>();
+            s.partition         = d["partition"].cast<std::vector<int>>();
+            s.scores            = d["scores"].cast<std::vector<double>>();
+            s.num_groups        = d["num_groups"].cast<int>();
+            s.density_in        = d["density_in"].cast<double>();
+            s.density_out       = d["density_out"].cast<double>();
+            s.variation_in      = d["variation_in"].cast<double>();
+            s.variation_out     = d["variation_out"].cast<double>();
+            s.degree_correction = d["degree_correction"].cast<double>();
+            s.individual_depth  = d["individual_depth"].cast<double>();
+            s.group_depth       = d["group_depth"].cast<double>();
+            s.ties_parameter    = d["ties_parameter"].cast<double>();
+            s.H_A_b             = d["H_A_b"].cast<double>();
+            s.H_b               = d["H_b"].cast<double>();
+            s.H_M               = d["H_M"].cast<double>();
+            s.H_k               = d["H_k"].cast<double>();
+            s.H_A_G_k_M_b       = d["H_A_G_k_M_b"].cast<double>();
+            s.H_A_G_b           = d["H_A_G_b"].cast<double>();
+            s.H_Adir_G_A_s_nu   = d["H_Adir_G_A_s_nu"].cast<double>();
+            s.H_s_G_b_depths    = d["H_s_G_b_depths"].cast<double>();
+            s.two_layer_mode    = d.contains("two_layer_mode") ? d["two_layer_mode"].cast<bool>() : false;
+            s.weighted_SBM      = d.contains("weighted_SBM")  ? d["weighted_SBM"].cast<bool>()   : false;
+            s.H_W               = d.contains("H_W")           ? d["H_W"].cast<double>()           : 0.0;
+            samples.push_back(std::move(s));
+        }
+        return FitResultNative(FitResult(num_nodes, std::move(samples)));
+    }
 };
 
 // ---------------------------------------------------------------------------
@@ -116,6 +189,7 @@ PYBIND11_MODULE(MCMC_core, m) {
     // --- MCMC class (kept for testing / advanced use) ---
     py::class_<MCMC>(m, "MCMC")
         .def(py::init<
+                 std::vector<std::unordered_map<int, double>>,
                  std::vector<std::unordered_map<int, double>>,
                  std::vector<std::unordered_map<int, double>>,
                  std::vector<int>,
@@ -139,9 +213,11 @@ PYBIND11_MODULE(MCMC_core, m) {
                  const bool&,
                  int,
                  double,
-                 double> (),
+                 double,
+                 bool> (),
              py::arg("wins"),
              py::arg("ties"),
+             py::arg("group_adj") = std::vector<std::unordered_map<int, double>>{},
              py::arg("partition"),
              py::arg("partition_fixed") = false,
              py::arg("scores"),
@@ -163,7 +239,8 @@ PYBIND11_MODULE(MCMC_core, m) {
              py::arg("ties_parameter_fixed") = false,
              py::arg("seed") = 0,
              py::arg("density_in") = -1.0,
-             py::arg("density_out") = -1.0)
+             py::arg("density_out") = -1.0,
+             py::arg("weighted_SBM") = false)
            .def_readonly("num_groups",        &MCMC::num_groups)
            .def_readonly("partition",          &MCMC::partition)
            .def_readonly("scores",             &MCMC::scores)
@@ -181,8 +258,10 @@ PYBIND11_MODULE(MCMC_core, m) {
            .def_readonly("H_k",                &MCMC::H_k)
            .def_readonly("H_A_G_k_M_b",        &MCMC::H_A_G_k_M_b)
            .def_readonly("H_A_G_b",            &MCMC::H_A_G_b)
+           .def_readonly("H_W",                &MCMC::H_W)
            .def_readonly("H_Adir_G_A_s_nu",    &MCMC::H_Adir_G_A_s_nu)
            .def_readonly("H_s_G_b_depths",     &MCMC::H_s_G_b_depths)
+           .def_readonly("weighted_SBM",        &MCMC::weighted_SBM)
            .def_readonly("time_H_k",                    &MCMC::time_H_k)
            .def_readonly("time_H_M",                    &MCMC::time_H_M)
            .def_readonly("time_H_A_G_k_M_b",            &MCMC::time_H_A_G_k_M_b)
@@ -206,13 +285,20 @@ PYBIND11_MODULE(MCMC_core, m) {
         .def("score_stds",          &FitResultNative::score_stds)
         .def("parameter_means",     &FitResultNative::parameter_means)
         .def("parameter_stds",      &FitResultNative::parameter_stds)
+        .def("direction_probabilities", &FitResultNative::direction_probabilities,
+             py::arg("node_a"), py::arg("node_b"), py::arg("ties_allowed") = true)
         .def("samples_df",          &FitResultNative::samples_df)
-        .def("summary",             &FitResultNative::summary);
+        .def("summary",             &FitResultNative::summary)
+        .def("__getstate__",        &FitResultNative::getstate)
+        .def("__setstate__",        [](FitResultNative& self, py::tuple state) {
+            new (&self) FitResultNative(FitResultNative::setstate(state));
+        });
 
     // --- fit_backend: thin type-conversion wrapper around the C++ core fit() ---
     m.def("fit_backend", [](
         std::vector<std::unordered_map<int, double>> wins,
         std::vector<std::unordered_map<int, double>> ties,
+        std::vector<std::unordered_map<int, double>> group_adj,
         std::vector<int>    initial_partition,
         bool                partition_fixed,
         std::vector<double> initial_scores,
@@ -238,7 +324,8 @@ PYBIND11_MODULE(MCMC_core, m) {
         int    num_tempering_chains,
         int    seed,
         double timeout,
-        bool   show_progress
+        bool   show_progress,
+        bool   weighted_SBM
     ) {
         auto to_opt_d = [](py::object o) -> std::optional<double> {
             return o.is_none() ? std::nullopt : std::optional<double>(py::cast<double>(o));
@@ -250,6 +337,7 @@ PYBIND11_MODULE(MCMC_core, m) {
         FitParams params;
         params.wins                 = std::move(wins);
         params.ties                 = std::move(ties);
+        params.group_adj            = std::move(group_adj);
         params.initial_partition    = std::move(initial_partition);
         params.partition_fixed      = partition_fixed;
         params.initial_scores       = std::move(initial_scores);
@@ -275,6 +363,7 @@ PYBIND11_MODULE(MCMC_core, m) {
         params.num_tempering_chains = num_tempering_chains;
         params.seed                 = seed;
         params.timeout              = timeout;
+        params.weighted_SBM        = weighted_SBM;
 
         // Progress reporting: phase-aware stderr display (pystan style).
         std::mutex mtx;
@@ -375,6 +464,7 @@ PYBIND11_MODULE(MCMC_core, m) {
     },
     py::arg("wins"),
     py::arg("ties"),
+    py::arg("group_adj")                  = std::vector<std::unordered_map<int, double>>{},
     py::arg("initial_partition"),
     py::arg("partition_fixed")           = false,
     py::arg("initial_scores"),
@@ -400,5 +490,6 @@ PYBIND11_MODULE(MCMC_core, m) {
     py::arg("num_tempering_chains")      = 1,
     py::arg("seed")                      = 0,
     py::arg("timeout")                   = 60.0,
-    py::arg("show_progress")             = false);
+    py::arg("show_progress")             = false,
+    py::arg("weighted_SBM")              = false);
 }
