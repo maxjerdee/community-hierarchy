@@ -633,6 +633,28 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         time_H_A_G_k_M_b += duration;
     }
 
+    // H_W: remove contributions of affected block pairs (weighted SBM only)
+    if (weighted_SBM) {
+        int K = num_groups * (num_groups + 1) / 2;
+        H_W -= (K - 1) * std::log(w_total) - log_factorial(K - 1);
+        for (int r : initial_impacted_groups) {
+            // Diagonal (r,r): stored as 2× — halve
+            {
+                int    m  = edge_counts[r][r]   / 2;
+                double mu = weight_counts[r][r] / 2.0;
+                if (m > 0) H_W -= (m - 1) * std::log(mu) - log_factorial(m - 1);
+            }
+            // Off-diagonal: use symmetry factor to avoid double-counting
+            for (int s = 0; s < num_groups; s++) {
+                if (s == r) continue;
+                double sym = initial_impacted_groups.count(s) ? 0.5 : 1.0;
+                int    ms  = edge_counts[r][s];
+                double mus = weight_counts[r][s];
+                if (ms > 0) H_W -= sym * ((ms - 1) * std::log(mus) - log_factorial(ms - 1));
+            }
+        }
+    }
+
     // H(s|b,depths): hierarchy-community entropy
     for(int r: initial_impacted_groups){
         double f_normalization = 1/std::sqrt(1 + node_counts[r]*group_depth*group_depth/(individual_depth*individual_depth));
@@ -670,7 +692,7 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         // separately would subtract 4× instead of 2×.
         for(const auto& [j, A_ij] : neighbors_com[node]){
             int neighbor_group = partition[j];
-            int count_delta = weighted_SBM ? 1 : static_cast<int>(A_ij);
+            int count_delta = (weighted_SBM || two_layer_mode) ? 1 : static_cast<int>(A_ij);
             edge_counts[old_group][neighbor_group] -= count_delta;
             edge_counts_sum[old_group] -= count_delta;
             if (j != node) {
@@ -723,7 +745,7 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         // Same self-loop guard: skip reverse direction when j==node.
         for(const auto& [j, A_ij] : neighbors_com[node]){
             int neighbor_group = partition[j];
-            int count_delta = weighted_SBM ? 1 : static_cast<int>(A_ij);
+            int count_delta = (weighted_SBM || two_layer_mode) ? 1 : static_cast<int>(A_ij);
             edge_counts[new_group][neighbor_group] += count_delta;
             edge_counts_sum[new_group] += count_delta;
             if (j != node) {
@@ -778,11 +800,6 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         print("");
         print("Updated M: ");
         print(edge_counts);
-    }
-
-    // Recompute H_W after Phase 2 (bookkeeping fully updated at this point)
-    if (weighted_SBM) {
-        H_W = calculate_H_W();
     }
 
     /* === PHASE 3: Add entropy terms from final configuration === */
@@ -879,6 +896,28 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         end_time = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration<double>(end_time - start_time).count();
         time_H_A_G_k_M_b += duration;
+    }
+
+    // H_W: add contributions of affected block pairs in new configuration (weighted SBM only)
+    if (weighted_SBM) {
+        int K = num_groups * (num_groups + 1) / 2;
+        H_W += (K - 1) * std::log(w_total) - log_factorial(K - 1);
+        for (int r : final_impacted_groups) {
+            // Diagonal (r,r): stored as 2× — halve
+            {
+                int    m  = edge_counts[r][r]   / 2;
+                double mu = weight_counts[r][r] / 2.0;
+                if (m > 0) H_W += (m - 1) * std::log(mu) - log_factorial(m - 1);
+            }
+            // Off-diagonal: use symmetry factor to avoid double-counting
+            for (int s = 0; s < num_groups; s++) {
+                if (s == r) continue;
+                double sym = final_impacted_groups.count(s) ? 0.5 : 1.0;
+                int    ms  = edge_counts[r][s];
+                double mus = weight_counts[r][s];
+                if (ms > 0) H_W += sym * ((ms - 1) * std::log(mus) - log_factorial(ms - 1));
+            }
+        }
     }
 
     // H(s|b,depths): hierarchy-community entropy with new configuration

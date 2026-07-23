@@ -117,8 +117,9 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     node_counts_norm_2 = value_check(node_counts_norm_2_actual, node_counts_norm_2, NUMERICAL_CHECK_EPSILON, throw_error, "node_counts_norm_2");
 
     // === Recompute edge_counts matrix ===
-    // In weighted mode: edge_counts = binary edge counts, weight_counts = real-valued weight sums.
-    // In unweighted mode: edge_counts = total weight (integer), weight_counts unused.
+    // In two-layer or weighted mode: edge_counts = binary (1 per neighbour, weights ignored for counts).
+    // In single-layer unweighted mode: edge_counts = sum of rounded integer weights.
+    // weighted_SBM additionally fills weight_counts with real-valued weight sums.
     std::vector<std::vector<int>> edge_counts_actual(num_groups, std::vector<int>(num_groups, 0));
     std::vector<int> edge_counts_sum_actual(num_groups, 0);
     std::vector<std::vector<double>> weight_counts_actual(num_groups, std::vector<double>(num_groups, 0.0));
@@ -129,11 +130,13 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
             int j = edge.first;
             double weight = edge.second;
             int group_j = partition[j];
-            if (weighted_SBM) {
+            if (weighted_SBM || two_layer_mode) {
                 edge_counts_actual[group_i][group_j] += 1;
-                weight_counts_actual[group_i][group_j] += weight;
             } else {
-                edge_counts_actual[group_i][group_j] += weight;
+                edge_counts_actual[group_i][group_j] += static_cast<int>(weight);
+            }
+            if (weighted_SBM) {
+                weight_counts_actual[group_i][group_j] += weight;
             }
         }
     }

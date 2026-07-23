@@ -269,15 +269,19 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
     }
     m = static_cast<int>(std::llround(m_sum / 2.0));
 
-    if (this->weighted_SBM) {
-        // In weighted mode: edge counts are binary; record total weight separately.
-        w_total = m_sum / 2.0;  // constant total undirected weight
+    if (this->weighted_SBM || this->two_layer_mode) {
+        // In weighted mode or two-layer mode: edge counts are binary (one per neighbour,
+        // ignoring actual weights).  weighted_SBM additionally tracks weight sums.
+        w_total = m_sum / 2.0;
         double m_binary = 0.0;
         for (int i = 0; i < n; ++i) {
             node_degrees[i] = static_cast<int>(this->neighbors_com[i].size());
             m_binary += node_degrees[i];
         }
         m = static_cast<int>(std::llround(m_binary / 2.0));
+        if (!this->weighted_SBM) {
+            w_total = 0.0;  // not used in unweighted two-layer mode
+        }
     }
 
     // Reset execution timers for performance profiling
