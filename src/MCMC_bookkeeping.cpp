@@ -296,12 +296,13 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     H_A_G_k_M_b = value_check(H_A_G_k_M_b_actual, H_A_G_k_M_b, NUMERICAL_CHECK_EPSILON, throw_error, "H_A_G_k_M_b");
 
     // === Compute total entropies ===
-    // In weighted mode: H(A,G,b) also includes H_W = H(W|A,μ̂,b) + H(μ̂)
+    // In weighted mode: H_W = log P(W|A,μ̂,b) is the log marginal likelihood
+    // (positive = better fit). It REDUCES description length, so subtract it.
     if (weighted_SBM) {
         double H_W_actual = calculate_H_W();
         H_W = value_check(H_W_actual, H_W, NUMERICAL_CHECK_EPSILON, throw_error, "H_W");
     }
-    double H_A_G_b_actual = H_A_G_k_M_b + H_k + H_M + H_W;
+    double H_A_G_b_actual = H_A_G_k_M_b + H_k + H_M - H_W;
     H_A_G_b = value_check(H_A_G_b_actual, H_A_G_b, NUMERICAL_CHECK_EPSILON, throw_error, "H_A_G_b");
 
     // H(A,b) = H(A,G,b) + H(b)

@@ -949,8 +949,9 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     }
 
     // Update total entropies: add delta from component changes
-    H_A_G_b += (H_k - H_k_old) + (H_M - H_M_old) + (H_A_G_k_M_b - H_A_G_k_M_b_old) + (H_W - H_W_old);
-    H_A_b += (H_b - H_b_old) + (H_k - H_k_old) + (H_M - H_M_old) + (H_A_G_k_M_b - H_A_G_k_M_b_old) + (H_W - H_W_old);
+    // H_W is log marginal likelihood (subtracted from DL), so negate its delta.
+    H_A_G_b += (H_k - H_k_old) + (H_M - H_M_old) + (H_A_G_k_M_b - H_A_G_k_M_b_old) - (H_W - H_W_old);
+    H_A_b += (H_b - H_b_old) + (H_k - H_k_old) + (H_M - H_M_old) + (H_A_G_k_M_b - H_A_G_k_M_b_old) - (H_W - H_W_old);
 
 
     if(verbose){

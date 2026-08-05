@@ -270,6 +270,7 @@ PYBIND11_MODULE(MCMC_core, m) {
            .def("MCMC_sweep", &MCMC::MCMC_sweep,
                 py::arg("beta") = 1.0,
                 py::arg("num_sweeps") = 1)
+           .def("calculate_H_M", &MCMC::calculate_H_M)
            .def("change_parameter", &MCMC::change_parameter,
                 py::arg("param_name"),
                 py::arg("new_value"));
