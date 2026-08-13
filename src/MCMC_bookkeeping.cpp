@@ -296,13 +296,14 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     H_A_G_k_M_b = value_check(H_A_G_k_M_b_actual, H_A_G_k_M_b, NUMERICAL_CHECK_EPSILON, throw_error, "H_A_G_k_M_b");
 
     // === Compute total entropies ===
-    // In weighted mode: H_W = log P(W|A,μ̂,b) is the log marginal likelihood
-    // (positive = better fit). It REDUCES description length, so subtract it.
+    // calculate_H_W returns -log P(W|A,μ̂,b): the description-length contribution
+    // of the weight model, which is negative when the simplex fits well (density > 1).
+    // Add it (not subtract) so that a good fit reduces total DL.
     if (weighted_SBM) {
         double H_W_actual = calculate_H_W();
         H_W = value_check(H_W_actual, H_W, NUMERICAL_CHECK_EPSILON, throw_error, "H_W");
     }
-    double H_A_G_b_actual = H_A_G_k_M_b + H_k + H_M - H_W;
+    double H_A_G_b_actual = H_A_G_k_M_b + H_k + H_M + H_W;
     H_A_G_b = value_check(H_A_G_b_actual, H_A_G_b, NUMERICAL_CHECK_EPSILON, throw_error, "H_A_G_b");
 
     // H(A,b) = H(A,G,b) + H(b)
@@ -484,22 +485,21 @@ double MCMC::calculate_H_A_G_k_M_b() {
 }
 
 /**
- * calculate_H_W: Weighted SBM entropy H(W|A,μ̂,b) + H(μ̂)
+ * calculate_H_W: Per-block-pair uniform-simplex description length H(W|A,b)
  *
- * Implements the uniform-simplex prior on per-block-pair weight distributions.
- * Only valid (and called) when weighted_SBM == true.
+ * Implements Peixoto 2018 Eq. 33 for the flat (single-level) model:
+ *   P(x|A,b) = ∏_{r≤s, m_rs>0}  (m_rs-1)! / μ_rs^{m_rs-1}
  *
- * Formula:
- *   H_W = (K-1)·log(w) − log((K-1)!)
- *       + Σ_{r<s, M_rs>0} [(M_rs−1)·log(μ_rs) − log((M_rs−1)!)]
- *       + Σ_{r,  M_rr>0} [(M_rr/2−1)·log(μ_rr/2) − log((M_rr/2−1)!)]
+ * Returns -log P = Σ_{r≤s, m_rs>0} [(m_rs-1)·log(μ_rs) - log((m_rs-1)!)]
  *
- * where K = q(q+1)/2, w = w_total (constant), M_rs = edge_counts[r][s] (binary),
- * μ_rs = weight_counts[r][s].  Diagonal entries are stored doubled (2×M_rr, 2×μ_rr).
+ * This is negative when the simplex density is > 1 (good fit), so adding H_W
+ * to the total DL correctly reduces it when the model fits well.
+ * Diagonal entries are stored doubled (2×m_rr, 2×μ_rr); halved on read.
  */
 double MCMC::calculate_H_W() {
-    int K = num_groups * (num_groups + 1) / 2;
-    double h = (K - 1) * std::log(w_total) - log_factorial(K - 1);
+    // Per-block-pair uniform simplex: -log P(x_rs | μ_rs, m_rs) = (m_rs-1)*log(μ_rs) - log((m_rs-1)!)
+    // Matches Peixoto 2018 Eq. 33. No outer simplex coupling block pairs.
+    double h = 0.0;
 
     for (int r = 0; r < num_groups; r++) {
         // Diagonal: stored as 2× (double-counted by symmetric neighbor loop) → halve

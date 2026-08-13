@@ -633,10 +633,8 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         time_H_A_G_k_M_b += duration;
     }
 
-    // H_W: remove contributions of affected block pairs (weighted SBM only)
+    // H_W: remove per-block-pair contributions of affected groups (weighted SBM only)
     if (weighted_SBM) {
-        int K = num_groups * (num_groups + 1) / 2;
-        H_W -= (K - 1) * std::log(w_total) - log_factorial(K - 1);
         for (int r : initial_impacted_groups) {
             // Diagonal (r,r): stored as 2× — halve
             {
@@ -898,10 +896,8 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         time_H_A_G_k_M_b += duration;
     }
 
-    // H_W: add contributions of affected block pairs in new configuration (weighted SBM only)
+    // H_W: add per-block-pair contributions of affected groups in new configuration (weighted SBM only)
     if (weighted_SBM) {
-        int K = num_groups * (num_groups + 1) / 2;
-        H_W += (K - 1) * std::log(w_total) - log_factorial(K - 1);
         for (int r : final_impacted_groups) {
             // Diagonal (r,r): stored as 2× — halve
             {
@@ -948,10 +944,10 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
 
     }
 
-    // Update total entropies: add delta from component changes
-    // H_W is log marginal likelihood (subtracted from DL), so negate its delta.
-    H_A_G_b += (H_k - H_k_old) + (H_M - H_M_old) + (H_A_G_k_M_b - H_A_G_k_M_b_old) - (H_W - H_W_old);
-    H_A_b += (H_b - H_b_old) + (H_k - H_k_old) + (H_M - H_M_old) + (H_A_G_k_M_b - H_A_G_k_M_b_old) - (H_W - H_W_old);
+    // Update total entropies: add delta from component changes.
+    // H_W = -log P (description-length contribution, negative when model fits well), so add its delta.
+    H_A_G_b += (H_k - H_k_old) + (H_M - H_M_old) + (H_A_G_k_M_b - H_A_G_k_M_b_old) + (H_W - H_W_old);
+    H_A_b += (H_b - H_b_old) + (H_k - H_k_old) + (H_M - H_M_old) + (H_A_G_k_M_b - H_A_G_k_M_b_old) + (H_W - H_W_old);
 
 
     if(verbose){
