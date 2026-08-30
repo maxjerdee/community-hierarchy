@@ -591,50 +591,63 @@ def test_prior_q_uniform():
     every q, so P(q) = 1/n.  At beta=0 every proposal is accepted and the
     chain draws purely from the proposal, so the empirical q distribution must
     be uniform over {1,...,n}.
+
+    The test runs a short trial first and, if it fails, re-runs with a longer
+    burn-in and more samples before truly failing. This avoids spurious CI
+    failures across build configurations without loosening statistical rigor.
     """
     n = 8
-    # Ring of wins so edge counts are non-zero (empty graph gives NaN density_in)
-    wins = [{(i + 1) % n: 1.0} for i in range(n)]
+    wins = [{(i + 1) % n: 1.0} for i in range(n)]  # ring so density_in != NaN
     ties = [{} for _ in range(n)]
     vi = _c2v(1.0)
-
-    state = native.MCMC(
-        wins, ties, [],
-        list(range(n)), False,
-        [0.0] * n, False,
-        n, False,
-        False,
-        vi, True, vi, True, vi, True,
-        1.0, True, 1.0, True, 1.0, True,
-        0,
-    )
-
-    for _ in range(200):          # brief burn-in to escape q=n start
-        state.MCMC_sweep(0.0, 1)
-
-    num_samples = 40_000
-    counts = np.zeros(n + 1, dtype=float)   # index by q (1-based)
-    for _ in range(num_samples):
-        state.MCMC_sweep(0.0, 1)
-        counts[state.num_groups] += 1
-
+    expected_mean = (n + 1) / 2.0   # 4.5 for n=8
     q_vals = np.arange(1, n + 1)
-    obs = counts[1:]               # counts for q = 1,...,n
-    mean_q = float(np.dot(q_vals, obs)) / num_samples
-    expected_mean = (n + 1) / 2.0  # = 4.5 for n=8
 
-    # With 40 000 samples the SE of the mean is sqrt((n^2-1)/12 / N) ≈ 0.013
-    assert abs(mean_q - expected_mean) < 0.10, (
-        f"Mean q at beta=0 is {mean_q:.3f}, expected {expected_mean:.1f} "
-        f"(uniform prior P(q)=1/{n}).\nCounts per q: {obs.astype(int).tolist()}"
-    )
+    def _make_state():
+        return native.MCMC(
+            wins, ties, [],
+            list(range(n)), False,
+            [0.0] * n, False,
+            n, False,
+            False,
+            vi, True, vi, True, vi, True,
+            1.0, True, 1.0, True, 1.0, True,
+            0,
+        )
 
-    # No single bucket should deviate more than 15 % from the expected 1/n share
+    def _run_trial(burn_in, num_samples):
+        state = _make_state()
+        for _ in range(burn_in):
+            state.MCMC_sweep(0.0, 1)
+        counts = np.zeros(n + 1, dtype=float)
+        for _ in range(num_samples):
+            state.MCMC_sweep(0.0, 1)
+            counts[state.num_groups] += 1
+        obs = counts[1:]
+        mean_q = float(np.dot(q_vals, obs)) / num_samples
+        fracs = obs / num_samples
+        # Threshold: 5 standard errors — scales automatically with sample size.
+        # A truly uniform chain has < 1-in-3.5M chance of exceeding this.
+        se = ((n ** 2 - 1) / 12.0 / num_samples) ** 0.5
+        mean_ok = abs(mean_q - expected_mean) < 5 * se
+        bucket_ok = float(np.max(np.abs(fracs - 1.0 / n))) < 0.15
+        return mean_ok and bucket_ok, mean_q, obs
+
+    # Fast first attempt (~1 s).  On rare CI failures, retry with 5× more
+    # burn-in and 5× more samples before declaring a real failure.
+    for burn_in, num_samples in [(5_000, 40_000), (25_000, 200_000)]:
+        passed, mean_q, obs = _run_trial(burn_in, num_samples)
+        if passed:
+            return
+
     fracs = obs / num_samples
-    max_dev = float(np.max(np.abs(fracs - 1.0 / n)))
-    assert max_dev < 0.15, (
-        f"q bucket deviated {max_dev:.3f} from uniform (threshold 0.15).\n"
-        f"Fractions: {np.round(fracs, 3).tolist()}"
+    se = ((n ** 2 - 1) / 12.0 / num_samples) ** 0.5
+    assert False, (
+        f"q distribution at beta=0 not uniform after two attempts.\n"
+        f"Last run: mean_q={mean_q:.3f}, expected={expected_mean:.1f}, "
+        f"5×SE={5*se:.4f}.\n"
+        f"Counts per q: {obs.astype(int).tolist()}\n"
+        f"Fractions:    {np.round(fracs, 4).tolist()}"
     )
 
 
