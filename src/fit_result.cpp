@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <numeric>
 
 FitResult::FitResult(int num_nodes, std::vector<SampleState> samples)
     : num_nodes_(num_nodes), samples_(std::move(samples)) {}
@@ -115,6 +116,30 @@ std::vector<double> FitResult::score_stds() const {
     return stds;
 }
 
+std::vector<double> FitResult::direction_probabilities(int node_a, int node_b, bool ties_allowed) const {
+    int ns = static_cast<int>(samples_.size());
+    if (ns == 0) return ties_allowed ? std::vector<double>{0.0, 0.0, 0.0}
+                                     : std::vector<double>{0.0, 0.0};
+    double sum_a = 0.0, sum_tie = 0.0, sum_b = 0.0;
+    for (const auto& s : samples_) {
+        double sa = s.scores[node_a], sb = s.scores[node_b];
+        // Subtract max to avoid exp overflow (numerically equivalent, cancels in ratios)
+        double shift = std::max(sa, sb);
+        if (ties_allowed) shift = std::max(shift, (sa + sb) / 2.0);
+        double ea  = std::exp(sa - shift);
+        double eb  = std::exp(sb - shift);
+        double tie = ties_allowed
+            ? s.ties_parameter * std::exp((sa + sb) / 2.0 - shift)
+            : 0.0;
+        double Z = ea + eb + tie;
+        sum_a   += ea  / Z;
+        sum_tie += tie / Z;
+        sum_b   += eb  / Z;
+    }
+    if (ties_allowed) return {sum_a / ns, sum_tie / ns, sum_b / ns};
+    return {sum_a / ns, sum_b / ns};
+}
+
 // The 9 network-level scalar parameters, in display order, paired with an
 // accessor into SampleState.  num_groups (int) is accumulated as a double.
 namespace {
@@ -166,4 +191,114 @@ std::map<std::string, double> FitResult::parameter_stds() const {
         stds[name] = std::sqrt(var);
     }
     return stds;
+}
+
+// ---------------------------------------------------------------------------
+// HDI helper
+// ---------------------------------------------------------------------------
+
+// Highest Density Interval: shortest interval containing floor(prob * n) samples.
+// Matches the Python _hdi() algorithm in core.py.
+std::pair<double, double> FitResult::hdi_bounds(std::vector<double> arr, double prob) {
+    if (arr.empty()) return {0.0, 0.0};
+    std::sort(arr.begin(), arr.end());
+    int n = static_cast<int>(arr.size());
+    int interval_idx = static_cast<int>(std::floor(prob * n));
+    if (interval_idx >= n) return {arr.front(), arr.back()};
+    int n_intervals = n - interval_idx;
+    int best = 0;
+    double best_width = arr[interval_idx] - arr[0];
+    for (int i = 1; i < n_intervals; ++i) {
+        double w = arr[i + interval_idx] - arr[i];
+        if (w < best_width) { best_width = w; best = i; }
+    }
+    return {arr[best], arr[best + interval_idx]};
+}
+
+// ---------------------------------------------------------------------------
+// network_properties
+// ---------------------------------------------------------------------------
+
+NetworkPropertiesResult FitResult::network_properties(double prob) const {
+    int ns = static_cast<int>(samples_.size());
+
+    // Compute sigma_T and ICC per sample from group_depth and individual_depth.
+    std::vector<double> sigma_T_vals(ns), icc_vals(ns);
+    for (int s = 0; s < ns; ++s) {
+        double gd = samples_[s].group_depth;
+        double id = samples_[s].individual_depth;
+        double sT = std::sqrt(gd * gd + id * id);
+        sigma_T_vals[s] = sT;
+        icc_vals[s] = (sT > 0.0) ? (gd * gd) / (sT * sT) : 0.0;
+    }
+
+    NetworkPropertiesResult result;
+
+    auto add_param = [&](const std::string& name, std::vector<double> vals) {
+        if (vals.empty()) return;
+        int n = static_cast<int>(vals.size());
+        double mean = 0.0;
+        for (double v : vals) mean += v;
+        mean /= n;
+        double var = 0.0;
+        for (double v : vals) { double d = v - mean; var += d * d; }
+        double std_val = (n > 1) ? std::sqrt(var / (n - 1)) : 0.0;
+        auto [lo, hi] = hdi_bounds(std::move(vals), prob);
+        result.parameter.push_back(name);
+        result.mean.push_back(mean);
+        result.std.push_back(std_val);
+        result.hdi_lo.push_back(lo);
+        result.hdi_hi.push_back(hi);
+    };
+
+    for (const auto& [name, get] : parameter_accessors()) {
+        std::vector<double> vals(ns);
+        for (int s = 0; s < ns; ++s) vals[s] = get(samples_[s]);
+        add_param(name, std::move(vals));
+    }
+    add_param("sigma_T", sigma_T_vals);
+    add_param("ICC",     icc_vals);
+
+    return result;
+}
+
+// ---------------------------------------------------------------------------
+// node_properties
+// ---------------------------------------------------------------------------
+
+NodePropertiesResult FitResult::node_properties(const std::string& mode) const {
+    // Resolve "auto": consensus for small networks, mdl for large ones.
+    std::string resolved = mode;
+    if (mode == "auto")
+        resolved = (num_nodes_ <= 3000) ? "consensus" : "mdl";
+
+    std::vector<int> partition;
+    if (resolved == "consensus")
+        partition = consensus_partition();
+    else
+        partition = mdl_partition();
+
+    auto means = score_means();
+    auto stds  = score_stds();
+
+    // group_score_mean: for each node, mean posterior score of its group.
+    std::unordered_map<int, double> group_sum;
+    std::unordered_map<int, int>    group_cnt;
+    for (int i = 0; i < num_nodes_; ++i) {
+        group_sum[partition[i]] += means[i];
+        group_cnt[partition[i]]++;
+    }
+    std::vector<double> gsm(num_nodes_);
+    for (int i = 0; i < num_nodes_; ++i) {
+        int g = partition[i];
+        gsm[i] = group_sum[g] / group_cnt[g];
+    }
+
+    NodePropertiesResult result;
+    result.mode_used        = resolved;
+    result.score_mean       = std::move(means);
+    result.score_std        = std::move(stds);
+    result.group            = std::move(partition);
+    result.group_score_mean = std::move(gsm);
+    return result;
 }

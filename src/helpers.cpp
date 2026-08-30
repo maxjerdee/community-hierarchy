@@ -39,6 +39,10 @@ double log_neg_binom(int x, double mean, double concentration) {
   if (x < 0) {
     return -std::numeric_limits<double>::infinity();
   }
+  // P(X=0 | mean=0) = 1 for any count distribution; log = 0.
+  if (mean <= 0.0) {
+    return (x == 0) ? 0.0 : -std::numeric_limits<double>::infinity();
+  }
   double concentration_used = concentration;
   if (concentration < CONCENTRATION_EPSILON){
     concentration_used = CONCENTRATION_EPSILON; // Avoid zero concentration

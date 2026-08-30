@@ -155,7 +155,8 @@ def test_result_score_stds_shape():
 def test_result_parameter_df_params():
     G = _small_graph()
     result = fit(Config(), G, num_samples=20, timeout=10.0)
-    net_df = result.parameter_df
+    with pytest.warns(DeprecationWarning, match="network_properties_df"):
+        net_df = result.parameter_df
     expected = {
         "num_groups", "density_in", "density_out", "variation_in",
         "variation_out", "degree_correction",
@@ -169,7 +170,8 @@ def test_result_parameter_df_params():
 def test_result_scores_df_shape():
     G = _small_graph()
     result = fit(Config(), G, num_samples=20, timeout=10.0)
-    scores_df = result.scores_df
+    with pytest.warns(DeprecationWarning, match="node_properties_df"):
+        scores_df = result.scores_df
     assert list(scores_df.columns) == ["node", "mean", "std"]
     assert len(scores_df) == G.number_of_nodes()
     assert set(scores_df["node"]) == set(G.nodes())
@@ -196,12 +198,108 @@ def test_result_coincidence_matrix_shape():
 def test_result_summary_keys():
     G = _small_graph()
     result = fit(Config(), G, num_samples=20, timeout=10.0)
-    s = result.summary
+    with pytest.warns(DeprecationWarning, match="mdl_value"):
+        s = result.summary
     assert "num_samples" in s
     assert "mean_num_groups" in s
     assert "mdl_value" in s
     assert s["num_samples"] > 0
     assert s["mdl_value"] == result.mdl_value
+
+
+# ---------------------------------------------------------------------------
+# New API: network_properties_df and node_properties_df
+# ---------------------------------------------------------------------------
+
+def test_result_network_properties_df_columns():
+    G = _small_graph()
+    result = fit(Config(), G, num_samples=20, timeout=10.0)
+    npdf = result.network_properties_df()
+    assert list(npdf.columns) == ["parameter", "mean", "std", "hdi_lo", "hdi_hi"]
+    params = set(npdf["parameter"])
+    assert "ICC" in params
+    assert "sigma_T" in params
+    assert "group_depth" in params
+    assert "num_groups" in params
+    assert len(npdf) == 11  # 9 base + sigma_T + ICC
+
+
+def test_result_network_properties_df_prob():
+    G = _small_graph()
+    result = fit(Config(), G, num_samples=50, timeout=10.0)
+    npdf90 = result.network_properties_df(prob=0.90)
+    npdf50 = result.network_properties_df(prob=0.50)
+    # Narrower interval for prob=0.50
+    icc90 = npdf90[npdf90["parameter"] == "ICC"].iloc[0]
+    icc50 = npdf50[npdf50["parameter"] == "ICC"].iloc[0]
+    assert icc90["hdi_hi"] - icc90["hdi_lo"] >= icc50["hdi_hi"] - icc50["hdi_lo"]
+
+
+def test_result_network_properties_df_agrees_with_old():
+    """network_properties_df means must match those from the deprecated parameter_df."""
+    G = _small_graph()
+    result = fit(Config(), G, num_samples=20, timeout=10.0)
+    npdf = result.network_properties_df()
+    with pytest.warns(DeprecationWarning):
+        old = result.parameter_df
+    base_params = [
+        "num_groups", "density_in", "density_out", "variation_in",
+        "variation_out", "degree_correction", "individual_depth",
+        "group_depth", "ties_parameter",
+    ]
+    for p in base_params:
+        new_mean = npdf[npdf["parameter"] == p]["mean"].iloc[0]
+        old_mean = old[old["parameter"] == p]["mean"].iloc[0]
+        np.testing.assert_allclose(new_mean, old_mean, rtol=1e-9,
+                                   err_msg=f"mean mismatch for {p}")
+
+
+def test_result_node_properties_df_columns():
+    G = _small_graph()
+    result = fit(Config(), G, num_samples=20, timeout=10.0)
+    ndf = result.node_properties_df()
+    assert list(ndf.columns) == ["node", "score_mean", "score_std", "group", "group_score_mean"]
+    assert len(ndf) == G.number_of_nodes()
+    assert set(ndf["node"]) == set(G.nodes())
+    assert ndf["group"].dtype in (np.int32, np.int64, int)
+
+
+def test_result_node_properties_df_partition_modes():
+    G = _small_graph()
+    result = fit(Config(), G, num_samples=20, timeout=10.0)
+    df_auto = result.node_properties_df(partition="auto")
+    df_mdl  = result.node_properties_df(partition="mdl")
+    df_cons = result.node_properties_df(partition="consensus")
+    # score_mean must be identical across all modes (it's always the posterior mean)
+    np.testing.assert_array_equal(df_auto["score_mean"].values,
+                                  df_mdl["score_mean"].values)
+    np.testing.assert_array_equal(df_auto["score_mean"].values,
+                                  df_cons["score_mean"].values)
+    # group assignments may differ between mdl and consensus
+
+
+def test_result_node_properties_df_auto_large_warns(monkeypatch):
+    """Auto mode must warn and fall back to mdl for n > 3000."""
+    G = _small_graph()
+    result = fit(Config(), G, num_samples=20, timeout=10.0)
+    # Simulate a large network by extending _node_order to 3001 elements.
+    # The warning fires in Python before the C++ call; the subsequent
+    # DataFrame construction raises ValueError (C++ arrays are 6 elements
+    # while _node_order is 3001), which we swallow — only the warning matters.
+    big_order = tuple(f"node_{i}" for i in range(3001))
+    monkeypatch.setattr(result, "_node_order", big_order)
+    with pytest.warns(UserWarning, match="mdl_partition"):
+        try:
+            result.node_properties_df(partition="auto")
+        except (ValueError, Exception):
+            pass  # expected: column length mismatch after monkeypatching
+
+
+def test_result_node_properties_df_invalid_partition():
+    G = _small_graph()
+    result = fit(Config(), G, num_samples=20, timeout=10.0)
+    with pytest.raises(Exception):  # C++ raises for unknown mode string
+        result.node_properties_df(partition="bogus")
 
 
 # ---------------------------------------------------------------------------

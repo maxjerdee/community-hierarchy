@@ -89,24 +89,40 @@ result = ds.fit(
 print(result)
 # directedstructure.Result(n=62, samples=1000, mean_groups=3.2, mdl=412.100)
 
-# Per-node hierarchy scores: posterior mean and uncertainty
-scores = result.score_means    # np.ndarray, shape [n_nodes]
-uncertainty = result.score_stds  # np.ndarray, shape [n_nodes]
+# Network-level posterior summary: columns parameter, mean, std, hdi_lo, hdi_hi
+# Includes ICC (intraclass correlation) and sigma_T.
+# Computed in C++ without materialising the full samples DataFrame.
+npdf = result.network_properties_df()          # default 90% HDI
+npdf90 = result.network_properties_df(prob=0.90)
 
-# Same scores organized as a DataFrame: columns node, mean, std
-scores_df = result.scores_df
+icc_row = npdf[npdf["parameter"] == "ICC"].iloc[0]
+print(f"ICC = {icc_row['mean']:.3f}  90% HDI [{icc_row['hdi_lo']:.3f}, {icc_row['hdi_hi']:.3f}]")
 
-# Network-level parameter summary: columns parameter, mean, std
-param_df = result.parameter_df
+# Per-node posterior summary: columns node, score_mean, score_std, group, group_score_mean
+# For n ≤ 3000 uses the consensus partition (posterior summary);
+# for larger networks falls back to the MDL partition with a warning.
+node_df = result.node_properties_df()                    # auto
+node_df = result.node_properties_df(partition="consensus")  # always consensus
+node_df = result.node_properties_df(partition="mdl")        # always MDL (free)
 
-# Integer community labels for the consensus sample
-partition = result.consensus_partition()
+print(node_df.sort_values("score_mean", ascending=False).head())
 
-# n×n co-assignment frequency matrix
+# Minimum description length value (model comparison)
+print(result.mdl_value)
+
+# n×n co-assignment frequency matrix (posterior)
 comatrix = result.coincidence_matrix()
 
-# Full posterior samples DataFrame
+# Full posterior samples DataFrame (all parameters + per-node groups/scores)
 samples_df = result.samples_df()
+
+# Posterior-predictive probability of each directed outcome between two nodes.
+# Returns {"a_to_b": ..., "tie": ..., "b_to_a": ...}, values sum to 1.
+p = result.direction_probabilities("Spain", "Morocco")
+
+# Set ties_allowed=False for standard Bradley-Terry (no tie term).
+p = result.direction_probabilities("Spain", "Morocco", ties_allowed=False)
+# {"a_to_b": ..., "b_to_a": ...}
 ```
 
 ### Visualization
@@ -114,8 +130,23 @@ samples_df = result.samples_df()
 ```python
 import matplotlib.pyplot as plt
 
+# Node scores ranked within each inferred community (±1 std error bars,
+# group mean line, communities labeled G1/G2/…)
 fig, ax = ds.plot_node_properties(result)
 plt.savefig("node_scores.png")
+
+# Adjacency matrix of G reordered by inferred community, with colored
+# community strips on the top and left edges.
+# G can be any graph — it does not have to be the graph used in fit().
+fig, ax = ds.plot_adjacency_matrix(result, G, cmap="Greens", title="Network")
+plt.savefig("adjacency.png")
+
+# Compose both panels side by side
+fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+ds.plot_node_properties(result, ax=axes[0])
+ds.plot_adjacency_matrix(result, G, ax=axes[1])
+fig.tight_layout()
+plt.savefig("combined.png")
 
 fig, ax = ds.plot_MCMC_entropy(result)   # convergence diagnostic
 ```

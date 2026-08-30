@@ -138,8 +138,6 @@ def _check_input_validity(
     # Check that the graph is not empty
     if G.number_of_nodes() == 0:
         raise ValueError("Graph G must have at least one node.")
-    if G.number_of_edges() == 0:
-        raise ValueError("Graph G must have at least one edge.")
 
     # groups_model
     valid_models = [
@@ -336,6 +334,28 @@ def _check_input_validity(
 
     # Passes all checks
     return None
+
+
+def _check_group_graph(G: nx.Graph, group_graph: nx.Graph) -> None:
+    """Validate that group_graph is compatible with the primary graph G."""
+    if not isinstance(group_graph, nx.Graph):
+        raise TypeError("group_graph must be a NetworkX Graph instance.")
+    if group_graph.is_directed():
+        raise TypeError("group_graph must be undirected (nx.Graph), not directed.")
+    if group_graph.number_of_edges() == 0:
+        raise ValueError("group_graph has no edges.")
+    G_nodes = set(G.nodes())
+    S_nodes = set(group_graph.nodes())
+    if G_nodes != S_nodes:
+        only_G = G_nodes - S_nodes
+        only_S = S_nodes - G_nodes
+        msg = "group_graph node set does not match the primary graph."
+        if only_G:
+            msg += f" Nodes in G but not group_graph: {sorted(only_G)[:5]}{'...' if len(only_G) > 5 else ''}."
+        if only_S:
+            msg += f" Nodes in group_graph but not G: {sorted(only_S)[:5]}{'...' if len(only_S) > 5 else ''}."
+        raise ValueError(msg)
+
 
 def _get_node_data(
     G: nx.Graph,
@@ -614,20 +634,28 @@ def write_gml_with_inferences(
     
 
 
-def get_neighbors(G: nx.DiGraph | nx.Graph) -> Iterable[dict]:
+def get_neighbors(G: nx.DiGraph | nx.Graph, node_order=None) -> Iterable[dict]:
     """
     Return the out-neighbors in a directed graph or neighbors in an undirected graph in formats that can be used by the MCMC algorithm
     neighbors_list[i] is a dictionary where the keys are the indices of the neighbors of node i
     and the values are the edge weights.
-    
+
     Edge weights are stored in the 'weight' attribute; if not present, default to 1.0.
 
     Parameters
     ----------
     G : nx.DiGraph | nx.Graph
         NetworkX graph to get neighbors for.
+    node_order : list, optional
+        Explicit node ordering to use for index assignment. When provided,
+        node_order[i] maps to integer index i. Required when G is a secondary
+        graph (e.g. group_graph) that must share the same node-to-index mapping
+        as the primary directed graph.
     """
-    node_to_index_dict = {node: i for i, node in enumerate(G.nodes)}
+    if node_order is not None:
+        node_to_index_dict = {node: i for i, node in enumerate(node_order)}
+    else:
+        node_to_index_dict = {node: i for i, node in enumerate(G.nodes)}
     
     neighbors_list = []
     for i in range(len(node_to_index_dict)):
@@ -654,27 +682,47 @@ def get_neighbors(G: nx.DiGraph | nx.Graph) -> Iterable[dict]:
 def plot_node_properties(
     result: "Result",
     *,
-    partition: Optional[Any] = None,
+    partition: str = "auto",
+    ax=None,
+    palette=None,
+    xlabel: str = "Community (inferred)",
+    ylabel: str = r"$s_i$ (status score)",
+    group_labels=None,
     output_filename: Optional[str] = None,
-    show_legend: bool = False,
 ):
-    """Plot individual node scores against group mean scores.
+    """Plot posterior node scores ranked within each inferred community.
 
-    Scores on the y-axis are posterior means from :meth:`Result.score_means`.
-    The x-axis shows the mean score of the group each node belongs to.
+    Each node is plotted as a dot at its rank within its community along the
+    x-axis, with a vertical error bar of ±1 posterior standard deviation. A
+    horizontal line marks the group mean score. Communities are labelled G1,
+    G2, … in ascending order of their mean score.
 
     Parameters
     ----------
     result : Result
         Inference result from :func:`directedstructure.fit`.
-    partition : array-like, optional
-        Community partition to colour nodes by. Defaults to
-        ``result.mdl_partition``. Pass ``result.consensus_partition()``
-        to use the consensus partition instead.
+    partition : str
+        Which partition to use; passed to :meth:`Result.node_properties_df`.
+        ``"auto"`` (default) uses consensus for n ≤ 3000, MDL otherwise.
+    ax : matplotlib.axes.Axes, optional
+        Axes to draw into. If *None* a new figure is created.
+    palette : list of colors or colormap, optional
+        Colors for each community in ascending mean-score order.
+        Defaults to the ``tab10`` colormap.
+    xlabel : str
+        X-axis label.
+    ylabel : str
+        Y-axis label.
+    group_labels : list or dict, optional
+        Override the automatic "G1", "G2", … tick labels.
+        Pass a list (one entry per community, in ascending mean-score order)
+        or a dict mapping community integer ids to label strings.
     output_filename : str, optional
         If given, save the figure to this path.
-    show_legend : bool
-        Whether to show a group legend. Default False.
+
+    Returns
+    -------
+    fig, ax : tuple
     """
     import numpy as np
     from .core import Result  # local import to avoid circular
@@ -682,38 +730,248 @@ def plot_node_properties(
     if not isinstance(result, Result):
         raise TypeError("result must be a directedstructure.Result instance.")
 
-    if partition is None:
-        partition = result.mdl_partition
-    partition = np.asarray(partition)
-    scores = result.score_means
-    groups = np.unique(partition)
+    node_df = result.node_properties_df(partition=partition)
 
-    # Mean score of each group
-    group_mean_score = {g: float(scores[partition == g].mean()) for g in groups}
-    sorted_groups = sorted(groups, key=lambda g: group_mean_score[g], reverse=True)
+    # Sort communities by ascending group mean score
+    grp_mean = node_df.groupby("group")["group_score_mean"].first().sort_values()
+    grp_order = grp_mean.index.tolist()
+    K = len(grp_order)
 
-    fig, ax = plt.subplots(figsize=(10, 6))
-    cmap = plt.get_cmap("tab10")
-    for color_idx, group in enumerate(sorted_groups):
-        mask = partition == group
-        ax.scatter(
-            [group_mean_score[group]] * int(mask.sum()),
-            scores[mask],
-            color=cmap(color_idx % 10),
-            label=str(group),
+    # Build palette
+    if palette is None:
+        cmap_tab = plt.get_cmap("tab10")
+        colors = [cmap_tab(i % 10) for i in range(K)]
+    elif hasattr(palette, "__call__"):
+        colors = [palette(i / max(K - 1, 1)) for i in range(K)]
+    else:
+        colors = list(palette)
+
+    color_of = {g: colors[i] for i, g in enumerate(grp_order)}
+
+    # Auto group label mapping
+    if group_labels is None:
+        label_of = {g: f"G{i + 1}" for i, g in enumerate(grp_order)}
+    elif isinstance(group_labels, dict):
+        label_of = group_labels
+    else:
+        label_of = {g: str(group_labels[i]) for i, g in enumerate(grp_order)}
+
+    SCALE = 8.0
+    GAP = SCALE * 5.0
+
+    # Assign x-positions: nodes spread within group, gap between groups
+    starts = {}
+    pos = 0.0
+    for g in grp_order:
+        starts[g] = pos
+        n_g = int((node_df["group"] == g).sum())
+        pos += (n_g - 1) * SCALE + GAP
+
+    if ax is None:
+        n_nodes = len(node_df)
+        w = min(14.0, max(8.0, n_nodes * 0.12))
+        fig, ax = plt.subplots(figsize=(w, w / 2))
+    else:
+        fig = ax.get_figure()
+
+    xtick_pos, xtick_labels = [], []
+    for g in grp_order:
+        grp = (
+            node_df[node_df["group"] == g]
+            .sort_values("score_mean")
+            .reset_index(drop=True)
         )
+        n_g = len(grp)
+        xs = starts[g] + np.arange(n_g) * SCALE
+        c = color_of[g]
+        for k, row in grp.iterrows():
+            x = xs[k]
+            ax.plot(
+                [x, x],
+                [row["score_mean"] - row["score_std"],
+                 row["score_mean"] + row["score_std"]],
+                color=c, lw=0.5, alpha=0.55, zorder=2,
+            )
+            ax.plot(
+                x, row["score_mean"], "o",
+                color=c, ms=3.0, alpha=0.85, zorder=3, markeredgewidth=0,
+            )
+        ax.hlines(
+            grp["score_mean"].mean(),
+            xs[0] - 0.4 * SCALE, xs[-1] + 0.4 * SCALE,
+            colors=c, linewidth=1.2, alpha=0.6, zorder=4,
+        )
+        xtick_pos.append(float(xs.mean()))
+        xtick_labels.append(label_of[g])
 
-    ax.set_xlabel("Group Mean Score")
-    ax.set_ylabel("Node Score")
-    ax.set_title("Node Scores vs Group Mean Scores")
-
-    if show_legend:
-        handles, _ = ax.get_legend_handles_labels()
-        if handles:
-            ax.legend(loc="lower right")
+    ax.axhline(0, color="#aaaaaa", lw=0.7, ls="-", alpha=0.6, zorder=1)
+    ax.set_xticks(xtick_pos)
+    ax.set_xticklabels(xtick_labels)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_xlim(-GAP / 2, pos - GAP * 1.5)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
 
     if output_filename is not None:
         fig.savefig(output_filename)
+
+    return fig, ax
+
+
+def plot_adjacency_matrix(
+    result: "Result",
+    G: nx.Graph,
+    *,
+    partition: str = "auto",
+    cmap=None,
+    ax=None,
+    title: str = "",
+    strip_width: float = 0.06,
+    palette=None,
+    vmax_percentile: float = 98.0,
+    output_filename: Optional[str] = None,
+):
+    """Plot the adjacency matrix of *G* reordered by inferred community.
+
+    Nodes are sorted first by ascending community mean score, then by
+    ascending individual score within each community. Colored strips on
+    the top and left edges of the matrix indicate community membership.
+    Vertical and horizontal lines mark community boundaries.
+
+    Parameters
+    ----------
+    result : Result
+        Inference result from :func:`directedstructure.fit`. Provides the
+        node ordering and community labels; does not need to be the result
+        of fitting *G* specifically (e.g. you can pass a grooming graph
+        while ``result`` was fitted on an aggression graph).
+    G : nx.Graph
+        Graph whose adjacency to display. Edge weights are taken from the
+        ``weight`` attribute; missing weights default to 1.0.
+    partition : str
+        Which partition to use; passed to :meth:`Result.node_properties_df`.
+    cmap : str or colormap, optional
+        Colormap for the matrix cells. Defaults to ``"Greens"``.
+    ax : matplotlib.axes.Axes, optional
+        Axes to draw into. If *None* a new figure is created.
+    title : str
+        Title text shown above the matrix (on the top color strip).
+    strip_width : float
+        Width of the community color strip as a fraction of the matrix
+        axis size. Default 0.06.
+    palette : list of colors or colormap, optional
+        Colors for each community in ascending mean-score order.
+        Defaults to ``tab10``.
+    vmax_percentile : float
+        Percentile of positive edge weights used as the color scale maximum.
+        Default 98.
+    output_filename : str, optional
+        If given, save the figure to this path.
+
+    Returns
+    -------
+    fig, ax : tuple
+    """
+    import numpy as np
+    import matplotlib.patches as mpatches
+    from .core import Result  # local import to avoid circular
+
+    if not isinstance(result, Result):
+        raise TypeError("result must be a directedstructure.Result instance.")
+    if not isinstance(G, nx.Graph):
+        raise TypeError("G must be a NetworkX graph.")
+
+    node_df = result.node_properties_df(partition=partition)
+
+    # Sort communities by ascending group mean score, nodes within by score
+    grp_mean = node_df.groupby("group")["group_score_mean"].first().sort_values()
+    grp_order = grp_mean.index.tolist()
+    K = len(grp_order)
+
+    sorted_df = (
+        node_df.assign(_grp_rank=node_df["group"].map(
+            {g: i for i, g in enumerate(grp_order)}
+        ))
+        .sort_values(["_grp_rank", "score_mean"])
+        .reset_index(drop=True)
+    )
+    node_order = sorted_df["node"].tolist()
+    grp_sizes = sorted_df.groupby("_grp_rank", sort=True).size().values
+    boundaries = list(np.concatenate([[0], np.cumsum(grp_sizes)]))
+
+    # Build palette
+    if palette is None:
+        cmap_tab = plt.get_cmap("tab10")
+        colors = [cmap_tab(i % 10) for i in range(K)]
+    elif hasattr(palette, "__call__"):
+        colors = [palette(i / max(K - 1, 1)) for i in range(K)]
+    else:
+        colors = list(palette)
+
+    # Build adjacency matrix
+    n = len(node_order)
+    idx = {nd: i for i, nd in enumerate(node_order)}
+    A = np.zeros((n, n))
+    for u, v, d in G.edges(data=True):
+        if u in idx and v in idx:
+            w = d.get("weight", 1.0)
+            A[idx[u], idx[v]] += w
+            if not G.is_directed():
+                A[idx[v], idx[u]] += w
+
+    # Colormap
+    if cmap is None:
+        cmap = "Greens"
+
+    # Axes
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(5, 5))
+    else:
+        fig = ax.get_figure()
+
+    vmax = float(np.percentile(A[A > 0], vmax_percentile)) if (A > 0).any() else 1.0
+    ax.imshow(A, aspect="equal", cmap=cmap, vmin=0, vmax=vmax,
+              interpolation="nearest", origin="upper")
+
+    # Community grid lines
+    for b in boundaries[1:-1]:
+        ax.axvline(b - 0.5, color="black", lw=0.5, zorder=3)
+        ax.axhline(b - 0.5, color="black", lw=0.5, zorder=3)
+
+    # Diagonal
+    ax.plot([-0.5, n - 0.5], [-0.5, n - 0.5], color="black", lw=0.4, zorder=4)
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+    # Color strips — finalize layout first so get_position() is accurate
+    fig.canvas.draw()
+    pos = ax.get_position()
+    sh = strip_width * pos.height
+    sw = strip_width * pos.width
+
+    ax_top = fig.add_axes([pos.x0, pos.y1, pos.width, sh])
+    ax_left = fig.add_axes([pos.x0 - sw, pos.y0, sw, pos.height])
+
+    for k, (s, e) in enumerate(zip(boundaries[:-1], boundaries[1:])):
+        c = colors[k]
+        ax_top.add_patch(mpatches.Rectangle((s, 0), e - s, 1, color=c, ec="none"))
+        ax_left.add_patch(mpatches.Rectangle((0, s), 1, e - s, color=c, ec="none"))
+
+    ax_top.set_xlim(0, n)
+    ax_top.set_ylim(0, 1)
+    ax_top.axis("off")
+    ax_left.set_xlim(0, 1)
+    ax_left.set_ylim(n, 0)
+    ax_left.axis("off")
+
+    if title:
+        ax_top.text(0.5, 1.1, title, transform=ax_top.transAxes,
+                    fontsize=plt.rcParams.get("font.size", 9) - 1,
+                    va="bottom", ha="center")
+
+    if output_filename is not None:
+        fig.savefig(output_filename, bbox_inches="tight")
 
     return fig, ax
 

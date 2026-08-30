@@ -103,6 +103,28 @@ public:
         return d;
     }
 
+    py::dict network_properties_dict(double prob = 0.90) const {
+        auto r = FitResult::network_properties(prob);
+        py::dict d;
+        d["parameter"] = py::cast(r.parameter);
+        d["mean"]      = py::cast(r.mean);
+        d["std"]       = py::cast(r.std);
+        d["hdi_lo"]    = py::cast(r.hdi_lo);
+        d["hdi_hi"]    = py::cast(r.hdi_hi);
+        return d;
+    }
+
+    py::dict node_properties_dict(const std::string& mode = "auto") const {
+        auto r = FitResult::node_properties(mode);
+        py::dict d;
+        d["mode_used"]        = py::cast(r.mode_used);
+        d["score_mean"]       = py::cast(r.score_mean);
+        d["score_std"]        = py::cast(r.score_std);
+        d["group"]            = py::cast(r.group);
+        d["group_score_mean"] = py::cast(r.group_score_mean);
+        return d;
+    }
+
     py::object coincidence_matrix_numpy() const {
         auto flat = coincidence_matrix();
         int n = num_nodes_;
@@ -288,6 +310,10 @@ PYBIND11_MODULE(MCMC_core, m) {
         .def("parameter_stds",      &FitResultNative::parameter_stds)
         .def("direction_probabilities", &FitResultNative::direction_probabilities,
              py::arg("node_a"), py::arg("node_b"), py::arg("ties_allowed") = true)
+        .def("network_properties",   &FitResultNative::network_properties_dict,
+             py::arg("prob") = 0.90)
+        .def("node_properties",     &FitResultNative::node_properties_dict,
+             py::arg("mode") = "auto")
         .def("samples_df",          &FitResultNative::samples_df)
         .def("summary",             &FitResultNative::summary)
         .def("__getstate__",        &FitResultNative::getstate)

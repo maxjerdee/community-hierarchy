@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 import logging
+import warnings
 
 import numpy as np
 import networkx as nx
@@ -19,6 +20,17 @@ from .input_output import (
 from .MCMC_core import fit_backend as _fit_backend
 
 logger = logging.getLogger(__name__)
+
+
+def _hdi(arr: np.ndarray, prob: float = 0.90) -> tuple[float, float]:
+    """Highest Density Interval for a 1-D array of posterior samples."""
+    sorted_arr = np.sort(arr)
+    n = len(sorted_arr)
+    interval_idx = int(np.floor(prob * n))
+    n_intervals = n - interval_idx
+    widths = sorted_arr[interval_idx:] - sorted_arr[:n_intervals]
+    min_idx = int(np.argmin(widths))
+    return float(sorted_arr[min_idx]), float(sorted_arr[min_idx + interval_idx])
 
 _VALID_GROUPS_MODELS = frozenset({
     "general_canonical",
@@ -148,7 +160,18 @@ class Result:
 
     @property
     def scores_df(self) -> pd.DataFrame:
-        """Posterior hierarchy scores per node: columns ``node``, ``mean``, ``std``."""
+        """Posterior hierarchy scores per node: columns ``node``, ``mean``, ``std``.
+
+        .. deprecated::
+            Use :meth:`node_properties_df` instead, which also includes the
+            community partition and group mean score.
+        """
+        warnings.warn(
+            "scores_df is deprecated. Use node_properties_df() instead, "
+            "which includes the partition and group_score_mean.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return pd.DataFrame({
             "node": list(self._node_order),
             "mean": np.asarray(self._native.score_means(), dtype=float),
@@ -157,11 +180,18 @@ class Result:
 
     @property
     def parameter_df(self) -> pd.DataFrame:
-        """Posterior summary of network-level parameters.
+        """Posterior summary of network-level parameters (mean + std only).
 
-        Returns a DataFrame with columns ``parameter``, ``mean``, ``std``.
-        Computed directly from the in-C++ samples; does not build ``samples_df``.
+        .. deprecated::
+            Use :meth:`network_properties_df` instead, which also includes
+            HDI credible intervals and ICC / sigma_T.
         """
+        warnings.warn(
+            "parameter_df is deprecated. Use network_properties_df() instead, "
+            "which adds hdi_lo/hdi_hi and includes ICC and sigma_T.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         means = self._native.parameter_means()
         stds = self._native.parameter_stds()
         parameters = [
@@ -182,6 +212,102 @@ class Result:
         })
 
     # ------------------------------------------------------------------
+    # New posterior-summary methods
+    # ------------------------------------------------------------------
+
+    def network_properties_df(self, prob: float = 0.90) -> pd.DataFrame:
+        """Posterior summary of network-level parameters with HDI credible intervals.
+
+        Parameters
+        ----------
+        prob : float
+            HDI probability mass (default 0.90).
+
+        Returns
+        -------
+        DataFrame with columns ``parameter``, ``mean``, ``std``,
+        ``hdi_lo``, ``hdi_hi``. One row per parameter. Includes ICC
+        and sigma_T in addition to the 9 base C++ parameters.
+
+        Notes
+        -----
+        Computed entirely in C++ without materialising the full
+        ``samples_df()``; efficient even for large networks.
+
+        Examples
+        --------
+        >>> npdf = result.network_properties_df()
+        >>> icc_row = npdf[npdf["parameter"] == "ICC"].iloc[0]
+        >>> print(f"ICC = {icc_row['mean']:.3f}  [{icc_row['hdi_lo']:.3f}, {icc_row['hdi_hi']:.3f}]")
+        """
+        d = dict(self._native.network_properties(prob))
+        return pd.DataFrame(d, columns=["parameter", "mean", "std", "hdi_lo", "hdi_hi"])
+
+    def node_properties_df(self, partition: str = "auto") -> pd.DataFrame:
+        """Posterior summary of node-level properties with community labels.
+
+        Parameters
+        ----------
+        partition : str
+            Which partition to use for community labels:
+
+            ``"auto"`` (default)
+                Consensus partition for n ≤ 3000 (the recommended posterior
+                summary); MDL partition for larger networks, with a
+                ``UserWarning``.
+            ``"consensus"``
+                Always compute the consensus partition — O(n² × samples)
+                time and O(n²) memory; may be slow for n > ~3000.
+            ``"mdl"``
+                MDL-optimal single sample; free but not a posterior summary.
+
+        Returns
+        -------
+        DataFrame with columns ``node``, ``score_mean``, ``score_std``,
+        ``group``, ``group_score_mean``. One row per node.
+
+        Notes
+        -----
+        The ``"consensus"`` partition is the natural posterior summary for a
+        Bayesian method — it is the sample whose coincidence matrix is closest
+        to the aggregate. ``"mdl"`` is a free byproduct of sampling (not an
+        optimisation result) and is provided as a fast fallback for large n.
+
+        Examples
+        --------
+        >>> npdf = result.node_properties_df()
+        >>> print(npdf.sort_values("score_mean", ascending=False).head())
+        """
+        # Resolve "auto" in Python so the threshold check is testable and the
+        # warning fires before calling C++ (language-specific concern).
+        n = len(self._node_order)
+        if partition == "auto":
+            mode = "consensus" if n <= 3000 else "mdl"
+            if mode == "mdl":
+                warnings.warn(
+                    f"Network is large (n={n} > 3000); using mdl_partition "
+                    "instead of consensus_partition. consensus_partition is "
+                    "O(n² × samples) and may be slow for networks this size. "
+                    "Pass partition='consensus' to force it, or "
+                    "partition='mdl' to suppress this warning.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+        else:
+            _valid = {"consensus", "mdl"}
+            if partition not in _valid:
+                raise ValueError(
+                    f"partition must be one of {sorted(_valid)!r} or 'auto', "
+                    f"got {partition!r}"
+                )
+            mode = partition
+        d = dict(self._native.node_properties(mode))
+        d.pop("mode_used", None)
+        d["node"] = list(self._node_order)
+        # Reorder columns: node first, then the rest
+        return pd.DataFrame(d, columns=["node", "score_mean", "score_std", "group", "group_score_mean"])
+
+    # ------------------------------------------------------------------
     # Distribution summaries
     # ------------------------------------------------------------------
 
@@ -198,17 +324,40 @@ class Result:
 
         Columns: ``{node}_group``, ``{node}_score`` for each node;
         global parameters (``num_groups``, ``density_in``, etc.);
+        derived parameters (``sigma_T``, ``ICC``);
         entropy decomposition (``H_A_b``, ``H_Adir_G_A_s_nu``,
         ``H_s_G_b_depths``, etc.).
         """
         df = self._native.samples_df()
         nodes = list(self._node_order)
-        n = len(nodes)
         rename = {}
         for i, node in enumerate(nodes):
             rename[f"{i}_group"] = f"{node}_group"
             rename[f"{i}_score"] = f"{node}_score"
-        return df.rename(columns=rename)
+        df = df.rename(columns=rename)
+        sigma_C = df["group_depth"]
+        sigma_I = df["individual_depth"]
+        sigma_T = np.sqrt(sigma_C ** 2 + sigma_I ** 2)
+        df["sigma_T"] = sigma_T
+        df["ICC"] = np.where(sigma_T > 0, sigma_C ** 2 / sigma_T ** 2, 0.0)
+        return df
+
+    def summary_df(self, prob: float = 0.90) -> pd.DataFrame:
+        """Posterior summary of network-level parameters with HDI credible intervals.
+
+        .. deprecated::
+            Use :meth:`network_properties_df` instead. It returns the same
+            information computed in C++ (faster), adds ``std``, and drops
+            the ``median`` column.
+        """
+        warnings.warn(
+            "summary_df() is deprecated. Use network_properties_df() instead — "
+            "same content, computed in C++ without materialising samples_df(), "
+            "with std added and median dropped.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.network_properties_df(prob=prob)
 
 
     def direction_probabilities(self, node_a, node_b, ties_allowed: bool = True) -> dict[str, float]:
@@ -243,7 +392,18 @@ class Result:
 
     @property
     def summary(self) -> dict:
-        """High-level summary: ``num_samples``, ``mean_num_groups``, ``mdl_value``."""
+        """High-level summary dict.
+
+        .. deprecated::
+            Use ``result.mdl_value``, ``result.network_properties_df()``, or
+            ``result._native.num_samples`` directly.
+        """
+        warnings.warn(
+            "summary is deprecated. Use result.mdl_value and "
+            "network_properties_df() to access this information.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return dict(self._native.summary())
 
     def __getstate__(self) -> dict:
@@ -255,7 +415,7 @@ class Result:
         self._config = state["config"]
 
     def __repr__(self) -> str:
-        s = self.summary
+        s = dict(self._native.summary())  # bypass DeprecationWarning
         n = len(self._node_order)
         return (
             f"directedstructure.Result("

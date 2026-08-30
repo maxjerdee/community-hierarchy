@@ -5,6 +5,7 @@
 #include <limits>
 #include <map>
 #include <string>
+#include <utility>
 
 struct SampleState {
     int chain_id;
@@ -26,6 +27,24 @@ struct SampleState {
     double H_W = 0.0;
 };
 
+// Return type for network_properties(): one row per parameter.
+struct NetworkPropertiesResult {
+    std::vector<std::string> parameter;
+    std::vector<double> mean;
+    std::vector<double> std;
+    std::vector<double> hdi_lo;
+    std::vector<double> hdi_hi;
+};
+
+// Return type for node_properties(): one row per node (integer-indexed).
+struct NodePropertiesResult {
+    std::string mode_used;          // "consensus" or "mdl"
+    std::vector<double> score_mean;
+    std::vector<double> score_std;
+    std::vector<int>    group;
+    std::vector<double> group_score_mean;
+};
+
 class FitResult {
 public:
     FitResult() = default;
@@ -41,6 +60,10 @@ public:
     std::map<std::string, double> parameter_means() const;
     std::map<std::string, double> parameter_stds() const;
 
+    // New posterior-summary methods (C++ core; language wrappers convert to DataFrames).
+    NetworkPropertiesResult network_properties(double prob = 0.90) const;
+    NodePropertiesResult    node_properties(const std::string& mode = "auto") const;
+
     int num_nodes() const { return num_nodes_; }
     int num_samples() const { return static_cast<int>(samples_.size()); }
     const std::vector<SampleState>& samples() const { return samples_; }
@@ -51,6 +74,7 @@ protected:
 
 private:
     int best_index() const;
+    static std::pair<double, double> hdi_bounds(std::vector<double> arr, double prob);
 };
 
 #endif // FIT_RESULT_H
