@@ -5,6 +5,7 @@
 #include <cmath>
 #include <iostream>
 #include <numeric>
+#include <stdexcept>
 #include <vector>
 
 #include "globals.h"
@@ -26,8 +27,7 @@ double log_factorial(int n) { return std::lgamma(n + 1); }
 double log_factorial2(int n) {
   // Check that n is an even integer
   if (n % 2 != 0) {
-    std::cout << "Error: log_factorial2 called with odd integer.\n";
-    exit(0);
+    throw std::invalid_argument("log_factorial2: argument must be even, got " + std::to_string(n));
   }
   return n / 2 * std::log(2) + std::lgamma(n / 2 + 1);
 }
@@ -76,8 +76,7 @@ double log_sum_exp(std::vector<double> xs) {
 
 double inverse_erf(double x) {
     if (x < -1 || x > 1) {
-        std::cerr << "Error: inverse_erf called with argument outside [-1, 1].\n";
-        exit(1);
+        throw std::runtime_error("inverse_erf: argument must be in [-1, 1], got " + std::to_string(x));
     }
   // Reference: https://stackoverflow.com/questions/27229371/inverse-error-function-in-c
 
@@ -127,8 +126,7 @@ double inverse_erf(double x) {
 
 double concentration_to_variation(double concentration) {
   if (concentration < 0.0) {
-    std::cerr << "Error: Concentration parameter cannot be negative.\n";
-    exit(1);
+    throw std::runtime_error("concentration_to_variation: concentration cannot be negative, got " + std::to_string(concentration));
   }
   
   // Hardcoded cases
@@ -151,8 +149,7 @@ double variation_to_concentration(double variation, double tol, int max_iter) {
     return 0.0;
   }
   if (variation < 0.0 || variation > 1.0) {
-    std::cerr << "Error: Variation parameter must be in [0, 1].\n";
-    exit(1);
+    throw std::runtime_error("variation_to_concentration: variation must be in [0, 1], got " + std::to_string(variation));
   }
 
   // f(c) = concentration_to_variation(c) - variation (find root)
@@ -383,9 +380,9 @@ std::pair<double, double> log_mean_and_se(std::vector<double> log_vals){
 // Value consistency check: compare actual vs bookkeeping value, optionally throw error
 double value_check(double actual, double bookkeeping, double tolerance, bool throw_error, const std::string& name) {
   if (throw_error && ((std::abs(actual - bookkeeping) > tolerance && std::abs(actual - bookkeeping) > tolerance*actual)|| std::isnan(actual) || std::isnan(bookkeeping))) {
-    std::cerr << "Error: " << name << " does not match the actual value.\n";
-    std::cerr << name << ": " << bookkeeping << ", " << name << "_actual: " << actual << "\n";
-    exit(1);
+    throw std::runtime_error("Bookkeeping mismatch for " + name +
+        ": cached=" + std::to_string(bookkeeping) +
+        ", actual=" + std::to_string(actual));
   }
   return actual;
 }

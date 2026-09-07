@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <stdexcept>
 #include <unordered_map>
 #include <vector>
 
@@ -69,15 +70,12 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     for (std::size_t r = 0; r < static_cast<std::size_t>(num_groups); r++) {
         if (r < node_counts.size()) {
             if (node_counts_actual[r] != node_counts[r] && throw_error) {
-                std::cerr << "Error: node_counts does not match the actual value.\n";
-                std::cerr << "node_counts[" << r << "]: " << node_counts[r] << ", node_counts_actual[" << r << "]: " << node_counts_actual[r] << "\n";
-                exit(1);
+                throw std::runtime_error("node_counts[" + std::to_string(r) + "] mismatch: cached=" + std::to_string(node_counts[r]) + ", actual=" + std::to_string(node_counts_actual[r]));
             }
             node_counts[r] = node_counts_actual[r];
         } else {
             if (throw_error) {
-                std::cerr << "Error: node_counts is not of correct length.\n";
-                exit(1);
+                throw std::runtime_error("node_counts is too short: size=" + std::to_string(node_counts.size()) + ", needed index " + std::to_string(r));
             }
             node_counts.push_back(node_counts_actual[r]);
         }
@@ -86,14 +84,12 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
         if (r < group_members_actual.size()) {
             for (int i_actual : group_members_actual[r]) {
                 if (throw_error && std::find(group_members[r].begin(), group_members[r].end(), i_actual) == group_members[r].end()) {
-                    std::cout << "Error: student " << i_actual << " from actual group " << r << " not found in bookkeeping group_members[" << r << "]\n";
-                    exit(1);
+                    throw std::runtime_error("node " + std::to_string(i_actual) + " from actual group " + std::to_string(r) + " not found in cached group_members[" + std::to_string(r) + "]");
                 }
             }
             for (int i : group_members[r]) {
                 if (throw_error && std::find(group_members_actual[r].begin(), group_members_actual[r].end(), i) == group_members_actual[r].end()) {
-                    std::cout << "Error: student " << i << " from bookkeeping group " << r << " not found in the actual group_members[" << r << "]\n";
-                    exit(1);
+                    throw std::runtime_error("node " + std::to_string(i) + " from cached group " + std::to_string(r) + " not found in actual group_members[" + std::to_string(r) + "]");
                 }
             }
             // Update cached bookkeeping with actual values
@@ -101,8 +97,7 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
             node_indices_in_groups[r] = node_indices_in_groups_actual[r];
         } else {
             if (throw_error) {
-                std::cerr << "Error: group_members is not of correct length.\n";
-                exit(1);
+                throw std::runtime_error("group_members is too short: size=" + std::to_string(group_members.size()) + ", needed index " + std::to_string(r));
             }
             group_members.push_back(group_members_actual[r]);
             node_indices_in_groups.push_back(node_indices_in_groups_actual[r]);
@@ -151,8 +146,7 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
                 edge_counts[r][s] = value_check(edge_counts_actual[r][s], edge_counts[r][s], NUMERICAL_CHECK_EPSILON, throw_error, "edge_counts[" + std::to_string(r) + "][" + std::to_string(s) + "]");
             } else {
                 if (throw_error) {
-                    std::cerr << "Error: edge_counts is not of correct length.\n";
-                    exit(1);
+                    throw std::runtime_error("edge_counts[" + std::to_string(r) + "] too short for column " + std::to_string(s));
                 }
                 edge_counts[r].push_back(edge_counts_actual[r][s]);
             }
@@ -161,8 +155,7 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
             edge_counts_sum[r] = value_check(edge_counts_sum_actual[r], edge_counts_sum[r], NUMERICAL_CHECK_EPSILON, throw_error, "edge_counts_sum[" + std::to_string(r) + "]");
         } else {
             if (throw_error) {
-                std::cerr << "Error: edge_counts_sum is not of correct length.\n";
-                exit(1);
+                throw std::runtime_error("edge_counts_sum is too short: size=" + std::to_string(edge_counts_sum.size()) + ", needed index " + std::to_string(r));
             }
             edge_counts_sum.push_back(edge_counts_sum_actual[r]);
         }
@@ -170,8 +163,7 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     // === Validate edge_counts dimensions ===
     if (edge_counts.size() != static_cast<std::size_t>(num_groups) || edge_counts[0].size() != static_cast<std::size_t>(num_groups)) {
         if (throw_error) {
-            std::cerr << "Error: edge_counts dimensions do not match num_groups.\n";
-            exit(1);
+            throw std::runtime_error("edge_counts dimensions " + std::to_string(edge_counts.size()) + "x" + std::to_string(edge_counts.empty() ? 0 : edge_counts[0].size()) + " do not match num_groups=" + std::to_string(num_groups));
         } else {
             // Repair: resize to match num_groups
             edge_counts.resize(num_groups);
@@ -239,29 +231,12 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     for (std::size_t r = 0; r < static_cast<std::size_t>(num_groups); r++) {
         if (r < group_scaled_score_sums.size()) {
             if(throw_error && (std::isnan(group_scaled_score_sums_actual[r]) ||  std::isnan(group_scaled_score_sums[r]) || std::abs(group_scaled_score_sums_actual[r] - group_scaled_score_sums[r]) > NUMERICAL_CHECK_EPSILON)){
-                std::cerr << "Error: group_scaled_score_sums does not match the actual value for group " << r << ".\n";
-                std::cerr << "group_scaled_score_sums[" << r << "]: " << group_scaled_score_sums[r] << ", group_scaled_score_sums_actual[" << r << "]: " << group_scaled_score_sums_actual[r] << "\n";
-                // Print out the node_counts and group members for debugging
-                std::cerr << "node_counts[" << r << "]: " << node_counts[r] << "\n";
-                std::cerr << "group_members[" << r << "]: "; 
-                for (int node : group_members[r]) {
-                    std::cerr << node << " ";
-                }                
-                std::cerr << "\n";
-                // Print the scores of the nodes in the group for further debugging
-                std::cerr << "scores of nodes in group " << r << ": ";
-                for (int node : group_members[r]) {
-                    std::cerr << "node " << node << ": score " << scores[node] << ", scaled_score " << scaled_scores[node] << "\n";
-                }
-                // Print the individual_depth
-                std::cerr << "individual_depth: " << individual_depth << "\n";
-                exit(1);
+                throw std::runtime_error("group_scaled_score_sums[" + std::to_string(r) + "] mismatch: cached=" + std::to_string(group_scaled_score_sums[r]) + ", actual=" + std::to_string(group_scaled_score_sums_actual[r]) + " (individual_depth=" + std::to_string(individual_depth) + ")");
             }
             group_scaled_score_sums[r] = value_check(group_scaled_score_sums_actual[r], group_scaled_score_sums[r], NUMERICAL_CHECK_EPSILON, throw_error, "group_scaled_score_sums[" + std::to_string(r) + "]");
         } else {
             if (throw_error) {
-                std::cerr << "Error: group_scaled_score_sums is not of correct length.\n";
-                exit(1);
+                throw std::runtime_error("group_scaled_score_sums is too short: size=" + std::to_string(group_scaled_score_sums.size()) + ", needed index " + std::to_string(r));
             }
             group_scaled_score_sums.push_back(group_scaled_score_sums_actual[r]);
         }
