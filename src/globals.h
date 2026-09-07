@@ -74,4 +74,30 @@ extern int MERGE_SPLIT_PRESTAGE_MODE;
 // (joint alone, which preserves q) and 7 are valid samplers.
 extern int MERGE_SPLIT_MOVES;
 
+// Relative weight of EACH collective move (merge, split, joint merge-split).
+// Negative (the default) means "compute the linear-time value", see below.
+//
+// Peixoto gives two choices for the move propensities (Eq. 37 and the
+// discussion after it):
+//   * omega_single = N, omega_collective = 1  -- what he used experimentally
+//   * omega_single = O[M(N+E) * omega_collective] -- the condition for an
+//     entire sweep of N proposals to cost O(N+E), i.e. to stay LINEAR
+// With the first choice the expected number of collective attempts per sweep is
+// N * 3/N = 3, INDEPENDENT of network size, while the cost of each is O(M*k) in
+// the group size k.  Measured on an N=1000 synthetic network that puts 0.29% of
+// the moves (2.9 per sweep) in charge of ~99% of the runtime -- a 112x slowdown
+// against single-site alone.
+//
+// We therefore default to the linear-time condition, but implement it by
+// LOWERING the collective weight rather than raising omega_single:
+//     omega_collective = n / (M * (n + m))
+// Raising omega_single would also make parameter moves ~M(n+m)/n times rarer
+// relative to node moves, which would disturb parameter equilibration; scaling
+// the collective weight leaves the single-site : parameter ratio untouched.
+//
+// The value is STATE-INDEPENDENT (n, m and M are fixed for a given run), which
+// matters: a weight that depended on num_groups would make the partition-move
+// fraction depend on q and bias the q-marginal.
+extern double MERGE_SPLIT_WEIGHT;
+
 #endif // GLOBALS_H

@@ -18,3 +18,4 @@ std::uniform_real_distribution<double> uniform_random(0.0, 1.0);
 int MERGE_SPLIT_GIBBS_SWEEPS = 10;
 int MERGE_SPLIT_PRESTAGE_MODE = 0;
 int MERGE_SPLIT_MOVES = 7;  // merge | split | joint
+double MERGE_SPLIT_WEIGHT = -1.0;  // <0 = linear-time default, see globals.h

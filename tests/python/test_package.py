@@ -870,15 +870,32 @@ def test_weighted_SBM_point_eval():
       W[1,2] = 2.77927  (between groups)
     group_adj encodes W as the SBM graph; A is binary (one edge per pair).
 
-    Expected from Peixoto 2018 Eq. 33 (no outer simplex):
+    H_W = H(W|A,μ,b) + H(μ)  (full description length, Peixoto 2018 Eq. 33+34)
+
+    H(W|A,μ,b) — per-block uniform-simplex cost:
       block (0,0): M_rr/2=1, mu_rr/2=W01  → (1-1)*log(W01) - lgamma(1) = 0
       block (0,1): M_rs=2,   mu_rs=W02+W12 → (2-1)*log(mu_01) - lgamma(2) = log(mu_01)
-      H_W = log(W02+W12)
+      → log(W02+W12)
+
+    H(μ) — cost to encode block-pair weight totals on a simplex (Eq. 34):
+      q=2, npairs=q*(q+1)/2=3, w_total=W01+W02+W12
+      → (npairs-1)*log(w_total) - log((npairs-1)!)
+      → 2*log(w_total) - log(2)
     """
     import directedstructure.MCMC_core as native
 
     w01, w02, w12 = 1.97558, 1.13873, 2.77927
-    expected = math.log(w02 + w12)  # only active off-diagonal block (M=2)
+
+    # H(W|A,μ,b): only the active off-diagonal block (M=2)
+    h_w_given = math.log(w02 + w12)
+
+    # H(μ): cost of encoding block-pair weight totals (Peixoto 2018 Eq. 34)
+    num_groups_test = 2
+    npairs = num_groups_test * (num_groups_test + 1) // 2  # = 3
+    w_total = w01 + w02 + w12
+    h_mu = (npairs - 1) * math.log(w_total) - math.lgamma(npairs)  # lgamma(n) = log((n-1)!)
+
+    expected = h_w_given + h_mu
 
     n = 3
     wins = [{} for _ in range(n)]

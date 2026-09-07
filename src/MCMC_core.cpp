@@ -368,9 +368,17 @@ void MCMC::MCMC_sweep(double beta, int num_sweeps, bool merge_split_enabled) {
     // partition-move fraction depend on q and biases the q-marginal.
     // MERGE_SPLIT_MOVES selects which of the three to include (testing dial).
     if (!partition_fixed && merge_split_enabled) {
-        if (MERGE_SPLIT_MOVES & 1) proposal_weights["merge_move"]       = 1.0;
-        if (MERGE_SPLIT_MOVES & 2) proposal_weights["split_move"]       = 1.0;
-        if (MERGE_SPLIT_MOVES & 4) proposal_weights["merge_split_move"] = 1.0;
+        // See MERGE_SPLIT_WEIGHT in globals.h for why this is not simply 1.0.
+        double w = MERGE_SPLIT_WEIGHT;
+        if (w < 0.0) {
+            const double denom = static_cast<double>(MERGE_SPLIT_GIBBS_SWEEPS > 0
+                                                     ? MERGE_SPLIT_GIBBS_SWEEPS : 1)
+                               * static_cast<double>(n + m);
+            w = denom > 0.0 ? static_cast<double>(n) / denom : 1.0;
+        }
+        if (MERGE_SPLIT_MOVES & 1) proposal_weights["merge_move"]       = w;
+        if (MERGE_SPLIT_MOVES & 2) proposal_weights["split_move"]       = w;
+        if (MERGE_SPLIT_MOVES & 4) proposal_weights["merge_split_move"] = w;
     }
     if (!scores_fixed) {
         proposal_weights["score_move"] = static_cast<double>(n);
