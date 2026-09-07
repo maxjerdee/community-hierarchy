@@ -108,10 +108,18 @@ def test_HW_changes_with_partition():
 
 def test_HW_matches_peixoto_formula():
     """
-    C++ H_W matches Peixoto 2018 Eq. 33 (no outer simplex).
-    [0,0,1]: only M_01=2 active → H_W = log(w02+w12).
+    C++ H_W matches full Peixoto formula: H(W|A,μ,b) + H(μ).
+    Partition [0,0,1]: M_01=2 (binary edges 0-2, 1-2), μ_01=w02+w12.
+      H(W|A,μ,b) = log(w02+w12)
+      H(μ)       = 2·log(w_total) − log(2!)   [K=2, npairs=3]
     """
     mcmc = make_mcmc_from_fixture([0, 0, 1], w01, w02, w12)
-    expected = math.log(w02 + w12)
+    # H(W|A,μ,b) component
+    HW_partial = math.log(w02 + w12)
+    # H(μ) component: K=2 → npairs=3, (npairs-1)*log(w) - log((npairs-1)!)
+    K = 2; npairs = K * (K + 1) // 2
+    H_mu = (npairs - 1) * math.log(w_total) - math.lgamma(npairs)
+    expected = HW_partial + H_mu
     assert abs(mcmc.H_W - expected) < 1e-4, (
-        f"H_W={mcmc.H_W:.6f} but expected Peixoto binary={expected:.6f}")
+        f"H_W={mcmc.H_W:.6f} but expected full formula={expected:.6f} "
+        f"(H(W|A,μ,b)={HW_partial:.4f}, H(μ)={H_mu:.4f})")

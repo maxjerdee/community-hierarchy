@@ -1,5 +1,27 @@
 # C++-Only Test Build (No pybind11)
 
+## Merge/split tests (added with src/MCMC_merge_split.cpp)
+
+```bash
+g++ -std=c++17 -O2 -Isrc tests/flip_nodes_multi_test.cpp \
+  src/MCMC_core.cpp src/MCMC_proposals.cpp src/MCMC_bookkeeping.cpp \
+  src/MCMC_merge_split.cpp src/helpers.cpp src/globals.cpp -o build/flip_nodes_multi_test
+g++ -std=c++17 -O2 -Isrc tests/merge_split_test.cpp \
+  src/MCMC_core.cpp src/MCMC_proposals.cpp src/MCMC_bookkeeping.cpp \
+  src/MCMC_merge_split.cpp src/helpers.cpp src/globals.cpp -o build/merge_split_test
+```
+
+`flip_nodes_multi_test` validates the MULTI-NODE path of flip_nodes (never
+exercised by single-site moves) against two oracles.  `merge_split_test` checks
+bookkeeping, the beta=0 uniform-q prior, and beta=1 coincidence agreement
+between single-site and merge/split.  The beta=1 check is the important one: the
+H_s_G_b_depths term is multiplied by beta, so a beta=0 test alone cannot catch
+its omission from the merge/split energy.
+
+NOTE: `tests/mcmc_core_test.cpp` does not currently compile -- it predates the
+`group_adj` constructor argument and was already broken at HEAD.
+
+
 This folder contains a standalone C++ test harness: `mcmc_core_test.cpp`.
 
 You can compile and run it **without pybind11/Python** using plain `g++` commands.
@@ -15,7 +37,7 @@ g++ -std=c++17 -O3 -march=native -Wall -Wextra -Isrc \
   src/MCMC_proposals.cpp \
   src/MCMC_bookkeeping.cpp \
   src/MCMC_merge_split.cpp \
-  src/consensus.cpp \
+  src/globals.cpp \
   src/helpers.cpp \
   -o build/mcmc_core_test_cpp_only
 ```
@@ -35,7 +57,7 @@ g++ -std=c++17 -O0 -g -Wall -Wextra -Isrc \
   src/MCMC_proposals.cpp \
   src/MCMC_bookkeeping.cpp \
   src/MCMC_merge_split.cpp \
-  src/consensus.cpp \
+  src/globals.cpp \
   src/helpers.cpp \
   -o build/mcmc_core_test_cpp_only_debug
 ```
@@ -71,7 +93,7 @@ g++ -std=c++17 -O3 -march=native -Wall -Wextra -Isrc \
   src/MCMC_proposals.cpp \
   src/MCMC_bookkeeping.cpp \
   src/MCMC_merge_split.cpp \
-  src/consensus.cpp \
+  src/globals.cpp \
   src/helpers.cpp \
   -o build/run_sampler_to_csv
 ```
@@ -98,7 +120,7 @@ g++ -std=c++17 -O0 -g -Wall -Wextra -Isrc \
   src/MCMC_proposals.cpp \
   src/MCMC_bookkeeping.cpp \
   src/MCMC_merge_split.cpp \
-  src/consensus.cpp \
+  src/globals.cpp \
   src/helpers.cpp \
   -o build/run_sampler_to_csv_debug
 ```

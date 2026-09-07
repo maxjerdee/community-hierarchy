@@ -440,6 +440,7 @@ def fit(
     thinning: int = 1,
     beta: float = 1.0,
     num_tempering_chains: int = 1,
+    merge_split_enabled: bool = True,
     initial_partition: Optional[list] = None,
     initial_scores: Optional[list] = None,
     initial_individual_depth: Optional[float] = None,
@@ -473,6 +474,18 @@ def fit(
         Additional sweeps between samples (total = sweeps_per_sample * thinning). Default 1.
     beta : float
         Inverse temperature (0 = prior, 1 = posterior). Default 1.0.
+    merge_split_enabled : bool
+        Collective merge/split moves (Peixoto arXiv:2003.07070). Default True.
+
+        Without them, single-site MCMC can converge silently to the WRONG
+        answer: on the N=115 football network four of six chains get stuck
+        (Gelman-Rubin R-hat 3.37, B_e 8.97 against the true 10.25) while each
+        individual chain looks perfectly well-mixed from the inside. Enabling
+        them costs roughly 5x on networks single-site already handles, and buys
+        correctness that is otherwise undetectable without running multi-start
+        R-hat on every fit.
+
+        Set False to reproduce pre-merge/split results exactly.
     num_tempering_chains : int
         Parallel tempering chains within each independent chain. Default 1.
     initial_partition : list[int], optional
@@ -650,6 +663,7 @@ def fit(
         thinning=int(thinning),
         beta=float(beta),
         num_tempering_chains=int(num_tempering_chains),
+        merge_split_enabled=bool(merge_split_enabled),
         seed=int(seed),
         timeout=float(timeout),
         show_progress=bool(show_progress),

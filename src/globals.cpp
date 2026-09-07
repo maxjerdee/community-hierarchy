@@ -14,3 +14,7 @@ double duration = 0.0;
 std::random_device rd;
 std::mt19937 rng(rd());
 std::uniform_real_distribution<double> uniform_random(0.0, 1.0);
+
+int MERGE_SPLIT_GIBBS_SWEEPS = 10;
+int MERGE_SPLIT_PRESTAGE_MODE = 0;
+int MERGE_SPLIT_MOVES = 7;  // merge | split | joint

@@ -41,6 +41,12 @@ void MCMC::propose_move() {
                 propose_score_move();
             } else if (proposal_type == "group_score_move") {
                 propose_group_score_move();
+            } else if (proposal_type == "merge_move") {
+                propose_merge_move();
+            } else if (proposal_type == "split_move") {
+                propose_split_move();
+            } else if (proposal_type == "merge_split_move") {
+                propose_merge_split_move();
             }
 
             end_time = std::chrono::high_resolution_clock::now();
@@ -484,6 +490,21 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     final_impacted_groups.insert(old_group);
     final_impacted_groups.insert(new_group);
     
+    // Case 5 - empty_old_group with new_group == num_groups (whole group moves
+    // to a BRAND-NEW group).  The freshly created group is immediately compacted
+    // back into old_group's slot, so this is a pure relabelling no-op: num_groups
+    // is unchanged and the nodes end up labelled old_group.  The transient index
+    // `num_groups` must therefore NOT stay in final_impacted_groups -- after the
+    // compaction it is out of range, and the Phase 3 re-add would read past the end
+    // of node_counts/edge_counts, giving H_M=inf, H_k=nan, H_A_G_k_M_b=-inf.
+    // The partition itself stays valid, so this corrupts SILENTLY.
+    // Unreachable from propose_single_site_move (its singleton branch only merges
+    // into existing groups; its split branch only fires for non-singletons), which
+    // is why it has never shown up -- but merge/split needs the batch path.
+    if(new_group == num_groups && empty_old_group){
+        final_impacted_groups.erase(new_group);
+    }
+
     // If emptying old_group, the last group will be moved to fill the gap
     if(new_group != num_groups && empty_old_group){
         if(verbose){
@@ -635,6 +656,15 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
 
     // H_W: remove per-block-pair contributions of affected groups (weighted SBM only)
     if (weighted_SBM) {
+        // H(μ): remove old P(μ) term — depends on q = num_groups, which is
+        // still the pre-proposal value here (Phase 2 hasn't run yet).
+        if (w_total > 0.0) {
+            long long q_old   = static_cast<long long>(num_groups);
+            long long np_old  = q_old * (q_old + 1) / 2;
+            if (np_old > 1)
+                H_W -= static_cast<double>(np_old - 1) * std::log(w_total)
+                       - log_factorial(static_cast<int>(np_old - 1));
+        }
         for (int r : initial_impacted_groups) {
             // Diagonal (r,r): stored as 2× — halve
             {
@@ -913,6 +943,15 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
                 double mus = weight_counts[r][s];
                 if (ms > 0) H_W += sym * ((ms - 1) * std::log(mus) - log_factorial(ms - 1));
             }
+        }
+        // H(μ): add new P(μ) term — num_groups has already been updated in Phase 2
+        // if a group was created or merged.
+        if (w_total > 0.0) {
+            long long q_new  = static_cast<long long>(num_groups);
+            long long np_new = q_new * (q_new + 1) / 2;
+            if (np_new > 1)
+                H_W += static_cast<double>(np_new - 1) * std::log(w_total)
+                       - log_factorial(static_cast<int>(np_new - 1));
         }
     }
 

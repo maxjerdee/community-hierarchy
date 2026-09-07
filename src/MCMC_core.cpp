@@ -345,7 +345,7 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
  * @param beta: Inverse temperature (higher = more selective), defaults to 1.0
  * @param num_sweeps: Number of sweeps to run, defaults to 1
  */
-void MCMC::MCMC_sweep(double beta, int num_sweeps) {
+void MCMC::MCMC_sweep(double beta, int num_sweeps, bool merge_split_enabled) {
     auto sweep_start_time = std::chrono::high_resolution_clock::now();
 
     this->beta = beta;
@@ -361,6 +361,16 @@ void MCMC::MCMC_sweep(double beta, int num_sweeps) {
     };
     if (!partition_fixed) {
         proposal_weights["single_site_move"] = static_cast<double>(n);
+    }
+    // Collective merge/split moves (Peixoto Eq. 37).  Weights are CONSTANT --
+    // deliberately NOT proportional to num_groups, for the same reason the
+    // group-score move uses a constant: a state-dependent weight makes the
+    // partition-move fraction depend on q and biases the q-marginal.
+    // MERGE_SPLIT_MOVES selects which of the three to include (testing dial).
+    if (!partition_fixed && merge_split_enabled) {
+        if (MERGE_SPLIT_MOVES & 1) proposal_weights["merge_move"]       = 1.0;
+        if (MERGE_SPLIT_MOVES & 2) proposal_weights["split_move"]       = 1.0;
+        if (MERGE_SPLIT_MOVES & 4) proposal_weights["merge_split_move"] = 1.0;
     }
     if (!scores_fixed) {
         proposal_weights["score_move"] = static_cast<double>(n);

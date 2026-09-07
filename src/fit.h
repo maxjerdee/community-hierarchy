@@ -3,6 +3,7 @@
 
 #include "MCMC_core.h"
 #include "fit_result.h"
+#include <atomic>
 #include <functional>
 #include <optional>
 #include <unordered_map>
@@ -44,6 +45,16 @@ struct FitParams {
     int    param_warmup_sweeps  = 0;
     int    thinning             = 1;
     double beta                 = 1.0;
+    // Collective merge/split moves (Peixoto arXiv:2003.07070).
+    // ON by default: without them single-site MCMC can converge silently to the
+    // WRONG answer -- on the N=115 football network four of six chains get stuck
+    // (R-hat 3.37, B_e 8.97 vs the true 10.25) while each chain looks perfectly
+    // healthy from the inside.  Costs roughly 5x on networks that single-site
+    // already handles, which buys correctness you otherwise cannot detect
+    // without multi-start R-hat on every fit.
+    // Set false to reproduce pre-merge/split results exactly.
+    bool   merge_split_enabled  = true;
+
     int    num_tempering_chains = 1;
     int    seed                 = 0;
     double timeout              = 60.0;
@@ -53,6 +64,12 @@ struct FitParams {
     std::function<void(int, int)> on_warmup;   // called once per sweep per chain (param warmup)
     std::function<void(int, int)> on_burn_in;  // called once per sweep per chain (burn-in)
     std::function<void(int, int)> on_sample;   // called once per recorded sample per chain
+
+    // Optional pointer to an external abort flag. When the flag is set, fit()
+    // exits cleanly at the next loop boundary (warmup / burn-in / sampling).
+    // The caller is responsible for setting this from a signal handler or a
+    // monitoring thread, and for checking the flag after fit() returns.
+    std::atomic<bool>* abort_flag = nullptr;
 };
 
 // Run parallel-tempered MCMC and return the collected samples.

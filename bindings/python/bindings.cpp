@@ -8,6 +8,7 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <csignal>
 #include <iomanip>
 #include <iostream>
 #include <mutex>
@@ -15,6 +16,20 @@
 #include <sstream>
 #include <string>
 #include <thread>
+
+// ---------------------------------------------------------------------------
+// SIGINT handler installed around fit() so Ctrl+C works in both
+// show_progress=True and show_progress=False modes.
+//
+// CPython's PyErr_CheckSignals() is a no-op from non-main threads, so the
+// progress-thread approach cannot deliver interrupts. Instead, we swap in
+// our own SIGINT handler that sets an abort_flag which fit() polls every
+// sweep boundary.
+// ---------------------------------------------------------------------------
+static std::atomic<bool>* s_fit_abort = nullptr;
+static void fit_sigint_handler(int /*sig*/) {
+    if (s_fit_abort) s_fit_abort->store(true, std::memory_order_release);
+}
 
 namespace py = pybind11;
 
@@ -291,7 +306,14 @@ PYBIND11_MODULE(MCMC_core, m) {
            .def_readonly("time_parameter_proposals",     &MCMC::time_parameter_proposals)
            .def("MCMC_sweep", &MCMC::MCMC_sweep,
                 py::arg("beta") = 1.0,
-                py::arg("num_sweeps") = 1)
+                py::arg("num_sweeps") = 1,
+                py::arg("merge_split_enabled") = true)
+           .def_readonly("merge_proposals",                &MCMC::merge_proposals)
+           .def_readonly("accepted_merge_proposals",       &MCMC::accepted_merge_proposals)
+           .def_readonly("split_proposals",                &MCMC::split_proposals)
+           .def_readonly("accepted_split_proposals",       &MCMC::accepted_split_proposals)
+           .def_readonly("merge_split_proposals",          &MCMC::merge_split_proposals)
+           .def_readonly("accepted_merge_split_proposals", &MCMC::accepted_merge_split_proposals)
            .def("calculate_H_M", &MCMC::calculate_H_M)
            .def("change_parameter", &MCMC::change_parameter,
                 py::arg("param_name"),
@@ -349,6 +371,7 @@ PYBIND11_MODULE(MCMC_core, m) {
         int    thinning,
         double beta,
         int    num_tempering_chains,
+        bool   merge_split_enabled,
         int    seed,
         double timeout,
         bool   show_progress,
@@ -388,9 +411,20 @@ PYBIND11_MODULE(MCMC_core, m) {
         params.thinning             = thinning;
         params.beta                 = beta;
         params.num_tempering_chains = num_tempering_chains;
+        params.merge_split_enabled  = merge_split_enabled;
         params.seed                 = seed;
         params.timeout              = timeout;
         params.weighted_SBM        = weighted_SBM;
+
+        // Abort flag — set by our SIGINT handler so fit() can exit early.
+        std::atomic<bool> abort_flag{false};
+        params.abort_flag = &abort_flag;
+
+        // Install a custom SIGINT handler for the duration of fit().
+        // We swap back the previous handler once fit() returns, then raise
+        // KeyboardInterrupt if the flag was set.
+        s_fit_abort = &abort_flag;
+        auto old_sigint = std::signal(SIGINT, fit_sigint_handler);
 
         // Progress reporting: phase-aware stderr display (pystan style).
         std::mutex mtx;
@@ -481,10 +515,20 @@ PYBIND11_MODULE(MCMC_core, m) {
             return fit(std::move(params));
         }();
 
+        // Restore the original SIGINT handler before doing anything Python-side.
+        std::signal(SIGINT, old_sigint);
+        s_fit_abort = nullptr;
+
         if (progress_thread.joinable()) {
             { std::lock_guard<std::mutex> lock(mtx); fit_finished = true; }
             cv.notify_all();
             progress_thread.join();
+        }
+
+        // If the abort flag was set (Ctrl+C during fit), raise KeyboardInterrupt.
+        if (abort_flag.load(std::memory_order_relaxed)) {
+            PyErr_SetNone(PyExc_KeyboardInterrupt);
+            throw py::error_already_set();
         }
 
         return FitResultNative(std::move(result));
@@ -515,6 +559,7 @@ PYBIND11_MODULE(MCMC_core, m) {
     py::arg("thinning")                  = 1,
     py::arg("beta")                      = 1.0,
     py::arg("num_tempering_chains")      = 1,
+    py::arg("merge_split_enabled")       = true,
     py::arg("seed")                      = 0,
     py::arg("timeout")                   = 60.0,
     py::arg("show_progress")             = false,

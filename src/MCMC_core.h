@@ -147,6 +147,12 @@ public:
     int accepted_proposals = 0; // Total number of proposals accepted
     int single_site_proposals = 0; // Total number of single-site proposals attempted
     int accepted_single_site_proposals = 0; // Total number of single-site proposals accepted
+    int merge_proposals = 0;                // Merge proposals attempted
+    int accepted_merge_proposals = 0;       // Merge proposals accepted
+    int split_proposals = 0;                // Split proposals attempted
+    int accepted_split_proposals = 0;       // Split proposals accepted
+    int merge_split_proposals = 0;          // Joint merge-split attempted
+    int accepted_merge_split_proposals = 0; // Joint merge-split accepted
     int score_proposals = 0; // Total number of score proposals attempted
     int accepted_score_proposals = 0; // Total number of score proposals accepted
     int group_score_proposals = 0; // Total number of group-score-shift proposals attempted
@@ -167,7 +173,7 @@ public:
     int accepted_ties_parameter_proposals = 0; // Total number of ties_parameter proposals
 
     /* API */
-    void MCMC_sweep(double beta = 1.0, int num_sweeps = 1); // Perform MCMC sweeps
+    void MCMC_sweep(double beta = 1.0, int num_sweeps = 1, bool merge_split_enabled = true); // Perform MCMC sweeps
     void change_parameter(const std::string& param_name, double new_value); // Change a continuous parameter. Accessible for Python entropic sampling.
 
     // Functions that include the logic to generate a proposal
@@ -178,6 +184,27 @@ public:
     void propose_group_score_move(); // Shift all scores in a random group by a common offset (moves along the sigma_C ridge)
 
     // Functions that directly modify the Monte Carlo state (including the bookkeeping information like the entropy)
+    void propose_merge_move();       // Merge two groups (Peixoto Eq. 17/34)
+    void propose_split_move();       // Split one group in two (Eq. 32/33)
+    void propose_merge_split_move(); // Joint merge-then-split, q unchanged (Eq. 35/36)
+
+    /* Merge/split internals -- see src/MCMC_merge_split.cpp */
+    double merge_split_log_pi() const;
+    static double split_label_factor(int K);  //  log(K+1): partition/labelled multiplicity
+    static double merge_label_factor(int K);  // -log(K):   partition/labelled multiplicity
+    double merge_logprob(int K) const;        // log P of proposing a given merged partition
+    double split_gibbs_sweep(const std::vector<int>& nodes, int ga, int gb,
+                             bool accumulate, const std::vector<char>* target,
+                             std::vector<char>* out_assignment);
+    void set_split_assignment(const std::vector<int>& nodes, int ga, int gb,
+                              const std::vector<char>& assignment);
+    int stage_split(const std::vector<int>& nodes, int ga, int sweeps);
+    int prestage_random(const std::vector<int>& nodes, int ga);
+    int prestage_sequential(const std::vector<int>& nodes, int ga, bool coalescence);
+    double split_partition_logprob(const std::vector<int>& nodes, int ga, int gb,
+                                   const std::vector<char>& staged,
+                                   const std::vector<char>& assignment);
+
     void flip_nodes(const std::vector<int>& nodes, int new_group); // Flip multiple nodes of the same old_group to a single new_group
     void swap_groups(int group1, int group2); // Swap the assignments of two groups
     

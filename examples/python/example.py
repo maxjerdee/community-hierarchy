@@ -15,6 +15,7 @@ result = ds.fit(
     samples_per_chain=500,
     burn_sweeps=500,
     seed=1,
+    # show_progress=False,
     show_progress=True,
 )
 

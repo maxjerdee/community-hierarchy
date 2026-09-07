@@ -48,4 +48,30 @@ extern std::random_device rd;
 extern std::mt19937 rng; // Initialize Mersenne Twister (global RNG)
 extern std::uniform_real_distribution<double> uniform_random; // Uniform distribution on [0,1]
 
+
+// ---- merge/split tuning (auxiliary: cannot affect correctness) ----
+// Number of Gibbs sweeps used to refine a split during STAGING.  This is the
+// auxiliary variable, so ANY value (including 0) gives a valid kernel; it trades
+// proposal quality against cost.  Peixoto reports M=10 across several networks;
+// on small easy networks M=0-1 is faster, but on celegansneural (N=297) M=0
+// FAILS to converge, so 10 is the safe default.
+extern int MERGE_SPLIT_GIBBS_SWEEPS;
+
+// Which prestage strategy to draw from: 0 = all three uniformly (Peixoto),
+// 1 = random split, 2 = sequential spreading, 3 = sequential coalescence.
+// NOTE strategy 2 ALONE fails at M=0 -- it only ever produces plausible splits,
+// so bad merges become unreversible ("we need a variety of split proposals, that
+// are both good and bad").  Keep the default at 0.
+extern int MERGE_SPLIT_PRESTAGE_MODE;
+
+// Which collective moves to include, as a bitmask: 1=merge, 2=split, 4=joint
+// merge-split.  Default 7 (all three).  This exists so tests can isolate a
+// single move type; it is NOT part of the public API -- callers turn the whole
+// family on or off with the merge_split_enabled flag instead.
+// NOTE isolating merge (1) or split (2) alone gives a BIASED chain by
+// construction: a merge-only chain can only decrease q and its reverse move is
+// never proposed, so detailed balance cannot hold.  Only 3 (merge+split), 4
+// (joint alone, which preserves q) and 7 are valid samplers.
+extern int MERGE_SPLIT_MOVES;
+
 #endif // GLOBALS_H

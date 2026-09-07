@@ -497,10 +497,25 @@ double MCMC::calculate_H_A_G_k_M_b() {
  * Diagonal entries are stored doubled (2×m_rr, 2×μ_rr); halved on read.
  */
 double MCMC::calculate_H_W() {
-    // Per-block-pair uniform simplex: -log P(x_rs | μ_rs, m_rs) = (m_rs-1)*log(μ_rs) - log((m_rs-1)!)
-    // Matches Peixoto 2018 Eq. 33. No outer simplex coupling block pairs.
+    // Full Peixoto 2018 weighted SBM description length:
+    //   H(W) = H(W|A,μ,b) + H(μ)
+    //
+    // H(W|A,μ,b): per-block-pair uniform simplex over edges (Eq. 33)
+    //   -log P(W|A,μ,b) = Σ_{r<s} [(m_rs-1)*log(μ_rs) - log((m_rs-1)!)]
+    //                   + Σ_r    [(m_rr/2-1)*log(μ_rr/2) - log((m_rr/2-1)!)]
+    //
+    // H(μ): cost to encode the block-pair weight totals μ_rs on a
+    //   simplex of fixed total w (see Peixoto 2018 Eq. 34):
+    //   -log P(μ) = (q(q+1)/2 - 1)*log(w) - log((q(q+1)/2 - 1)!)
+    //   where q = num_groups, w = w_total.
+    //   This term grows as O(q^2 log w) and is ESSENTIAL: without it,
+    //   singletons (q=N) always minimise H(W|A,μ,b) exactly (every
+    //   m_rs = 1 → contribution 0), so the MCMC never escapes the
+    //   singleton basin in single-layer weighted mode.
+
     double h = 0.0;
 
+    // ── H(W|A,μ,b) ────────────────────────────────────────────────────────────
     for (int r = 0; r < num_groups; r++) {
         // Diagonal: stored as 2× (double-counted by symmetric neighbor loop) → halve
         int    m_rr  = edge_counts[r][r]   / 2;
@@ -515,6 +530,19 @@ double MCMC::calculate_H_W() {
                 h += (m_rs - 1) * std::log(mu_rs) - log_factorial(m_rs - 1);
         }
     }
+
+    // ── H(μ): cost of block-pair weight totals ─────────────────────────────────
+    // Number of distinct block pairs (upper triangle + diagonal) = q(q+1)/2
+    if (w_total > 0.0) {
+        long long q      = static_cast<long long>(num_groups);
+        long long npairs = q * (q + 1) / 2;   // number of μ_rs parameters
+        if (npairs > 1) {
+            // -log P(μ) = (npairs - 1)*log(w) - log((npairs - 1)!)
+            h += static_cast<double>(npairs - 1) * std::log(w_total)
+                 - log_factorial(static_cast<int>(npairs - 1));
+        }
+    }
+
     return h;
 }
 

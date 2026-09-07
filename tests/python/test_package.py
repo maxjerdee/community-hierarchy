@@ -583,6 +583,28 @@ def test_tempering_swap_uses_full_energy():
     )
 
 
+def test_fit_forwards_num_tempering_chains(monkeypatch):
+    """fit() must forward num_tempering_chains to the backend when provided."""
+    import directedstructure.core as core_mod
+
+    captured = {}
+    _real_backend = core_mod._fit_backend
+
+    def _recording_backend(**kwargs):
+        captured.update(kwargs)
+        return _real_backend(**kwargs)
+
+    monkeypatch.setattr(core_mod, "_fit_backend", _recording_backend)
+
+    G = _small_graph()
+    fit(Config(), G, num_samples=5, num_tempering_chains=4, seed=1, timeout=30.0)
+
+    assert captured.get("num_tempering_chains") == 4, (
+        f"num_tempering_chains was not forwarded to _fit_backend "
+        f"(captured keys: {list(captured.keys())})"
+    )
+
+
 def test_prior_q_uniform():
     """At beta=0 the proposal cancels H_b exactly, so q ~ Uniform(1,...,n).
 

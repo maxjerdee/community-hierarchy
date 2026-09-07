@@ -10,6 +10,7 @@ find_package(pybind11 CONFIG REQUIRED)
 add_library(directedstructure_core STATIC
     src/MCMC_core.cpp
     src/MCMC_proposals.cpp
+    src/MCMC_merge_split.cpp
     src/MCMC_bookkeeping.cpp
     src/helpers.cpp
     src/globals.cpp
@@ -50,6 +51,7 @@ if(BUILD_TESTING)
     tests/mcmc_core_test.cpp
     src/MCMC_core.cpp
     src/MCMC_proposals.cpp
+    src/MCMC_merge_split.cpp
     src/MCMC_bookkeeping.cpp
     src/helpers.cpp
     src/globals.cpp
