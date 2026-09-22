@@ -68,15 +68,16 @@ constexpr double NEG_INF = -std::numeric_limits<double>::infinity();
 //  Merge/split proposals do NOT cancel H_b, so H_b appears explicitly here.
 // -----------------------------------------------------------------------------
 double MCMC::merge_split_log_pi() const {
-    // directedstructure's target, matching what propose_single_site_move relies
-    // on: its proposal cancels H_b exactly, leaving beta*(delta H_A_G_b +
-    // delta H_s_G_b_depths) in the acceptance.  So
-    //     pi propto exp(-(H_b + beta*(H_A_G_b + H_s_G_b_depths))).
+    // directedstructure's target over the partition (scores held fixed by these
+    // moves, so H_Adir_G_A_s_nu is constant and omitted):
+    //     pi propto exp(-(H_b + H_s_G_b_depths + beta * H_A_G_b)).
+    // Only the data likelihood H_A_G_b is tempered; H_s_G_b_depths is the PRIOR of
+    // the scores given the partition and, like H_b, is not (the tempering
+    // convention of MCMC_core.h, shared by every move and by the PT swaps).
     // H_A_G_b already contains H_A_G_k_M_b + H_k + H_M + H_W, so the weighted-SBM
-    // term needs no separate handling.  H_s_G_b_depths MUST be here: it vanishes
-    // at beta=0, so a beta=0 prior check would NOT catch its omission -- only the
-    // coincidence check at beta=1 would.
-    return -(H_b + beta * (H_A_G_b + H_s_G_b_depths));
+    // term needs no separate handling.  H_s_G_b_depths MUST be here: the
+    // partition changes the group score means.
+    return -(H_b + H_s_G_b_depths + beta * H_A_G_b);
 }
 
 // -----------------------------------------------------------------------------

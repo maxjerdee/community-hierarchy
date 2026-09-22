@@ -1,4 +1,6 @@
-// Implementation stripped; this file now only wires the header to pybind.
+// MCMC constructor, MCMC_sweep and change_parameter.  Moves live in MCMC_proposals.cpp and
+// MCMC_merge_split.cpp; entropy bookkeeping in MCMC_bookkeeping.cpp; the multi-chain driver
+// (incl. parallel tempering) in fit.cpp.  See docs/ARCHITECTURE.md.
 
 #include "MCMC_core.h"
 #include "globals.h"
@@ -18,13 +20,19 @@
  * 
  * @param wins: Adjacency list for dominant edges (wins[i][j] = weight of dominant edge from i to j)
  * @param ties: Adjacency list for neutral edges (ties[i][j] = weight of neutral edge from i to j)
- * @param partition: Initial group assignment (partition[i] = group of node i)
- * @param num_groups: Initial number of groups
- * @param variation_in/out: Overdispersion for within/between group edges
- * @param degree_correction: Degree heterogeneity correction parameter
- * @param mean_degree_scaling: Power-law scaling exponent for expected edge counts
+ * @param group_adj: Optional separate undirected graph driving the communities (two-layer
+ *                   mode); empty = the communities are fitted to wins + ties
+ * @param partition, partition_fixed: Initial group assignment; fixed = no partition moves
+ * @param scores, scores_fixed: Initial hierarchy scores; fixed = no score moves
+ * @param num_groups, num_groups_fixed: Initial number of groups; fixed = q never changes
+ * @param variation_in/out: Overdispersion of within/between-group edge counts
+ * @param degree_correction: Degree correction (0 = none, 0.5 = uniform over degree sequences)
+ * @param individual_depth, group_depth: spread of scores within groups / of group means
+ * @param ties_parameter: frequency of ties in the direction model
  * @param *_fixed: Flags for fixed (not inferred) parameters
- * @param seed: Random seed for reproducibility
+ * @param seed: Seeds this thread's generator (see globals.h)
+ * @param density_in/out_initial: < 0 = estimate from the initial partition
+ * @param weighted_SBM: model real-valued edge weights (uniform simplex prior)
  */
 MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
            const std::vector<std::unordered_map<int, double>>& ties,
@@ -258,6 +266,19 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
   Node 0 with weight 0.000000
     */
 
+    // weighted_SBM and two-layer mode count every neighbour entry as ONE edge (binary
+    // counts).  A self-loop would then add 1 stub to e_rr instead of 2, making e_rr odd
+    // (and log_factorial2 throws deep inside a sweep).  Reject self-loops up front.
+    if (this->weighted_SBM || this->two_layer_mode) {
+        for (int i = 0; i < n; ++i) {
+            if (this->neighbors_com[i].count(i)) {
+                throw std::invalid_argument(
+                    "self-loop at node " + std::to_string(i) +
+                    ": self-loops are not supported with weighted_SBM or a separate group graph");
+            }
+        }
+    }
+
     // Outside weighted_SBM / two-layer mode the weights are edge MULTIPLICITIES:
     // edge_counts truncates them (int +=) while node_degrees rounds them, so a
     // non-integer weight would make the two describe different graphs.  Reject
@@ -434,9 +455,13 @@ void MCMC::MCMC_sweep(double beta, int num_sweeps, bool merge_split_enabled) {
  * 5. If rejected, restore old values
  * 
  * Different parameters affect different entropies:
- * - degree_correction, mean_degree_scaling -> H_k (degree sequence)
- * - variation_in, variation_out -> H_M (edge count distribution)
- * - density_in, density_out -> H_M (exponential prior cancels in acceptance)
+ * - degree_correction -> H_k (degree sequence)
+ * - variation_in, variation_out, density_in, density_out -> H_M (edge counts)
+ * - individual_depth -> H_s_G_b_depths and H_Adir_G_A_s_nu (scores = scaled scores x depth)
+ * - group_depth -> H_s_G_b_depths
+ * - ties_parameter -> H_Adir_G_A_s_nu
+ * Tempering: only the likelihood terms are multiplied by beta; H_s_G_b_depths is
+ * the score prior and is not (see MCMC_core.h).
  * 
  * @param param_name: Name of parameter to change
  * @param new_value: Proposed new value
@@ -563,9 +588,10 @@ void MCMC::change_parameter(const std::string& param_name, double new_value) {
         H_s_G_b_depths = calculate_H_s_G_b_depths();  // Recalculate affected entropy
         H_Adir_G_A_s_nu = calculate_H_Adir_G_A_s_nu(); // Recalculate affected entropy
 
-        // Metropolis-Hastings acceptance
-        double delta_H = H_s_G_b_depths - H_s_G_b_depths_old + H_Adir_G_A_s_nu - H_Adir_G_A_s_nu_old;
-        double acceptance_prob = std::exp(-beta * delta_H);
+        // Metropolis-Hastings acceptance.  Only the direction likelihood is tempered;
+        // the score prior H_s_G_b_depths enters at full weight (MCMC_core.h).
+        double delta_H = (H_s_G_b_depths - H_s_G_b_depths_old) + beta * (H_Adir_G_A_s_nu - H_Adir_G_A_s_nu_old);
+        double acceptance_prob = std::exp(-delta_H);
 
         if(uniform_random(rng) < acceptance_prob){
             // Accept: update total entropies
@@ -589,9 +615,10 @@ void MCMC::change_parameter(const std::string& param_name, double new_value) {
         group_depth = new_value;
         H_s_G_b_depths = calculate_H_s_G_b_depths();  // Recalculate affected entropy
 
-        // Metropolis-Hastings acceptance
+        // Metropolis-Hastings acceptance.  group_depth only enters the score prior
+        // H_s_G_b_depths, which is not tempered (MCMC_core.h).
         double delta_H = H_s_G_b_depths - H_s_G_b_depths_old;
-        double acceptance_prob = std::exp(-beta * delta_H);
+        double acceptance_prob = std::exp(-delta_H);
         if(uniform_random(rng) < acceptance_prob){
             // Accept: update total entropies
             accepted_group_depth_proposals++;

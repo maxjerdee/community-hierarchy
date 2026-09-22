@@ -9,15 +9,15 @@
 #include <chrono>
 
 /**
- * propose_move: Select and execute a random MCMC proposal
+ * propose_move: Select and execute one random MCMC proposal.
  *
- * Randomly selects a proposal type (single-site, score, or parameter)
- * weighted by proposal_weights, then dispatches to the appropriate handler.
- *
- * Proposal types:
- * - single_site_move: Move one node to a different group (weight: n)
- * - score_move: Update a node's hierarchy score (weight: n)
- * - parameter_move: Update a model parameter (weight: # free parameters)
+ * The move type is drawn with the (state-independent) weights set in MCMC_sweep:
+ * - single_site_move:   move one node to another group (weight n)
+ * - merge/split/merge_split_move: collective partition moves (MCMC_merge_split.cpp;
+ *                       weight MERGE_SPLIT_WEIGHT each, linear-time default)
+ * - score_move:         update one node's hierarchy score (weight n)
+ * - group_score_move:   shift every score in one group by a common offset (weight n)
+ * - parameter_move:     update one continuous parameter (weight = # free parameters)
  */
 void MCMC::propose_move() {
     start_time = std::chrono::high_resolution_clock::now();
@@ -120,10 +120,10 @@ void MCMC::propose_single_site_move() {
 
     flip_nodes({node}, new_group);
 
-    // Proposal cancels H_b exactly; parameter proposals use CDF-transformed distributions
-    // (exponential prior on density_in/density_out cancels in acceptance)
-    double delta_H = H_A_G_b - H_A_G_b_old + H_s_G_b_depths - H_s_G_b_depths_old;
-    if (uniform_random(rng) >= std::exp(-beta * delta_H)) {
+    // The proposal cancels H_b exactly.  Only the data likelihood is tempered: the
+    // score prior H_s_G_b_depths enters at full weight (convention of MCMC_core.h).
+    double delta_H = beta * (H_A_G_b - H_A_G_b_old) + (H_s_G_b_depths - H_s_G_b_depths_old);
+    if (uniform_random(rng) >= std::exp(-delta_H)) {
         // Reject: undo the move
         if (is_merge) {
             // Compaction occurred: old_group was removed, so undo by splitting
@@ -138,17 +138,14 @@ void MCMC::propose_single_site_move() {
 }
 
 /**
- * propose_parameter_move: Propose updating a model parameter
- * 
- * Randomly selects one free (non-fixed) parameter and proposes a new value
- * using a uniform or positive-uniform proposal distribution.
- * 
- * The change_parameter function handles the actual update and acceptance logic.
- * If the proposal is rejected inside change_parameter, we call it again with
- * the old value to restore the state.
- * 
- * Parameters can include: variation_in, variation_out, degree_correction,
- * density_in, density_out
+ * propose_parameter_move: update one free continuous parameter.
+ *
+ * Proposals are random walks in the CDF space of each parameter's prior (reflected
+ * at 0 and 1), so the prior cancels from the Hastings ratio:
+ *   variation_in/out, degree_correction ~ Uniform(0,1)
+ *   density_in/out                     ~ Exponential(mean 1)
+ *   individual_depth, group_depth, ties_parameter ~ half-Cauchy(DEPTH_PRIOR_WIDTH)
+ * change_parameter() recomputes the affected entropy and accepts or restores.
  */
 void MCMC::propose_parameter_move() {
     parameter_proposals++;
@@ -298,8 +295,11 @@ void MCMC::propose_score_move() {
     }
 
     // Metropolis-Hastings acceptance
-    double delta_H = H_Adir_G_A_s_nu - H_Adir_G_A_s_nu_old; // Only accept/reject on the change in the Adir term, the change to H_s_G_b_depths is built into the proposal distribution.
-    // double delta_H = H_s_G_b_depths - H_s_G_b_depths_old + H_Adir_G_A_s_nu - H_Adir_G_A_s_nu_old;
+    // The proposal is reversible w.r.t. the score prior exp(-H_s_G_b_depths) (it is
+    // a CDF-space random walk on the exact conditional of this node's score), so the
+    // prior cancels and only the tempered direction likelihood remains.  This is why
+    // H_s_G_b_depths must be UNtempered in every other move too (MCMC_core.h).
+    double delta_H = H_Adir_G_A_s_nu - H_Adir_G_A_s_nu_old;
     double acceptance_prob = std::exp(-beta * delta_H);
     if (uniform_random(rng) < acceptance_prob) {
         // Accept
@@ -395,8 +395,9 @@ void MCMC::propose_group_score_move() {
     }
 
     // Metropolis acceptance on the full change (symmetric RW proposal on delta).
-    double delta_H = (H_Adir_G_A_s_nu - H_A_old) + (H_s_G_b_depths - H_s_old);
-    if (uniform_random(rng) < std::exp(-beta * delta_H)) {
+    // Only the likelihood is tempered; the score prior enters at full weight.
+    double delta_H = beta * (H_Adir_G_A_s_nu - H_A_old) + (H_s_G_b_depths - H_s_old);
+    if (uniform_random(rng) < std::exp(-delta_H)) {
         accepted_group_score_proposals++;
     } else {
         for (int i : group_members[r]) {
@@ -545,16 +546,6 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         print("H_M: " + std::to_string(H_M));
         print("H_A_G_k_M_b: " + std::to_string(H_A_G_k_M_b));
         print("H_A_G_b: " + std::to_string(H_A_G_b));
-    }
-
-    if(verbose){
-        // Check if neighbors[96] has an entry for 0, if so print it
-        print("Neighbors of node 96:");
-        for(const auto& edge : neighbors_com[96]){
-            int j = edge.first;
-            double weight = edge.second;
-            print("  Node " + std::to_string(j) + " with weight " + std::to_string(weight));
-        }
     }
 
     /* === PHASE 1: Remove entropy terms from initial configuration === */
@@ -997,15 +988,6 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         print("");
     }
 
-    if(verbose){
-        // Check if neighbors[96] has an entry for 0, if so print it
-        print("Neighbors of node 96:");
-        for(const auto& edge : neighbors_com[96]){
-            int j = edge.first;
-            double weight = edge.second;
-            print("  Node " + std::to_string(j) + " with weight " + std::to_string(weight));
-        }
-    }
 }
 
 void MCMC::swap_groups(int group1, int group2) {

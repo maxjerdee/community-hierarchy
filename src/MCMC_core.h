@@ -1,4 +1,4 @@
-/* Helper function declarations */
+/* The MCMC state and moves of the directedstructure model (see docs/ARCHITECTURE.md). */
 
 #ifndef MCMC_CORE_H
 #define MCMC_CORE_H
@@ -10,12 +10,10 @@
 
 class MCMC {
 public:
-    // Constructor signature:
-    // MCMC(wins, ties, initial_partition, scores, num_groups, num_groups_fixed, assortative,
-    //      variation_in, variation_in_fixed, variation_out, variation_out_fixed,
-    //      degree_correction, degree_correction_fixed,
-    //      individual_depth, individual_depth_fixed, group_depth, group_depth_fixed,
-    //      ties_parameter, ties_parameter_fixed, seed)
+    // wins/ties: directed and neutral edges (adjacency maps).  group_adj: optional separate
+    // undirected graph that drives the community structure (two-layer mode; empty = use
+    // wins + ties).  *_fixed flags exclude a variable from the moves.  density_*_initial < 0
+    // means "estimate from the initial partition".
     MCMC(const std::vector<std::unordered_map<int, double>>& wins,
         const std::vector<std::unordered_map<int, double>>& ties,
         const std::vector<std::unordered_map<int, double>>& group_adj,
@@ -57,7 +55,15 @@ public:
 
     // Model & sampling parameters
     std::vector<std::string> free_parameters; // Names of free (tunable) parameters
-    double beta; // Inverse temperature for MCMC
+    // Inverse temperature.  TEMPERING CONVENTION (every move, the merge/split target and
+    // the parallel-tempering swaps in fit.cpp must agree on it):
+    //     pi_beta  propto  P(b) P(s | b, depths) P(parameters)
+    //                      * exp(-beta * (H_A_G_b + H_Adir_G_A_s_nu))
+    // i.e. only the DATA likelihood -- the undirected network H_A_G_b (incl. H_W) and the
+    // edge directions H_Adir_G_A_s_nu -- is tempered.  The partition prior H_b, the score
+    // prior H_s_G_b_depths and the parameter priors are not.  (The score move's proposal
+    // is reversible w.r.t. exp(-H_s_G_b_depths), which is what forces H_s to be untempered.)
+    double beta;
     // Map of the types of proposals to their weights (for weighted random selection of proposal types)
     std::unordered_map<std::string, double> proposal_weights;
 

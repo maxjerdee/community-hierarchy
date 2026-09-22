@@ -579,8 +579,6 @@ double MCMC::calculate_H_Adir_G_A_s_nu() {
     return H_Adir_G_A_s_nu_actual;
 }
 
-// 123456789101112
-
 /*
 * calculate_H_s_G_b_depths: Compute score entropy H(s|b,depths)
 * 

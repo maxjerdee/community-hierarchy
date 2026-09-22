@@ -75,10 +75,14 @@ FitResult fit(FitParams p) {
         std::mt19937_64 swap_rng(static_cast<std::uint64_t>(p.seed + chain_id) + 999983ULL);
         std::uniform_real_distribution<double> swap_unif(0.0, 1.0);
 
-        // Swap criterion: data likelihood terms only.
-        // H_b (partition prior) cancels via the asymmetric partition proposal.
-        // H_s_G_b_depths (score prior) cancels via the asymmetric score CDF proposal.
-        // Including H_s in the criterion causes systematic over-clustering (~0.06 bias).
+        // Swap criterion: the tempered energy, i.e. the data likelihood terms only.
+        // Every move targets exp(-(H_b + H_s_G_b_depths + priors + beta * H_total)),
+        // with the partition prior H_b and the score prior H_s_G_b_depths untempered
+        // (the convention of MCMC_core.h), so exchanging configurations between
+        // inverse temperatures involves H_total alone.  (Before 2026-09 some moves
+        // tempered H_s_G_b_depths and others did not, so the hot chains had no
+        // consistent target -- the "~0.06 over-clustering" once seen when H_s was
+        // added here was a symptom of that, not of the swap rule.)
         auto H_total = [](const MCMC& c) {
             return c.H_A_G_b + c.H_Adir_G_A_s_nu;
         };

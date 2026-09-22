@@ -86,3 +86,20 @@ def test_degree_correction_is_a_binary_switch(flag, expected):
 def test_degree_correction_must_be_binary(value):
     with pytest.raises(ValueError, match="degree_correction"):
         Config(degree_correction=value)
+
+
+# ---------------------------------------------------------------------------
+# Self-loops in binary-count modes (weighted_SBM / separate group graph) would add
+# one stub to e_rr instead of two; they are rejected up front.
+# (The 2026-09 tempering-convention fix is verified by bit-identical output at
+# beta = 1 and by the argument in src/MCMC_core.h; a statistical test of it on the
+# depth parameters is not reliable because they mix too slowly -- see the review
+# notes in package-testing/directedstructure/review_2026_09.)
+# ---------------------------------------------------------------------------
+
+def test_self_loops_rejected_in_binary_count_modes():
+    G = _graph()
+    u = next(iter(G.nodes()))
+    G.add_edge(u, u)          # untyped, like the rest of _graph()
+    with pytest.raises(ValueError, match="self-loop"):
+        fit(Config(weighted_SBM=True), G, num_samples=2, burn_sweeps=1, show_progress=False)
