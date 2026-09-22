@@ -1,5 +1,5 @@
 """
-Copyright (c) 2025 Max Jerdee. All rights reserved.
+Copyright (c) 2025 Maximilian Jerdee. Released under the MIT License (see LICENSE).
 
 directedstructure: Infer communities, hierarchies, and their connection in directed graphs
 """
