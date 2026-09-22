@@ -19,10 +19,11 @@ extern bool verbose; // Whether to print verbose output during MCMC
 // inline bool debug = true; // Whether to print debug output during MCMC
 extern bool debug; // Whether to print debug output during MCMC
 
-// Timing variables
+// Timing variables.  thread_local: fit() runs chains concurrently on std::async
+// threads, and shared timers would be a data race (undefined behaviour).
 extern bool timing; // Whether to track detailed timing information
-extern std::chrono::high_resolution_clock::time_point start_time, end_time;
-extern double duration; // Accumulated or temporary duration (seconds)
+extern thread_local std::chrono::high_resolution_clock::time_point start_time, end_time;
+extern thread_local double duration; // Accumulated or temporary duration (seconds)
 
 // Constants
 // Base proposal step size (kept for backward compatibility)
@@ -44,9 +45,14 @@ const int GIBBS_REFINEMENT_SWEEPS = 1; // Change back to 10 // Number of Gibbs s
 
 const double DEPTH_PRIOR_WIDTH = 4.0; // Keeping with the depth paper, scale of half-Cauchy prior on depth parameters
 
-extern std::random_device rd;
-extern std::mt19937 rng; // Initialize Mersenne Twister (global RNG)
-extern std::uniform_real_distribution<double> uniform_random; // Uniform distribution on [0,1]
+// One generator PER THREAD.  fit() runs each chain on its own std::async thread,
+// and every MCMC constructor calls rng.seed(seed).  With a single shared
+// generator the chains reseeded one another and then drew from it concurrently:
+// a data race, chains that were not independent, and num_chains > 1 results that
+// could not be reproduced from the seed.  Each chain constructs its MCMC objects
+// on its own thread (see fit.cpp), so each gets, and seeds, its own stream.
+extern thread_local std::mt19937 rng;
+extern thread_local std::uniform_real_distribution<double> uniform_random; // Uniform on [0,1]
 
 
 // ---- merge/split tuning (auxiliary: cannot affect correctness) ----

@@ -61,7 +61,7 @@ def _check_input_validity(
     mixing_variation: str = _UNSET,
     variation_in: Optional[float] = _UNSET,
     variation_out: Optional[float] = _UNSET,
-    degree_correction: Optional[float] = _UNSET,
+    degree_correction: bool = _UNSET,
     mean_degree_scaling: Optional[float] = _UNSET,
     individual_depth: Optional[float] = _UNSET,
     group_depth: Optional[float] = _UNSET,
@@ -143,8 +143,6 @@ def _check_input_validity(
     valid_models = [
         "general_canonical",
         "traditional_SBM",
-        "traditional_DCSBM",
-        "traditional_GDCSBM",
         "simple_ASBM",
         "hybrid_ASBM",
         "planted_partition",
@@ -201,8 +199,6 @@ def _check_input_validity(
         variation_in = None
     if variation_out is _UNSET:
         variation_out = None
-    if degree_correction is _UNSET:
-        degree_correction = None
     if individual_depth is _UNSET:
         individual_depth = None
     if group_depth is _UNSET:
@@ -231,12 +227,9 @@ def _check_input_validity(
                     f"{name} must be between 0 and 1 (inclusive). Got {val}."
                 )
 
-    # degree_correction: None or 0 <= x <= 1
-    if degree_correction is not None:
-        if not isinstance(degree_correction, (int, float)):
-            raise TypeError("degree_correction must be a float in [0, 1] or None.")
-        if not (0.0 <= float(degree_correction) <= 1.0):
-            raise ValueError("degree_correction must be between 0 and 1 (inclusive).")
+    # degree_correction: a binary switch (the Config field is a bool)
+    if degree_correction is not _UNSET and not isinstance(degree_correction, bool):
+        raise TypeError("degree_correction must be True or False.")
 
     # individual_depth: None or float (positive, but must be numeric)
     if individual_depth is not None:
@@ -460,7 +453,7 @@ def _set_model_parameters(
     mixing_variation: str = _UNSET,
     variation_in: Optional[float] = _UNSET,
     variation_out: Optional[float] = _UNSET,
-    degree_correction: Optional[float] = _UNSET,
+    degree_correction: bool = _UNSET,
     individual_depth: Optional[float] = _UNSET,
     group_depth: Optional[float] = _UNSET,
     ties_parameter: Optional[float] = _UNSET,
@@ -477,40 +470,18 @@ def _set_model_parameters(
             mixing_variation = "simple"
         if assortative is _UNSET:
             assortative = False
-        if degree_correction is _UNSET:
-            degree_correction = 0.0
-    elif groups_model == "traditional_DCSBM":
-        if mixing_variation is _UNSET:
-            mixing_variation = "simple"
-        if assortative is _UNSET:
-            assortative = False
-        if degree_correction is _UNSET:
-            degree_correction = 0.5
-    elif groups_model == "traditional_GDCSBM":
-        if mixing_variation is _UNSET:
-            mixing_variation = "simple"
-        if assortative is _UNSET:
-            assortative = False
     elif groups_model == "simple_ASBM":
         if mixing_variation is _UNSET:
             mixing_variation = "simple"
-        if degree_correction is _UNSET:
-            degree_correction = 0.0
     elif groups_model == "hybrid_ASBM":
         if mixing_variation is _UNSET:
             mixing_variation = "internal"
-        if degree_correction is _UNSET:
-            degree_correction = 0.0
     elif groups_model == "planted_partition":
         if mixing_variation is _UNSET:
             mixing_variation = "none"
-        if degree_correction is _UNSET:
-            degree_correction = 0.0
     elif groups_model == "general_ASBM":
         if mixing_variation is _UNSET:
             mixing_variation = "general"
-        if degree_correction is _UNSET:
-            degree_correction = 0.0
     # hierarchy_model
     if hierarchy_model == "bradley_terry":
         ties_parameter = 0.0
@@ -554,8 +525,11 @@ def _set_model_parameters(
     # Set remaining _UNSET parameters to defaults
     if assortative is _UNSET:
         assortative = True
+    # Degree correction is a binary switch, independent of the model preset:
+    # True -> 0.5 (Dirichlet alpha = 1, uniform over degree sequences), False -> 0.
     if degree_correction is _UNSET:
-        degree_correction = None
+        degree_correction = True
+    degree_correction = 0.5 if degree_correction else 0.0
     if num_groups is _UNSET:
         num_groups = None
     if variation_in is _UNSET:

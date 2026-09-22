@@ -454,7 +454,6 @@ def test_planted_partition_q_is_not_always_one():
 
 @pytest.mark.parametrize("groups_model", [
     "traditional_SBM",
-    "traditional_DCSBM",
     "simple_ASBM",
     "planted_partition",
     "general_ASBM",

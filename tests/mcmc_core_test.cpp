@@ -200,7 +200,9 @@ std::vector<double> read_scores(const std::string& filename) {
 
 
 int main() {
-    const std::string gml_path = "examples/data/networks/english-football-restricted-wins_and_ties_integrated-scored.gml";
+    // The original input (english-football-restricted-wins_and_ties_integrated-scored.gml)
+    // was removed in 1b78c87; english-football-2025.gml is the current version of the dataset.
+    const std::string gml_path = "examples/data/networks/english-football-2025.gml";
     // const std::string gml_path = "examples/data/networks/friends.gml";
     // const std::string gml_path = "examples/data/networks/highschool_51.gml";
     // const std::string gml_path = "examples/data/networks/business_depts.gml";
@@ -228,6 +230,7 @@ int main() {
 
     MCMC m(wins,
         ties,
+        {},             // group_adj: empty = single-layer mode (added in 568cf60)
         partition,
         false,          // partition_fixed
         scores,

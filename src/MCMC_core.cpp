@@ -5,6 +5,7 @@
 #include "helpers.h"
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
 #include <iostream>
 #include <chrono>
 
@@ -256,6 +257,24 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
   Node 17 with weight 6.000000
   Node 0 with weight 0.000000
     */
+
+    // Outside weighted_SBM / two-layer mode the weights are edge MULTIPLICITIES:
+    // edge_counts truncates them (int +=) while node_degrees rounds them, so a
+    // non-integer weight would make the two describe different graphs.  Reject
+    // it.  (weighted_SBM and two-layer mode count edges as binary and are fine.)
+    if (!this->weighted_SBM && !this->two_layer_mode) {
+        for (int i = 0; i < n; ++i) {
+            for (const auto& edge : this->neighbors_com[i]) {
+                const double w = edge.second;
+                if (!std::isfinite(w) || w < 0.0 || std::abs(w - std::round(w)) > 1e-9) {
+                    throw std::invalid_argument(
+                        "edge (" + std::to_string(i) + ", " + std::to_string(edge.first)
+                        + ") has weight " + std::to_string(w)
+                        + "; edge weights must be non-negative integers unless weighted_SBM is used");
+                }
+            }
+        }
+    }
 
     double m_sum = 0.0;
     node_degrees.resize(n);

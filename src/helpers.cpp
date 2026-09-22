@@ -3,6 +3,7 @@
 #define _USE_MATH_DEFINES
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <iostream>
 #include <numeric>
 #include <stdexcept>
@@ -174,11 +175,16 @@ double variation_to_concentration(double variation, double tol, int max_iter) {
     }
   }
 
-  if (f_lo * f_hi > 0) {
-    // fallback: return a reasonable default
-    // In Python this recursively calls itself which would cause infinite loop,
-    // so just return mid-range value
-    return 1.0;
+  // variation(c) is strictly decreasing from 1 (c -> 0) to 0 (c -> inf), so a
+  // failed bracket means the target lies beyond one of the two ends.  Return
+  // that end's limit.  (Returning a fixed "reasonable" value here, as this used
+  // to, silently scored e.g. variation = 1e-9 -- essentially Poisson -- as
+  // concentration 1, i.e. a geometric distribution.)
+  if (f_hi > 0) {
+    return std::numeric_limits<double>::infinity();  // variation below f(hi): Poisson limit
+  }
+  if (f_lo < 0) {
+    return 0.0;                                      // variation above f(lo): c -> 0 limit
   }
 
   // bisection

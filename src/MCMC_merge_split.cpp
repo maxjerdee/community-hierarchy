@@ -54,6 +54,7 @@
 #include <limits>
 #include <numeric>
 #include <random>
+#include <stdexcept>
 #include <vector>
 
 namespace {
@@ -433,6 +434,12 @@ void MCMC::propose_merge_move() {
     nodes.insert(nodes.end(), group_members[s].begin(), group_members[s].end());
     std::sort(nodes.begin(), nodes.end());            // canonical order (P4)
 
+    // target for the reverse split: the original two groups.  Read off the
+    // partition BEFORE merging -- O(k), unlike a search of nodes_r per node.
+    std::vector<char> target(nodes.size());
+    for (std::size_t i = 0; i < nodes.size(); ++i)
+        target[i] = (partition[nodes[i]] == r) ? 0 : 1;
+
     const double log_fwd = merge_logprob(K);
 
     // --- perform the merge ---
@@ -447,13 +454,6 @@ void MCMC::propose_merge_move() {
     std::vector<char> staged(nodes.size());
     for (std::size_t i = 0; i < nodes.size(); ++i)
         staged[i] = (partition[nodes[i]] == ga) ? 0 : 1;
-
-    // target: the original two groups
-    std::vector<char> target(nodes.size());
-    for (std::size_t i = 0; i < nodes.size(); ++i) {
-        const bool in_r = std::find(nodes_r.begin(), nodes_r.end(), nodes[i]) != nodes_r.end();
-        target[i] = in_r ? 0 : 1;
-    }
 
     const double log_sweep = split_partition_logprob(nodes, ga, gb, staged, target);
 
@@ -524,7 +524,7 @@ void MCMC::propose_merge_split_move() {
     // the original split, as an assignment over `nodes`
     std::vector<char> original(nodes.size());
     for (std::size_t i = 0; i < nodes.size(); ++i)
-        original[i] = (std::find(nodes_r.begin(), nodes_r.end(), nodes[i]) != nodes_r.end()) ? 0 : 1;
+        original[i] = (partition[nodes[i]] == r) ? 0 : 1;   // before the merge: O(k)
 
     // ---- forward: merge, then stage and split again ----
     flip_nodes(nodes_r, s);
@@ -532,7 +532,10 @@ void MCMC::propose_merge_split_move() {
     int gb = stage_split(nodes, merged, MERGE_SPLIT_GIBBS_SWEEPS);
     int ga = -1;
     for (int nd : nodes) if (partition[nd] != gb) { ga = partition[nd]; break; }
-    if (ga < 0) { flip_nodes(nodes, num_groups); return; }   // degenerate; bail
+    // stage_split always leaves both sides non-empty.  If that ever failed, the
+    // chain would be sitting in the MERGED state, and returning would accept it
+    // with no Metropolis test -- so fail loudly rather than bias silently.
+    if (ga < 0) throw std::logic_error("propose_merge_split_move: staged split has an empty side");
 
     std::vector<char> staged(nodes.size());
     for (std::size_t i = 0; i < nodes.size(); ++i) staged[i] = (partition[nodes[i]] == ga) ? 0 : 1;
@@ -549,7 +552,7 @@ void MCMC::propose_merge_split_move() {
     int gb2 = stage_split(nodes, merged2, MERGE_SPLIT_GIBBS_SWEEPS);
     int ga2 = -1;
     for (int nd : nodes) if (partition[nd] != gb2) { ga2 = partition[nd]; break; }
-    if (ga2 < 0) { flip_nodes(nodes, num_groups); return; }
+    if (ga2 < 0) throw std::logic_error("propose_merge_split_move: reverse staged split has an empty side");
 
     std::vector<char> staged2(nodes.size());
     for (std::size_t i = 0; i < nodes.size(); ++i) staged2[i] = (partition[nodes[i]] == ga2) ? 0 : 1;

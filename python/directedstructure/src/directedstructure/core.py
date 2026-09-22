@@ -35,8 +35,6 @@ def _hdi(arr: np.ndarray, prob: float = 0.90) -> tuple[float, float]:
 _VALID_GROUPS_MODELS = frozenset({
     "general_canonical",
     "traditional_SBM",
-    "traditional_DCSBM",
-    "traditional_GDCSBM",
     "simple_ASBM",
     "hybrid_ASBM",
     "planted_partition",
@@ -66,10 +64,10 @@ class Config:
         Default: use model preset.
     variation_in, variation_out : float or None
         Fixed intra/inter-group mixing variation. None = infer freely. Default: model preset.
-    degree_correction : float or None
-        Fixed degree correction. None = infer freely. Default: model preset.
-    mean_degree_scaling : float or None
-        Fixed mean-degree scaling (gamma). None = infer. Default: model preset.
+    degree_correction : bool
+        True (default): degree correction with a uniform prior over each group's
+        degree sequence.  False: none.  This is the only place degree correction
+        is set; model names do not imply it.
     individual_depth : float or None
         Spread of individual scores within groups. None = infer. Default: model preset.
     group_depth : float or None
@@ -91,7 +89,7 @@ class Config:
     mixing_variation: object = _UNSET  # str | _UNSET
     variation_in: object = _UNSET  # float | None | _UNSET
     variation_out: object = _UNSET  # float | None | _UNSET
-    degree_correction: object = _UNSET  # float | None | _UNSET
+    degree_correction: bool = True
     individual_depth: object = _UNSET  # float | None | _UNSET
     group_depth: object = _UNSET  # float | None | _UNSET
     ties_parameter: object = _UNSET  # float | None | _UNSET
@@ -104,7 +102,13 @@ class Config:
         if self.groups_model not in _VALID_GROUPS_MODELS:
             raise ValueError(
                 f"Unknown groups_model '{self.groups_model}'. "
-                f"Valid options: {sorted(_VALID_GROUPS_MODELS)}"
+                f"Valid options: {sorted(_VALID_GROUPS_MODELS)}. "
+                "Degree correction is not part of the model name; set it with "
+                "Config(degree_correction=True | False)."
+            )
+        if not isinstance(self.degree_correction, bool):
+            raise ValueError(
+                f"degree_correction must be True or False, got {self.degree_correction!r}"
             )
         if self.hierarchy_model is not _UNSET and self.hierarchy_model not in _VALID_HIERARCHY_MODELS:
             raise ValueError(

@@ -51,7 +51,7 @@ def test_neutral_edge_routing():
     # Fix partition [0,0,1]
     for nd in G.nodes(): G.nodes[nd]["group"] = [0,0,1][nd]
 
-    cfg = ds.Config(group_attribute="group", weighted_SBM=True, degree_correction=0.5)
+    cfg = ds.Config(group_attribute="group", weighted_SBM=True, degree_correction=True)
     r = ds.fit(cfg, G, num_samples=5, seed=42, show_progress=False)
     sdf = r.samples_df()
     HW_api = sdf["H_W"].mean()
@@ -76,7 +76,7 @@ def test_neutral_edge_routing():
     # Now fix [0,1,1] and compare
     G2 = G.copy()
     for nd in G2.nodes(): G2.nodes[nd]["group"] = [0,1,1][nd]
-    r2 = ds.fit(ds.Config(group_attribute="group", weighted_SBM=True, degree_correction=0.5),
+    r2 = ds.fit(ds.Config(group_attribute="group", weighted_SBM=True, degree_correction=True),
                 G2, num_samples=5, seed=42, show_progress=False)
     sdf2 = r2.samples_df()
     HW_api2 = sdf2["H_W"].mean()
