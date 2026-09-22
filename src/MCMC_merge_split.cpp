@@ -62,10 +62,10 @@ constexpr double NEG_INF = -std::numeric_limits<double>::infinity();
 }
 
 // -----------------------------------------------------------------------------
-//  log pi of the current state.  Target is pi ∝ exp(-H_b - beta*H_A_G_b), which
-//  is the same convention propose_single_site_move relies on: its proposal
-//  cancels H_b exactly, leaving only beta*delta_H_A_G_b in the acceptance.
-//  Merge/split proposals do NOT cancel H_b, so H_b appears explicitly here.
+//  log pi of the current LABELLED state.  Merge/split proposals do not cancel
+//  H_b, so it appears explicitly; the label-multiplicity factor below converts
+//  to the partition-level target q! exp(-...), which is also what
+//  propose_single_site_move samples (its proposal cancels q! exp(-H_b)).
 // -----------------------------------------------------------------------------
 double MCMC::merge_split_log_pi() const {
     // directedstructure's target over the partition (scores held fixed by these

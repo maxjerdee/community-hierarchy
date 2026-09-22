@@ -65,9 +65,13 @@ void MCMC::propose_move() {
 /**
  * propose_single_site_move: Move a single node to a different group
  *
- * Proposal samples from the partition prior so the Hastings ratio exactly
- * cancels H_b; acceptance is based only on the full likelihood change
- * (H_A_G_b + H_s_G_b_depths).  See arXiv:2501.07668.
+ * The Hastings ratio of this proposal exactly cancels the prior of the
+ * PARTITION, q! exp(-H_b) -- not the labelled exp(-H_b): for a split into a new
+ * group, forward (1/q)(1/n_r)(q/n) and reverse (1/(q+1))(1-q/n)(1/q) against
+ * exp(-dH_b) = q/((n-q) n_r) leave 1/(q+1) = q!/(q+1)!.  So the chain samples
+ * partitions with weight q! exp(-H_b) x ..., the same target the merge/split
+ * label factors produce.  The acceptance involves only
+ * beta*dH_A_G_b + dH_s_G_b_depths.  See arXiv:2501.07668.
  *
  * Node selection: pick a group uniformly, then a node uniformly from that group.
  * - Singleton node (empties group): with prob (K-1)/n do nothing; otherwise merge
@@ -120,7 +124,7 @@ void MCMC::propose_single_site_move() {
 
     flip_nodes({node}, new_group);
 
-    // The proposal cancels H_b exactly.  Only the data likelihood is tempered: the
+    // The proposal cancels the partition prior.  Only the data likelihood is tempered: the
     // score prior H_s_G_b_depths enters at full weight (convention of MCMC_core.h).
     double delta_H = beta * (H_A_G_b - H_A_G_b_old) + (H_s_G_b_depths - H_s_G_b_depths_old);
     if (uniform_random(rng) >= std::exp(-delta_H)) {

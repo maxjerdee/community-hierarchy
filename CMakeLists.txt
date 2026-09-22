@@ -63,6 +63,19 @@ if(BUILD_TESTING)
   target_compile_options(mcmc_core_test PRIVATE -Wall -Wextra)
   target_link_libraries(mcmc_core_test PRIVATE Catch2::Catch2WithMain)
 
+  # Plain-main() tests of the collective moves: the multi-node flip_nodes path
+  # (two oracles) and merge/split against exact targets.
+  foreach(t flip_nodes_multi_test merge_split_test)
+    add_executable(${t} tests/${t}.cpp
+      src/MCMC_core.cpp src/MCMC_proposals.cpp src/MCMC_merge_split.cpp
+      src/MCMC_bookkeeping.cpp src/helpers.cpp src/globals.cpp)
+    target_include_directories(${t} PRIVATE src)
+    target_compile_features(${t} PRIVATE cxx_std_17)
+  endforeach()
+
   include(CTest)
-  add_test(NAME mcmc_core_test COMMAND mcmc_core_test)
+  # mcmc_core_test reads examples/data/... relative to the repository root.
+  add_test(NAME mcmc_core_test COMMAND mcmc_core_test WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+  add_test(NAME flip_nodes_multi_test COMMAND flip_nodes_multi_test)
+  add_test(NAME merge_split_test COMMAND merge_split_test)
 endif()
