@@ -266,7 +266,7 @@ PYBIND11_MODULE(MCMC_core, m) {
              py::arg("variation_in_fixed") = false,
              py::arg("variation_out") = 1.0,
              py::arg("variation_out_fixed") = false,
-             py::arg("degree_correction") = 1.0,
+             py::arg("degree_correction") = 0.5,
              py::arg("degree_correction_fixed") = false,
              py::arg("individual_depth") = 1.0,
              py::arg("individual_depth_fixed") = false,

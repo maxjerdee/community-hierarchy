@@ -30,7 +30,9 @@
  * @param individual_depth, group_depth: spread of scores within groups / of group means
  * @param ties_parameter: frequency of ties in the direction model
  * @param *_fixed: Flags for fixed (not inferred) parameters
- * @param seed: Seeds this thread's generator (see globals.h)
+ * @param seed: >= 0 reseeds this thread's generator (see globals.h); < 0 leaves
+ *        it as is -- fit() seeds it once per chain and builds every tempering
+ *        replica with -1, so the replicas share one stream seeded by seed + chain.
  * @param density_in/out_initial: < 0 = estimate from the initial partition
  * @param weighted_SBM: model real-valued edge weights (uniform simplex prior)
  */
@@ -132,8 +134,13 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
       accepted_variation_out_proposals(0) {
 
     
-    // Seed random number generator for reproducibility
-    rng.seed(seed);
+    // Seed random number generator for reproducibility (negative: keep the stream)
+    if (seed >= 0) rng.seed(static_cast<std::mt19937::result_type>(seed));
+
+    // degree_correction is a variation in [0, 1): 1 maps to Dirichlet concentration
+    // 0, where H_k is undefined (NaN).  The API only ever uses 0 or 0.5.
+    if (!(degree_correction >= 0.0 && degree_correction < 1.0))
+        throw std::invalid_argument("degree_correction must lie in [0, 1), got " + std::to_string(degree_correction));
 
     // === Initialize graph information ===
     n = this->partition.size(); // Number of nodes in the graph

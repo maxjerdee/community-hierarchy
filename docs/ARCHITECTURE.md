@@ -77,8 +77,13 @@ half-Cauchy(4).
   reproducible from `seed`.
 - Parallel tempering (`num_tempering_chains = K > 1`): K replicas per chain on
   a geometric β ladder from `beta/(K-1)` to `beta`, plus β = 0; adjacent swaps
-  after every sample; the β = `beta` replica is recorded. (All replicas share
-  their thread's generator, so only the last constructor's seed matters.)
+  after every sample; the β = `beta` replica is recorded. The chain's thread
+  generator is seeded once with `seed + chain`; replicas are built with seed −1
+  (no reseed) and share that stream.
+- Starting partition: unless `initial_partition` is given, every chain starts
+  from a greedy-modularity partition of the undirected graph (small groups
+  merged into their best-connected neighbour; `_gen_initial_partition` in
+  `core.py`), which avoids starting in the slow-to-coarsen many-groups regime.
 - `param_warmup_sweeps`: sweeps with partition and scores frozen, letting the
   continuous parameters settle first.
 - `timeout` (seconds, default 60) stops a fit early, **with fewer samples than

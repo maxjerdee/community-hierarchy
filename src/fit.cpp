@@ -1,4 +1,5 @@
 #include "fit.h"
+#include "globals.h"
 
 #include <atomic>
 #include <chrono>
@@ -22,6 +23,13 @@ FitResult fit(FitParams p) {
         // but start from the same initial state and evolve independently.
         std::vector<MCMC> chain_stack;
         chain_stack.reserve(static_cast<std::size_t>(p.num_tempering_chains));
+
+        // This thread's move generator: seeded once per chain.  The replicas below
+        // are built with seed -1 so they do not reseed it; they share one stream.
+        // (Previously each replica passed its own seed, but every constructor
+        // reseeded the same thread_local generator, so only the last one counted.)
+        // With one replica this is the same seed as before: seed + chain.
+        rng.seed(static_cast<std::mt19937::result_type>(p.seed + chain_id));
 
         std::mt19937_64 init_rng(static_cast<std::uint64_t>(p.seed + chain_id) * 2654435761ULL);
         std::uniform_real_distribution<double> unif01(0.0, 1.0);
@@ -51,7 +59,7 @@ FitResult fit(FitParams p) {
                 id_, p.individual_depth.has_value(),
                 gd,  p.group_depth.has_value(),
                 tp,  p.ties_parameter.has_value(),
-                p.seed + chain_id * p.num_tempering_chains + ci,
+                /*seed=*/-1,
                 -1.0, -1.0,
                 p.weighted_SBM
             );

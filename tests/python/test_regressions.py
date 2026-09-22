@@ -103,3 +103,52 @@ def test_self_loops_rejected_in_binary_count_modes():
     G.add_edge(u, u)          # untyped, like the rest of _graph()
     with pytest.raises(ValueError, match="self-loop"):
         fit(Config(weighted_SBM=True), G, num_samples=2, burn_sweeps=1, show_progress=False)
+
+
+# ---------------------------------------------------------------------------
+# Tempering replicas were each built with their own seed, but every MCMC
+# constructor reseeded the one thread_local generator, so only the last
+# replica's seed counted.  fit() now seeds the generator once per chain and
+# builds replicas with seed -1, which must leave the stream untouched.
+# ---------------------------------------------------------------------------
+def test_negative_seed_does_not_reseed_the_generator():
+    import directedstructure.MCMC_core as native
+
+    G = nx.gnp_random_graph(12, 0.3, seed=5, directed=True)
+    wins = [dict() for _ in range(12)]
+    for u, v in G.edges():
+        wins[u][v] = 1.0
+    ties = [dict() for _ in range(12)]
+
+    def make(seed):
+        return native.MCMC(wins=wins, ties=ties, partition=[i % 3 for i in range(12)],
+                           scores=[0.0] * 12, num_groups=3, seed=seed,
+                           degree_correction=0.5, degree_correction_fixed=True)
+
+    def trace(m):
+        out = []
+        for _ in range(20):
+            m.MCMC_sweep(1.0, 1, True)
+            out.append(m.H_A_b)
+        return out
+
+    reference = trace(make(11))
+    m = make(11)
+    make(-1)            # must not disturb the stream m is about to use
+    assert trace(m) == reference
+    m = make(11)
+    make(12)            # a non-negative seed does reseed it
+    assert trace(m) != reference
+
+
+def test_raw_mcmc_degree_correction_default_and_range():
+    # The raw class used to default to degree_correction=1.0 (Dirichlet
+    # concentration 0): H_k was NaN and the first sweep threw.
+    import directedstructure.MCMC_core as native
+    kw = dict(wins=[{1: 1.0}, {}, {}], ties=[{}, {}, {}], partition=[0, 0, 1],
+              scores=[0.0, 0.0, 0.0], num_groups=2)
+    m = native.MCMC(**kw)
+    assert np.isfinite(m.H_k)
+    m.MCMC_sweep(1.0, 1, True)
+    with pytest.raises(ValueError, match="degree_correction"):
+        native.MCMC(degree_correction=1.0, **kw)
