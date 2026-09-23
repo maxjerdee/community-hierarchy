@@ -330,7 +330,8 @@ PYBIND11_MODULE(MCMC_core, m) {
         .def_property_readonly("mdl_value",   &FitResultNative::mdl_value)
         .def_property_readonly("num_samples", &FitResultNative::num_samples)
         .def("mdl_partition",       &FitResultNative::mdl_partition)
-        .def("consensus_partition", &FitResultNative::consensus_partition)
+        .def("consensus_partition", &FitResultNative::consensus_partition,
+             py::arg("refine") = true)
         .def("coincidence_matrix",  &FitResultNative::coincidence_matrix_numpy)
         .def("score_means",         &FitResultNative::score_means)
         .def("score_stds",          &FitResultNative::score_stds)

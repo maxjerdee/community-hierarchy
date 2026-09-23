@@ -52,7 +52,11 @@ public:
 
     double mdl_value() const;
     std::vector<int> mdl_partition() const;
-    std::vector<int> consensus_partition() const;
+    // Dahl's method restricted to the modal number of groups, then (by default) a
+    // greedy single-node descent on the same loss with that count held.  Pass
+    // refine = false for the unrefined argmin over samples.
+    std::vector<int> consensus_partition(bool refine = true) const;
+    static void refine_consensus(std::vector<int>& p, const std::vector<double>& C, int n);
     std::vector<double> coincidence_matrix() const;
     std::vector<double> score_means() const;
     std::vector<double> score_stds() const;

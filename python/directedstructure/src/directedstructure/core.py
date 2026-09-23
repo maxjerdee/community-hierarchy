@@ -148,9 +148,12 @@ class Result:
         """Community partition from the sample achieving the minimum description length."""
         return np.asarray(self._native.mdl_partition(), dtype=int)
 
-    def consensus_partition(self) -> np.ndarray:
-        """Posterior sample whose coincidence matrix is closest in L1 to the aggregate."""
-        return np.asarray(self._native.consensus_partition(), dtype=int)
+    def consensus_partition(self, refine: bool = True) -> np.ndarray:
+        """Representative partition: the recorded sample at the modal number of
+        groups whose coincidence matrix is closest in L1 to the aggregate, then a
+        greedy single-node descent on the same loss with that group count held
+        fixed.  refine=False returns the unrefined argmin over samples."""
+        return np.asarray(self._native.consensus_partition(refine), dtype=int)
 
     @property
     def score_means(self) -> np.ndarray:

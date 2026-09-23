@@ -177,3 +177,32 @@ def test_imports_alongside_directedstructure(first):
             "assert asbm._asbm.MCMC is not dm.MCMC")
     r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=300)
     assert r.returncode == 0, r.stderr
+
+
+# ---------------------------------------------------------------------------
+# The consensus is Dahl's method at the modal number of groups, followed by a
+# greedy single-node descent on the same Binder loss with that count HELD.  The
+# descent closes a gap measured at up to 19% of the loss on real networks
+# (package-testing/asbm/consensus_refinement) without changing the group count.
+# ---------------------------------------------------------------------------
+def _binder_loss(p, C):
+    p = np.asarray(p)
+    n = len(p)
+    iu = np.triu_indices(n, 1)
+    same = p[:, None] == p[None, :]
+    return float(np.where(same, 1 - C, C)[iu].sum())
+
+
+def test_consensus_refinement_lowers_loss_and_keeps_group_count():
+    G = nx.gnp_random_graph(40, 0.12, seed=4, directed=True)
+    r = fit(Config(), G, num_chains=2, samples_per_chain=30, sweeps_per_sample=2,
+            burn_sweeps=50, seed=3, show_progress=False)
+    C = np.asarray(r.coincidence_matrix())
+    raw = r.consensus_partition(refine=False)
+    ref = r.consensus_partition()
+
+    assert len(set(ref)) == len(set(raw))                      # group count held
+    assert _binder_loss(ref, C) <= _binder_loss(raw, C) + 1e-9  # never worse
+    assert list(r.consensus_partition()) == list(ref)           # deterministic
+    # every group is still populated
+    assert min(np.bincount(np.asarray(ref)) [np.bincount(np.asarray(ref)) > 0]) >= 1

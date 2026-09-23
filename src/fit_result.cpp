@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <map>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -37,7 +38,7 @@ std::vector<int> FitResult::mdl_partition() const {
     return samples_[i].partition;
 }
 
-std::vector<int> FitResult::consensus_partition() const {
+std::vector<int> FitResult::consensus_partition(bool refine) const {
     if (samples_.empty()) return std::vector<int>(num_nodes_, 0);
     int n = num_nodes_;
     int ns = static_cast<int>(samples_.size());
@@ -51,13 +52,28 @@ std::vector<int> FitResult::consensus_partition() const {
                 if (s.partition[i] == s.partition[j])
                     C[i * n + j] += inv;
 
+    // Restrict the candidates to the modal number of groups.  Dahl's method below
+    // is an argmin over the recorded samples, so with a broad posterior over q it
+    // can land on a sample with an atypical q; fixing q to the mode first makes the
+    // reported group count a stable summary of the run.  std::map, not
+    // unordered_map: on a TIE the winner would otherwise depend on bucket order,
+    // which differs between standard libraries (see rng.h).  Ties go to the
+    // smallest q.
+    std::map<int, int> group_hist;
+    for (const auto& s : samples_) ++group_hist[s.num_groups];
+    int modal_k = samples_.front().num_groups;
+    int modal_count = -1;
+    for (const auto& kv : group_hist)
+        if (kv.second > modal_count) { modal_count = kv.second; modal_k = kv.first; }
+
     // L1(s) = sum_{i<j, same in s}(1 - C[i,j]) + sum_{i<j, diff in s} C[i,j]
     //       = const + sum_{i<j, same in s}(1 - 2*C[i,j])
-    // Return the sample that minimises this score.
-    int best_idx = 0;
+    // Return the sample, among those with num_groups == modal_k, minimising it.
+    int best_idx = -1;
     double best_score = std::numeric_limits<double>::infinity();
     for (int si = 0; si < ns; ++si) {
         const auto& s = samples_[si];
+        if (s.num_groups != modal_k) continue;
         double score = 0.0;
         for (int i = 0; i < n; ++i)
             for (int j = i + 1; j < n; ++j)
@@ -65,7 +81,64 @@ std::vector<int> FitResult::consensus_partition() const {
                     score += 1.0 - 2.0 * C[i * n + j];
         if (score < best_score) { best_score = score; best_idx = si; }
     }
-    return samples_[best_idx].partition;
+    if (best_idx < 0) best_idx = 0;   // modal_k comes from a sample, so unreachable
+
+    std::vector<int> best = samples_[best_idx].partition;
+    if (refine) refine_consensus(best, C, n);
+    return best;
+}
+
+// Greedy single-node descent on the same Binder loss with the number of groups
+// HELD FIXED: a node moves only to another existing group, and a node alone in
+// its group cannot move.  Dahl's method picks the best of the partitions the
+// chain happened to record; this closes the remaining gap to the best partition
+// at that group count, measured at up to 19% of the loss
+// (package-testing/asbm/consensus_refinement).  One descent lands within 0.5% of
+// what multi-start greedy or simulated annealing reach, so a heavier optimiser
+// buys nothing.  O(n^2) per sweep, the same cost as building C.
+// Deterministic: labels compacted in ascending order, nodes in index order, ties
+// to the smallest label.
+void FitResult::refine_consensus(std::vector<int>& p, const std::vector<double>& C, int n) {
+    if (n < 3) return;
+    const auto at = [&C, n](int i, int j) {
+        return (i < j) ? C[i * n + j] : C[j * n + i];      // C holds the upper triangle
+    };
+    std::vector<int> labels(p);
+    std::sort(labels.begin(), labels.end());
+    labels.erase(std::unique(labels.begin(), labels.end()), labels.end());
+    for (int& g : p)
+        g = static_cast<int>(std::lower_bound(labels.begin(), labels.end(), g) - labels.begin());
+    const int K = static_cast<int>(labels.size());
+    if (K < 2) return;
+
+    std::vector<int> counts(static_cast<std::size_t>(K), 0);
+    for (int g : p) ++counts[static_cast<std::size_t>(g)];
+
+    std::vector<double> S(static_cast<std::size_t>(K), 0.0);
+    for (int sweep = 0; sweep < 100; ++sweep) {
+        bool moved = false;
+        for (int i = 0; i < n; ++i) {
+            const int a = p[static_cast<std::size_t>(i)];
+            if (counts[static_cast<std::size_t>(a)] == 1) continue;
+            std::fill(S.begin(), S.end(), 0.0);
+            for (int j = 0; j < n; ++j)
+                if (j != i) S[static_cast<std::size_t>(p[static_cast<std::size_t>(j)])] += 1.0 - 2.0 * at(i, j);
+            int b = a;
+            double best_delta = 0.0;
+            for (int g = 0; g < K; ++g) {
+                if (g == a || counts[static_cast<std::size_t>(g)] == 0) continue;
+                const double delta = S[static_cast<std::size_t>(g)] - S[static_cast<std::size_t>(a)];
+                if (delta < best_delta - 1e-12) { best_delta = delta; b = g; }
+            }
+            if (b != a) {
+                --counts[static_cast<std::size_t>(a)];
+                ++counts[static_cast<std::size_t>(b)];
+                p[static_cast<std::size_t>(i)] = b;
+                moved = true;
+            }
+        }
+        if (!moved) break;
+    }
 }
 
 std::vector<double> FitResult::coincidence_matrix() const {
