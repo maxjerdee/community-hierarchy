@@ -1,4 +1,5 @@
 #include "MCMC_core.h"
+#include "globals.h"
 #include "fit.h"
 #include "fit_result.h"
 #include <pybind11/pybind11.h>
@@ -223,6 +224,20 @@ public:
 // ---------------------------------------------------------------------------
 
 PYBIND11_MODULE(MCMC_core, m) {
+    // Merge/split tuning dials.  Auxiliary variables: they change the proposal
+    // distribution and hence the acceptance rate, never the target (see
+    // src/MCMC_merge_split.cpp).  Exposed for experiments, not part of the API.
+    m.def("set_prestage_mode", [](int mode){ MERGE_SPLIT_PRESTAGE_MODE = mode; },
+          py::arg("mode"),
+          "0=all three (default), 1=random split, 2=sequential spreading, 3=sequential coalescence");
+    m.def("get_prestage_mode", [](){ return MERGE_SPLIT_PRESTAGE_MODE; });
+    m.def("set_staging_sweeps", [](int M){ MERGE_SPLIT_GIBBS_SWEEPS = M; }, py::arg("M"),
+          "Gibbs sweeps used to refine a staged split (Peixoto's M)");
+    m.def("get_staging_sweeps", [](){ return MERGE_SPLIT_GIBBS_SWEEPS; });
+    m.def("set_merge_split_weight", [](double w){ MERGE_SPLIT_WEIGHT = w; }, py::arg("w"),
+          "relative weight of each collective move; <0 = linear-time default");
+    m.def("get_merge_split_weight", [](){ return MERGE_SPLIT_WEIGHT; });
+
     // --- MCMC class (kept for testing / advanced use) ---
     // module_local(): asbm and directedstructure each define a bare (un-namespaced)
     // MCMC and FitResultNative, so both compile to the same RTTI name.  pybind11's
