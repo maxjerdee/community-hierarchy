@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import directedstructure as ds
 
 here = Path(__file__).resolve().parents[1]
-G = nx.read_gml(here / "data" / "networks" / "english-football-2025.gml", label="id")
+G = nx.read_gml(here / "data" / "networks" / "english-football.gml", label="id")
 
 result = ds.fit(
     ds.Config(),
@@ -51,7 +51,7 @@ plt.close(fig_a)
 print("Saved node properties plot to:", plot_a)
 
 # Adjacency matrix reordered by inferred community
-fig_b, _ = ds.plot_adjacency_matrix(result, G, title="english-football-2025")
+fig_b, _ = ds.plot_adjacency_matrix(result, G, title="english-football")
 plot_b = Path(__file__).resolve().parent / "adjacency.png"
 fig_b.savefig(plot_b, dpi=150, bbox_inches="tight")
 plt.close(fig_b)
