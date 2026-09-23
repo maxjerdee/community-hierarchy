@@ -111,3 +111,29 @@ half-Cauchy(4).
   see the asbm singleton-trap notes.
 - Self-loops are rejected in `weighted_SBM` and two-layer mode (binary edge
   counts cannot represent them).
+
+## After changing anything in `src/`
+
+Every binding keeps its own copy of the compiled core, and none of them notices
+that the others are stale. A stale artifact looks exactly like a numerical
+disagreement, so rebuild all of them, or expect to lose an afternoon:
+
+```bash
+cmake --build build -j                                   # native + the Python extension
+python -m pip install -e . --no-build-isolation --no-deps # editable installs serve a COPY under site-packages
+emcmake cmake -S . -B build-wasm -DCMAKE_BUILD_TYPE=Release && cmake --build build-wasm -j
+```
+
+`tests/python/test_build_freshness.py` fails loudly when the extension or the wasm
+bundle is older than `src/`, with the command to fix it. Run
+it first when a comparison between two bindings disagrees.
+
+Two traps worth knowing:
+
+- **The editable install serves the extension from a copy** under
+  `site-packages`, not from the source tree. `cmake --build` alone updates the
+  tree and leaves `import directedstructure` on the old binary.
+- **A stale wasm bundle passes any test that only compares description
+  lengths.** The consensus partition can change with no change to any sample's
+  DL, which is exactly how the refinement in 0245bd5 slipped past a green
+  parity suite. Compare partitions, not just numbers.

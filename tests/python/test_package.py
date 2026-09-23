@@ -84,6 +84,17 @@ def _small_graph() -> nx.DiGraph:
 # fit() and Result
 # ---------------------------------------------------------------------------
 
+@pytest.fixture(scope="module")
+def small_result():
+    """One fit of _small_graph(), shared by the tests that only inspect a Result.
+
+    These assert on shapes, columns and dtypes, not on any particular fit, so
+    refitting per test bought nothing but wall time (~15 fits of the same graph).
+    """
+    return fit(Config(), _small_graph(), num_samples=20, timeout=10.0)
+
+
+
 def test_fit_returns_result():
     G = _small_graph()
     config = Config()
@@ -103,9 +114,9 @@ def test_fit_bad_graph_type():
         fit(config, "not_a_graph")  # type: ignore[arg-type]
 
 
-def test_result_samples_df_shape():
+def test_result_samples_df_shape(small_result):
+    result = small_result
     G = _small_graph()
-    result = fit(Config(), G, num_samples=20, timeout=10.0)
     df = result.samples_df()
     assert len(df) > 0
     for node in G.nodes():
@@ -116,35 +127,35 @@ def test_result_samples_df_shape():
         assert param in df.columns
 
 
-def test_result_mdl_value():
+def test_result_mdl_value(small_result):
+    result = small_result
     G = _small_graph()
-    result = fit(Config(), G, num_samples=20, timeout=10.0)
     assert isinstance(result.mdl_value, float)
     df = result.samples_df()
     total_dl = df["H_A_b"] + df["H_Adir_G_A_s_nu"] + df["H_s_G_b_depths"]
     assert result.mdl_value == pytest.approx(float(total_dl.min()))
 
 
-def test_result_mdl_partition_shape():
+def test_result_mdl_partition_shape(small_result):
+    result = small_result
     G = _small_graph()
-    result = fit(Config(), G, num_samples=20, timeout=10.0)
     p = result.mdl_partition
     assert isinstance(p, np.ndarray)
     assert len(p) == G.number_of_nodes()
 
 
-def test_result_score_means_shape():
+def test_result_score_means_shape(small_result):
+    result = small_result
     G = _small_graph()
-    result = fit(Config(), G, num_samples=20, timeout=10.0)
     s = result.score_means
     assert isinstance(s, np.ndarray)
     assert len(s) == G.number_of_nodes()
     assert s.dtype == float
 
 
-def test_result_score_stds_shape():
+def test_result_score_stds_shape(small_result):
+    result = small_result
     G = _small_graph()
-    result = fit(Config(), G, num_samples=20, timeout=10.0)
     s = result.score_stds
     assert isinstance(s, np.ndarray)
     assert len(s) == G.number_of_nodes()
@@ -152,9 +163,9 @@ def test_result_score_stds_shape():
     assert np.all(s >= 0)
 
 
-def test_result_parameter_df_params():
+def test_result_parameter_df_params(small_result):
+    result = small_result
     G = _small_graph()
-    result = fit(Config(), G, num_samples=20, timeout=10.0)
     with pytest.warns(DeprecationWarning, match="network_properties_df"):
         net_df = result.parameter_df
     expected = {
@@ -167,9 +178,9 @@ def test_result_parameter_df_params():
     assert "std" in net_df.columns
 
 
-def test_result_scores_df_shape():
+def test_result_scores_df_shape(small_result):
+    result = small_result
     G = _small_graph()
-    result = fit(Config(), G, num_samples=20, timeout=10.0)
     with pytest.warns(DeprecationWarning, match="node_properties_df"):
         scores_df = result.scores_df
     assert list(scores_df.columns) == ["node", "mean", "std"]
@@ -177,27 +188,27 @@ def test_result_scores_df_shape():
     assert set(scores_df["node"]) == set(G.nodes())
 
 
-def test_result_consensus_partition_shape():
+def test_result_consensus_partition_shape(small_result):
+    result = small_result
     G = _small_graph()
-    result = fit(Config(), G, num_samples=20, timeout=10.0)
     cp = result.consensus_partition()
     assert isinstance(cp, np.ndarray)
     assert len(cp) == G.number_of_nodes()
     assert cp.dtype in (np.int32, np.int64, int)
 
 
-def test_result_coincidence_matrix_shape():
+def test_result_coincidence_matrix_shape(small_result):
+    result = small_result
     G = _small_graph()
-    result = fit(Config(), G, num_samples=20, timeout=10.0)
     cm = result.coincidence_matrix()
     n = G.number_of_nodes()
     assert cm.shape == (n, n)
     np.testing.assert_allclose(np.diag(cm), np.ones(n))
 
 
-def test_result_summary_keys():
+def test_result_summary_keys(small_result):
+    result = small_result
     G = _small_graph()
-    result = fit(Config(), G, num_samples=20, timeout=10.0)
     with pytest.warns(DeprecationWarning, match="mdl_value"):
         s = result.summary
     assert "num_samples" in s
@@ -211,9 +222,9 @@ def test_result_summary_keys():
 # New API: network_properties_df and node_properties_df
 # ---------------------------------------------------------------------------
 
-def test_result_network_properties_df_columns():
+def test_result_network_properties_df_columns(small_result):
+    result = small_result
     G = _small_graph()
-    result = fit(Config(), G, num_samples=20, timeout=10.0)
     npdf = result.network_properties_df()
     assert list(npdf.columns) == ["parameter", "mean", "std", "hdi_lo", "hdi_hi"]
     params = set(npdf["parameter"])
@@ -254,9 +265,9 @@ def test_result_network_properties_df_agrees_with_old():
                                    err_msg=f"mean mismatch for {p}")
 
 
-def test_result_node_properties_df_columns():
+def test_result_node_properties_df_columns(small_result):
+    result = small_result
     G = _small_graph()
-    result = fit(Config(), G, num_samples=20, timeout=10.0)
     ndf = result.node_properties_df()
     assert list(ndf.columns) == ["node", "score_mean", "score_std", "group", "group_score_mean"]
     assert len(ndf) == G.number_of_nodes()
@@ -264,9 +275,9 @@ def test_result_node_properties_df_columns():
     assert ndf["group"].dtype in (np.int32, np.int64, int)
 
 
-def test_result_node_properties_df_partition_modes():
+def test_result_node_properties_df_partition_modes(small_result):
+    result = small_result
     G = _small_graph()
-    result = fit(Config(), G, num_samples=20, timeout=10.0)
     df_auto = result.node_properties_df(partition="auto")
     df_mdl  = result.node_properties_df(partition="mdl")
     df_cons = result.node_properties_df(partition="consensus")
@@ -295,9 +306,9 @@ def test_result_node_properties_df_auto_large_warns(monkeypatch):
             pass  # expected: column length mismatch after monkeypatching
 
 
-def test_result_node_properties_df_invalid_partition():
+def test_result_node_properties_df_invalid_partition(small_result):
+    result = small_result
     G = _small_graph()
-    result = fit(Config(), G, num_samples=20, timeout=10.0)
     with pytest.raises(Exception):  # C++ raises for unknown mode string
         result.node_properties_df(partition="bogus")
 
@@ -350,14 +361,8 @@ def test_fit_forwards_seed_and_chains_to_backend(monkeypatch):
     assert captured["seed"] == 99
 
 
-def test_fit_bad_config_type_raises():
-    with pytest.raises(TypeError, match="config must be an instance of Config"):
-        fit("not_a_config", _small_graph())  # type: ignore[arg-type]
 
 
-def test_fit_bad_graph_type_raises():
-    with pytest.raises(TypeError, match="G must be a networkx"):
-        fit(Config(), "not_a_graph")  # type: ignore[arg-type]
 
 
 def test_initial_partition_wrong_length_raises():
@@ -391,6 +396,7 @@ def test_initial_partition_explicit_is_used(monkeypatch):
 # planted_partition model smoke test
 # ---------------------------------------------------------------------------
 
+@pytest.mark.statistical
 def test_planted_partition_fit_runs():
     """planted_partition model must complete without error and return a Result."""
     G = _small_graph()
@@ -413,6 +419,7 @@ def test_planted_partition_fit_runs():
     assert "num_groups" in df.columns
 
 
+@pytest.mark.statistical
 def test_planted_partition_q_is_not_always_one():
     """With a structured graph and random init, planted_partition should not collapse to q=1."""
     G = _small_graph()
@@ -509,6 +516,7 @@ def _run_coincidence_native_wins_ties(num_chains: int, burn: int, samples: int, 
     return acc / num_chains
 
 
+@pytest.mark.statistical
 def test_wins_ties_3node_coincidence():
     """Coupled coincidence matrix against Mathematica NIntegrate — the primary coupled validation.
 
@@ -565,6 +573,7 @@ def _tempering_coincidence(seed, num_chains, samples_per_chain, timeout):
     return coin, ns
 
 
+@pytest.mark.statistical
 def test_tempering_swap_uses_full_energy():
     """Parallel tempering swap criterion must use data terms only (H_A_G_b + H_Adir).
 
@@ -619,6 +628,7 @@ def test_fit_forwards_num_tempering_chains(monkeypatch):
     )
 
 
+@pytest.mark.statistical
 def test_prior_q_uniform():
     """At beta=0 the proposal cancels H_b exactly, so q ~ Uniform(1,...,n).
 

@@ -90,6 +90,12 @@ repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
 minversion = "6.0"
 addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
 xfail_strict = true
+# Sampling-based checks: correct but slow, and they dominate the suite.
+#   pytest -m "not statistical"   fast loop while editing
+#   pytest                        everything, as CI runs it
+markers = [
+  "statistical: needs a real MCMC run; slow and tolerance-based",
+]
 filterwarnings = [
   "error",
 ]
