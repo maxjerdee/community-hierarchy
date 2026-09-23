@@ -224,7 +224,13 @@ public:
 
 PYBIND11_MODULE(MCMC_core, m) {
     // --- MCMC class (kept for testing / advanced use) ---
-    py::class_<MCMC>(m, "MCMC")
+    // module_local(): asbm and directedstructure each define a bare (un-namespaced)
+    // MCMC and FitResultNative, so both compile to the same RTTI name.  pybind11's
+    // type registry is shared process-wide, so without this the second package
+    // imported raises  ImportError: generic_type: type "MCMC" is already registered
+    // (or, where the import error is caught, degrades silently).  Keep it on both
+    // classes in BOTH packages: either can be imported first.
+    py::class_<MCMC>(m, "MCMC", py::module_local())
         .def(py::init<
                  std::vector<std::unordered_map<int, double>>,
                  std::vector<std::unordered_map<int, double>>,
@@ -320,7 +326,7 @@ PYBIND11_MODULE(MCMC_core, m) {
                 py::arg("new_value"));
 
     // --- FitResultNative class ---
-    py::class_<FitResultNative>(m, "FitResult")
+    py::class_<FitResultNative>(m, "FitResult", py::module_local())
         .def_property_readonly("mdl_value",   &FitResultNative::mdl_value)
         .def_property_readonly("num_samples", &FitResultNative::num_samples)
         .def("mdl_partition",       &FitResultNative::mdl_partition)

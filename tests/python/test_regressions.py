@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import subprocess
+import sys
+
 import networkx as nx
 import numpy as np
 import pytest
@@ -152,3 +155,25 @@ def test_raw_mcmc_degree_correction_default_and_range():
     m.MCMC_sweep(1.0, 1, True)
     with pytest.raises(ValueError, match="degree_correction"):
         native.MCMC(degree_correction=1.0, **kw)
+
+
+# ---------------------------------------------------------------------------
+# asbm and directedstructure each bind a bare (un-namespaced) MCMC and
+# FitResultNative.  Their RTTI names collide, and pybind11's type registry is
+# process-wide, so importing both used to raise
+#   ImportError: generic_type: type "MCMC" is already registered!
+# py::module_local() on both classes keeps each registration inside its own
+# extension module.  Either package can be imported first, so test both orders.
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize("first", ["asbm", "directedstructure"])
+def test_imports_alongside_directedstructure(first):
+    pytest.importorskip("asbm")
+    second = "directedstructure" if first == "asbm" else "asbm"
+    code = (f"import {first}, {second}; "
+            "import asbm.core as ac, directedstructure.core as dc; "
+            "assert ac.fit_backend is not None, 'asbm native backend failed to load'; "
+            "assert dc._fit_backend is not None, 'ds native backend failed to load'; "
+            "import asbm._asbm, directedstructure.MCMC_core as dm; "
+            "assert asbm._asbm.MCMC is not dm.MCMC")
+    r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=300)
+    assert r.returncode == 0, r.stderr
