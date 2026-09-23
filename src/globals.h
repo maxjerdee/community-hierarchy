@@ -112,4 +112,11 @@ extern int MERGE_SPLIT_MOVES;
 // fraction depend on q and bias the q-marginal.
 extern double MERGE_SPLIT_WEIGHT;
 
+// Divisor of the equal-spend rule fit() applies while MERGE_SPLIT_WEIGHT is
+// negative: w = q / (C * M).  C folds in the staging overhead (each staged node
+// is flipped and flipped back, and the split is scored both ways), measured at
+// 1-2 per staged node, giving C ~ 9 for "collective moves cost about as much per
+// sweep as the single-node moves".  See package-testing/asbm/merge_split_weight.
+extern double MERGE_SPLIT_EQUAL_SPEND_C;
+
 #endif // GLOBALS_H

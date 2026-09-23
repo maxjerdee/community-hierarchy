@@ -2,6 +2,7 @@
 #include "globals.h"
 #include "rng.h"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -135,11 +136,32 @@ FitResult fit(FitParams p) {
             }
         }
 
+        // Equal-spend weighting of the collective moves, while the caller leaves
+        // MERGE_SPLIT_WEIGHT negative.  The old auto value, the linear-time
+        // condition n/(M(n+m)), budgets against a WORST-CASE cost of M(n+m) per
+        // collective move, as if restaging touched the whole graph; it restages
+        // only the two groups involved, k ~ 2n/q nodes.  The overestimate grows
+        // with density, so on a dense network collective moves stop firing (~5 in
+        // a 1250-sweep run on the 456-node English football graph, which then
+        // missed the leagues by ~1000 nats).  Equating the true cost with the
+        // single-node sweep cost gives w = q/(6 C M); the per-node cost cancels,
+        // which is why density does not appear.
+        //
+        // Updated only DURING BURN-IN and frozen for sampling: q changes as the
+        // chain runs, and a state-dependent weight would bias the q-marginal.
+        // Never below the old linear-time value, so no run loses collective moves.
+        auto retune = [&]() {
+            for (int ci = 0; ci < p.num_tempering_chains; ++ci)
+                chain_stack[static_cast<std::size_t>(ci)].retune_collective_weight();
+        };
+        retune();                                        // from the initial partition
+
         // Burn-in
         for (int b = 0; b < p.burn_sweeps && elapsed() < p.timeout && !aborted(); ++b) {
             for (int ci = 0; ci < p.num_tempering_chains; ++ci)
                 chain_stack[ci].MCMC_sweep(betas[ci], p.sweeps_per_sample, p.merge_split_enabled);
             do_swaps();
+            retune();                                    // adapt, then freeze at sampling
             if (p.on_burn_in) {
                 int done = completed_burn.fetch_add(1, std::memory_order_relaxed) + 1;
                 p.on_burn_in(done, p.num_chains * p.burn_sweeps);

@@ -102,6 +102,10 @@ public:
     bool variation_in_fixed;
     bool variation_out_fixed;
     bool degree_correction_fixed;
+    // Per-object override of MERGE_SPLIT_WEIGHT, set by fit()'s equal-spend
+    // retuning.  Negative means "use the global".  Kept per object so adapting
+    // one chain cannot leak into another, into the caller, or into a later fit.
+    double collective_weight_override = -1.0;
     bool num_groups_fixed; // Fix the number of groups
     bool individual_depth_fixed; // Fix the individual depth parameter
     bool group_depth_fixed; // Fix the group depth parameter
@@ -193,6 +197,13 @@ public:
     int accepted_ties_parameter_proposals = 0; // Total number of ties_parameter proposals
 
     /* API */
+    // Equal-spend weighting of the collective moves: sets
+    // collective_weight_override from the CURRENT q.  Call it during burn-in and
+    // stop once sampling starts -- q changes as the chain runs, and a
+    // state-dependent weight would bias the q-marginal.  No-op when the caller
+    // has fixed MERGE_SPLIT_WEIGHT.  See globals.h for the derivation.
+    void retune_collective_weight();
+
     void MCMC_sweep(double beta = 1.0, int num_sweeps = 1, bool merge_split_enabled = true); // Perform MCMC sweeps
     void change_parameter(const std::string& param_name, double new_value); // Change a continuous parameter. Accessible for Python entropic sampling.
 

@@ -237,6 +237,9 @@ PYBIND11_MODULE(MCMC_core, m) {
     m.def("set_merge_split_weight", [](double w){ MERGE_SPLIT_WEIGHT = w; }, py::arg("w"),
           "relative weight of each collective move; <0 = linear-time default");
     m.def("get_merge_split_weight", [](){ return MERGE_SPLIT_WEIGHT; });
+    m.def("set_equal_spend_c", [](double c){ MERGE_SPLIT_EQUAL_SPEND_C = c; }, py::arg("c"),
+          "divisor of fit()'s equal-spend rule w = q/(C*M); larger = fewer collective moves");
+    m.def("get_equal_spend_c", [](){ return MERGE_SPLIT_EQUAL_SPEND_C; });
 
     // --- MCMC class (kept for testing / advanced use) ---
     // module_local(): asbm and directedstructure each define a bare (un-namespaced)

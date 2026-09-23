@@ -429,7 +429,8 @@ void MCMC::MCMC_sweep(double beta, int num_sweeps, bool merge_split_enabled) {
     // MERGE_SPLIT_MOVES selects which of the three to include (testing dial).
     if (!partition_fixed && merge_split_enabled) {
         // See MERGE_SPLIT_WEIGHT in globals.h for why this is not simply 1.0.
-        double w = MERGE_SPLIT_WEIGHT;
+        double w = collective_weight_override >= 0.0 ? collective_weight_override
+                                                     : MERGE_SPLIT_WEIGHT;
         if (w < 0.0) {
             const double denom = static_cast<double>(MERGE_SPLIT_GIBBS_SWEEPS > 0
                                                      ? MERGE_SPLIT_GIBBS_SWEEPS : 1)
@@ -672,4 +673,12 @@ void MCMC::change_parameter(const std::string& param_name, double new_value) {
             print("Unknown parameter name: " + param_name);
         }
     }
+}
+
+void MCMC::retune_collective_weight() {
+    if (MERGE_SPLIT_WEIGHT >= 0.0) return;            // caller fixed it
+    const double M = static_cast<double>(MERGE_SPLIT_GIBBS_SWEEPS > 0 ? MERGE_SPLIT_GIBBS_SWEEPS : 1);
+    const double equal_spend = static_cast<double>(num_groups) / (MERGE_SPLIT_EQUAL_SPEND_C * M);
+    const double linear_time = (n + m) > 0 ? static_cast<double>(n) / (M * (n + m)) : 1.0;
+    collective_weight_override = std::max(equal_spend, linear_time);
 }
