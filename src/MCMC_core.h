@@ -4,12 +4,23 @@
 #define MCMC_CORE_H
 
 #include <string>
+#include <algorithm>
 #include <vector>
+#include <utility>
 #include <unordered_map>
 #include <set>
 
 class MCMC {
 public:
+    // Adjacency rows are kept SORTED by node id: they are summed over, and an
+    // unordered_map's iteration order differs between standard libraries, which
+    // makes a seeded run diverge between the native and wasm builds (see rng.h).
+    using AdjacencyRow = std::vector<std::pair<int, double>>;
+    static const double* find_edge(const AdjacencyRow& row, int j) {
+        const auto it = std::lower_bound(row.begin(), row.end(), j,
+            [](const std::pair<int, double>& e, int key) { return e.first < key; });
+        return (it != row.end() && it->first == j) ? &it->second : nullptr;
+    }
     // wins/ties: directed and neutral edges (adjacency maps).  group_adj: optional separate
     // undirected graph that drives the community structure (two-layer mode; empty = use
     // wins + ties).  *_fixed flags exclude a variable from the moves.  density_*_initial < 0
@@ -45,11 +56,11 @@ public:
     // Graph variables
     int n; // Number of nodes
     int m; // Number of edges
-    std::vector<std::unordered_map<int, double>> wins; // wins[i] is the list of wins for node i (dominant edges where i dominates j)
-    std::vector<std::unordered_map<int, double>> losses; // losses[i] is the list of losses for node i (dominant edges where j dominates i)
-    std::vector<std::unordered_map<int, double>> ties; // ties[i] is the list of ties for node i (neutral/reciprocated edges)
-    std::vector<std::unordered_map<int, double>> neighbors; // neighbors[i] is the list of neighbors of node i (undirected, from A — used for H_Adir normalization)
-    std::vector<std::unordered_map<int, double>> neighbors_com; // undirected adjacency used for group (SBM) structure (= neighbors in single-layer mode, = group_adj in two-layer mode)
+    std::vector<std::vector<std::pair<int, double>>> wins;  // wins[i] = dominant edges i -> j, SORTED by node id
+    std::vector<std::vector<std::pair<int, double>>> losses;  // losses[i] = dominant edges j -> i, SORTED by node id
+    std::vector<std::vector<std::pair<int, double>>> ties;  // ties[i] = neutral edges at i, SORTED by node id
+    std::vector<std::vector<std::pair<int, double>>> neighbors;  // neighbors[i] = undirected adjacency from A (H_Adir normalisation), SORTED by node id
+    std::vector<std::vector<std::pair<int, double>>> neighbors_com;  // undirected adjacency driving the groups (= neighbors, or group_adj in two-layer mode), SORTED by node id
     bool two_layer_mode; // true when a separate group_adj graph drives community structure
     bool weighted_SBM = false; // true → model real-valued edge weights via uniform simplex prior
 
@@ -65,7 +76,10 @@ public:
     // is reversible w.r.t. exp(-H_s_G_b_depths), which is what forces H_s to be untempered.)
     double beta;
     // Map of the types of proposals to their weights (for weighted random selection of proposal types)
-    std::unordered_map<std::string, double> proposal_weights;
+    // Fixed order, not an unordered_map: propose_move walks this to CHOOSE the
+    // move, so bucket order (libstdc++ vs libc++) would pick different moves for
+    // the same draw.  See rng.h.
+    std::vector<std::pair<std::string, double>> proposal_weights;
 
     /* Monte Carlo state variables */
     // Latent variables (changes are proposed on these variables)

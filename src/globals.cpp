@@ -13,7 +13,6 @@ thread_local double duration = 0.0;
 
 // Default-constructed: every MCMC constructor seeds it (MCMC_core.cpp).
 thread_local std::mt19937 rng;
-thread_local std::uniform_real_distribution<double> uniform_random(0.0, 1.0);
 
 int MERGE_SPLIT_GIBBS_SWEEPS = 10;
 int MERGE_SPLIT_PRESTAGE_MODE = 0;

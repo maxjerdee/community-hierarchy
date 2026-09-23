@@ -1,5 +1,6 @@
 #include "fit.h"
 #include "globals.h"
+#include "rng.h"
 
 #include <atomic>
 #include <chrono>
@@ -32,19 +33,18 @@ FitResult fit(FitParams p) {
         rng.seed(static_cast<std::mt19937::result_type>(p.seed + chain_id));
 
         std::mt19937_64 init_rng(static_cast<std::uint64_t>(p.seed + chain_id) * 2654435761ULL);
-        std::uniform_real_distribution<double> unif01(0.0, 1.0);
 
         for (int ci = 0; ci < p.num_tempering_chains; ++ci) {
-            double vi  = p.variation_in.value_or(unif01(init_rng));
-            double vo  = p.variation_out.value_or(unif01(init_rng));
-            double dc  = p.degree_correction.value_or(unif01(init_rng));
+            double vi  = p.variation_in.value_or(next_uniform(init_rng));
+            double vo  = p.variation_out.value_or(next_uniform(init_rng));
+            double dc  = p.degree_correction.value_or(next_uniform(init_rng));
             double id_ = p.individual_depth.has_value()      ? *p.individual_depth :
                          p.individual_depth_init.has_value() ? *p.individual_depth_init
-                                                             : unif01(init_rng);
+                                                             : next_uniform(init_rng);
             double gd  = p.group_depth.has_value()           ? *p.group_depth :
                          p.group_depth_init.has_value()      ? *p.group_depth_init
-                                                             : unif01(init_rng);
-            double tp  = p.ties_parameter.value_or(unif01(init_rng));
+                                                             : next_uniform(init_rng);
+            double tp  = p.ties_parameter.value_or(next_uniform(init_rng));
             int    ng  = p.num_groups.value_or(initial_num_groups);
 
             chain_stack.emplace_back(
@@ -81,7 +81,6 @@ FitResult fit(FitParams p) {
         }
 
         std::mt19937_64 swap_rng(static_cast<std::uint64_t>(p.seed + chain_id) + 999983ULL);
-        std::uniform_real_distribution<double> swap_unif(0.0, 1.0);
 
         // Swap criterion: the tempered energy, i.e. the data likelihood terms only.
         // Every move targets exp(-(H_b + H_s_G_b_depths + priors + beta * H_total)),
@@ -99,7 +98,7 @@ FitResult fit(FitParams p) {
             for (int ci = 0; ci < p.num_tempering_chains - 1; ++ci) {
                 double db = betas[ci + 1] - betas[ci];
                 double dH = H_total(chain_stack[ci + 1]) - H_total(chain_stack[ci]);
-                if (swap_unif(swap_rng) < std::exp(db * dH))
+                if (next_uniform(swap_rng) < std::exp(db * dH))
                     std::swap(chain_stack[ci], chain_stack[ci + 1]);
             }
         };

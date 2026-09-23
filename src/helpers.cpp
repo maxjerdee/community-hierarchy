@@ -265,7 +265,7 @@ std::pair<T, double> sample_log_weights_map(const std::unordered_map<T, double>&
 template std::pair<int, double> sample_log_weights_map<int>(const std::unordered_map<int, double>& log_weights_map);
 
 double positive_uniform_proposal(double a, double move_sigma) {
-  double a_new = a + std::normal_distribution<double>(0, move_sigma)(rng);
+  double a_new = a + next_normal(rng, move_sigma);
   // Impose reflective boundary conditions p_new \in [0,inf)
   a_new = fabs(a_new);
   return a_new;
@@ -275,7 +275,7 @@ double positive_uniform_proposal(double a, double move_sigma) {
 // In order to obtain a local move of a that respects the prior distribution P(a),
 // We compute p = cdf(a), apply a small uniform Gaussian perturbation to p, 
 double uniform_proposal(double p, double move_sigma) {
-  double p_new = p + std::normal_distribution<double>(0, move_sigma)(rng);
+  double p_new = p + next_normal(rng, move_sigma);
   // Impose reflective boundary conditions p_new \in [0,1]
   p_new = fmod(p_new + 2.0, 2.0);
   if(p_new > 1.0){

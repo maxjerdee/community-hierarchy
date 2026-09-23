@@ -237,8 +237,8 @@ int MCMC::prestage_random(const std::vector<int>& nodes, int /*ga*/) {
     const int k = static_cast<int>(nodes.size());
     std::vector<int> shuffled(nodes);
     for (int i = k - 1; i > 0; --i)
-        std::swap(shuffled[i], shuffled[std::uniform_int_distribution<int>(0, i)(rng)]);
-    const int m = std::uniform_int_distribution<int>(1, k - 1)(rng);
+        std::swap(shuffled[i], shuffled[next_int(rng, 0, i)]);
+    const int m = next_int(rng, 1, k - 1);
     std::vector<int> subset(shuffled.begin(), shuffled.begin() + m);
     flip_nodes(subset, num_groups);           // proper subset, so ga cannot empty
     return partition[subset[0]];
@@ -262,7 +262,7 @@ int MCMC::prestage_sequential(const std::vector<int>& nodes, int ga, bool coales
     const int k = static_cast<int>(nodes.size());
     std::vector<int> order(nodes);
     for (int i = k - 1; i > 0; --i)
-        std::swap(order[i], order[std::uniform_int_distribution<int>(0, i)(rng)]);
+        std::swap(order[i], order[next_int(rng, 0, i)]);
 
     const int seed_a = order[0];
     const int seed_b = order[1];
@@ -302,7 +302,7 @@ int MCMC::prestage_sequential(const std::vector<int>& nodes, int ga, bool coales
 // -----------------------------------------------------------------------------
 int MCMC::stage_split(const std::vector<int>& nodes, int ga, int sweeps) {
     const int which = (MERGE_SPLIT_PRESTAGE_MODE == 0)
-                    ? std::uniform_int_distribution<int>(0, 2)(rng)
+                    ? next_int(rng, 0, 2)
                     : MERGE_SPLIT_PRESTAGE_MODE - 1;
     int gb;
     if (which == 0)      gb = prestage_random(nodes, ga);
@@ -371,7 +371,7 @@ void MCMC::propose_split_move() {
     const double H_s_G_b_depths_old = H_s_G_b_depths;
 
     const double H_b_old = H_b;
-    const int r = std::uniform_int_distribution<int>(0, K - 1)(rng);
+    const int r = next_int(rng, 0, K - 1);
     std::vector<int> nodes = group_members[r];
     if (nodes.size() < 2) return;                     // singleton: nothing to split
     std::sort(nodes.begin(), nodes.end());            // canonical order (P4)
@@ -426,8 +426,8 @@ void MCMC::propose_merge_move() {
     const double H_s_G_b_depths_old = H_s_G_b_depths;
 
     const double H_b_old = H_b;
-    int r = std::uniform_int_distribution<int>(0, K - 1)(rng);
-    int s = std::uniform_int_distribution<int>(0, K - 2)(rng);
+    int r = next_int(rng, 0, K - 1);
+    int s = next_int(rng, 0, K - 2);
     if (s >= r) ++s;
 
     std::vector<int> nodes_r = group_members[r];
@@ -513,8 +513,8 @@ void MCMC::propose_merge_split_move() {
     const double H_b_old = H_b, H_A_G_b_old = H_A_G_b;
     const double H_s_G_b_depths_old = H_s_G_b_depths;
 
-    int r = std::uniform_int_distribution<int>(0, K - 1)(rng);
-    int s = std::uniform_int_distribution<int>(0, K - 2)(rng);
+    int r = next_int(rng, 0, K - 1);
+    int s = next_int(rng, 0, K - 2);
     if (s >= r) ++s;
 
     const std::vector<int> nodes_r = group_members[r];

@@ -3,6 +3,7 @@
 #include "helpers.h"
 
 #include <algorithm>
+#include <set>
 #include <cmath>
 #include <random>
 #include <string>
@@ -95,8 +96,8 @@ void MCMC::propose_single_site_move() {
     bool is_merge = false;
 
     // Sample a random group, then a random node from it
-    old_group = std::uniform_int_distribution<int>(0, num_groups - 1)(rng);
-    node = group_members[old_group][std::uniform_int_distribution<int>(0, node_counts[old_group] - 1)(rng)];
+    old_group = next_int(rng, 0, num_groups - 1);
+    node = group_members[old_group][next_int(rng, 0, node_counts[old_group] - 1)];
     bool empties_group = node_counts[old_group] == 1;
 
     if (empties_group) {
@@ -105,7 +106,7 @@ void MCMC::propose_single_site_move() {
             return; // no-op: splitting a singleton and immediately reinstating it
         }
         if (num_groups_fixed) return;
-        new_group = std::uniform_int_distribution<int>(0, num_groups - 2)(rng);
+        new_group = next_int(rng, 0, num_groups - 2);
         is_merge = true;
     } else {
         // Non-singleton: split or move (possibly same group = no-op)
@@ -113,7 +114,7 @@ void MCMC::propose_single_site_move() {
             if (num_groups_fixed) return;
             new_group = num_groups; // split into a new singleton group
         } else {
-            new_group = std::uniform_int_distribution<int>(0, num_groups - 1)(rng);
+            new_group = next_int(rng, 0, num_groups - 1);
             if (new_group == old_group) return; // no-op
         }
     }
@@ -161,8 +162,9 @@ void MCMC::propose_parameter_move() {
     }
     
     // Randomly select a free parameter
-    std::uniform_int_distribution<std::size_t> dist(0, free_parameters.size() - 1);
-    const auto& parameter = free_parameters[dist(rng)];
+    // next_int, not uniform_int_distribution: portable across standard libraries (rng.h)
+    const auto& parameter = free_parameters[
+        static_cast<std::size_t>(next_int(rng, 0, static_cast<int>(free_parameters.size()) - 1))];
 
     double old_value = 0.0;
     double new_value = 0.0;
@@ -206,7 +208,7 @@ void MCMC::propose_score_move() {
         print("Proposing score move");
     }
     // Select a random node
-    int node = std::uniform_int_distribution<int>(0, n - 1)(rng);
+    int node = next_int(rng, 0, n - 1);
     double old_scaled_score = scaled_scores[node];
     // Propose new score according to the Gaussian distribution
     // Mean and standard deviation of the s_i dependence of P(s|b,depths):
@@ -332,9 +334,9 @@ void MCMC::propose_score_move() {
 void MCMC::propose_group_score_move() {
     group_score_proposals++;
     if (num_groups <= 1) return;  // no between-group structure to move
-    int r = std::uniform_int_distribution<int>(0, num_groups - 1)(rng);
+    int r = next_int(rng, 0, num_groups - 1);
     if (group_members[r].empty()) return;
-    double delta = std::normal_distribution<double>(0.0, GROUP_SCORE_STEP_SIZE)(rng);
+    double delta = next_normal(rng, GROUP_SCORE_STEP_SIZE);
     if (delta == 0.0) return;
 
     double H_s_old = H_s_G_b_depths;
@@ -485,8 +487,11 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     // === Identify impacted groups ===
     // Initial: groups affected in the current partition
     // Final: groups affected in the proposed partition
-    std::unordered_set<int> initial_impacted_groups;
-    std::unordered_set<int> final_impacted_groups;
+    // std::set, not unordered_set: these are walked to accumulate the energy
+    // terms, and a different iteration order changes the floating-point rounding,
+    // which eventually flips a Metropolis decision (see rng.h).
+    std::set<int> initial_impacted_groups;
+    std::set<int> final_impacted_groups;
     
     initial_impacted_groups.insert(old_group);
     if(new_group != num_groups){  // If not creating a new group

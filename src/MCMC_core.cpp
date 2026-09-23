@@ -36,8 +36,8 @@
  * @param density_in/out_initial: < 0 = estimate from the initial partition
  * @param weighted_SBM: model real-valued edge weights (uniform simplex prior)
  */
-MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
-           const std::vector<std::unordered_map<int, double>>& ties,
+MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins_in,
+           const std::vector<std::unordered_map<int, double>>& ties_in,
            const std::vector<std::unordered_map<int, double>>& group_adj,
            const std::vector<int>& partition,
            const bool& partition_fixed,
@@ -64,9 +64,9 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
            bool weighted_SBM)
     : n(0),
       m(0),
-      wins(wins),  // Copy wins adjacency list from const reference
+      wins(),
       losses(),
-      ties(ties),  // Copy ties adjacency list from const reference
+      ties(),
       neighbors(),
       neighbors_com(),
       two_layer_mode(false),
@@ -145,41 +145,55 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
     // === Initialize graph information ===
     n = this->partition.size(); // Number of nodes in the graph
 
-    // Compute losses from wins and populate neighbors from all three
-    losses.resize(n);
-    neighbors.resize(n);
-    
+    // Built as maps (accumulating duplicate entries), then stored SORTED: the
+    // members are summed over, and unordered_map iteration order differs between
+    // standard libraries, which would make a seeded run diverge between the
+    // native and wasm builds.  See rng.h.
+    std::vector<std::unordered_map<int, double>> losses_map(static_cast<std::size_t>(n));
+    std::vector<std::unordered_map<int, double>> neighbors_map(static_cast<std::size_t>(n));
+
     // Process wins: wins[i][j] means i dominates j
     // This creates a loss for j: losses[j][i]
     for(int i = 0; i < n; i++){
-        for(const auto& edge : this->wins[i]){
+        for(const auto& edge : wins_in[static_cast<std::size_t>(i)]){
             int j = edge.first;
             double weight = edge.second;
-            neighbors[i][j] += weight; // Add to undirected neighbors
-            neighbors[j][i] += weight; // Add to undirected neighbors
-            losses[j][i] += weight; // j loses to i
+            neighbors_map[static_cast<std::size_t>(i)][j] += weight; // Add to undirected neighbors
+            neighbors_map[static_cast<std::size_t>(j)][i] += weight; // Add to undirected neighbors
+            losses_map[static_cast<std::size_t>(j)][i] += weight; // j loses to i
         }
     }
-    
+
     // Process ties: symmetric edges
     for(int i = 0; i < n; i++){
-        for(const auto& edge : this->ties[i]){
+        for(const auto& edge : ties_in[static_cast<std::size_t>(i)]){
             int j = edge.first;
             double weight = edge.second;
-            neighbors[i][j] += weight; // Add to undirected neighbors (other direction will be present)
+            neighbors_map[static_cast<std::size_t>(i)][j] += weight; // other direction will be present
             // Ties don't contribute to wins/losses asymmetry
         }
     }
 
-    // Build neighbors_com: uses group_adj if provided (two-layer mode),
-    // otherwise copies neighbors (single-layer — identical behaviour to before).
-    if (!group_adj.empty()) {
-        two_layer_mode = true;
-        neighbors_com = group_adj;
-    } else {
-        two_layer_mode = false;
-        neighbors_com = neighbors;
-    }
+    two_layer_mode = !group_adj.empty();
+
+    // Freeze every adjacency list into sorted order.
+    auto to_sorted = [](const std::vector<std::unordered_map<int, double>>& src, int rows) {
+        std::vector<std::vector<std::pair<int, double>>> out(static_cast<std::size_t>(rows));
+        for (int i = 0; i < rows; ++i) {
+            auto& row = out[static_cast<std::size_t>(i)];
+            row.assign(src[static_cast<std::size_t>(i)].begin(), src[static_cast<std::size_t>(i)].end());
+            std::sort(row.begin(), row.end(),
+                      [](const std::pair<int, double>& a, const std::pair<int, double>& b) {
+                          return a.first < b.first;
+                      });
+        }
+        return out;
+    };
+    wins = to_sorted(wins_in, n);
+    ties = to_sorted(ties_in, n);
+    losses = to_sorted(losses_map, n);
+    neighbors = to_sorted(neighbors_map, n);
+    neighbors_com = two_layer_mode ? to_sorted(group_adj, n) : neighbors;
 
     if(verbose){
         for(int i = 0; i < n; i++){
@@ -278,7 +292,7 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins,
     // (and log_factorial2 throws deep inside a sweep).  Reject self-loops up front.
     if (this->weighted_SBM || this->two_layer_mode) {
         for (int i = 0; i < n; ++i) {
-            if (this->neighbors_com[i].count(i)) {
+            if (find_edge(this->neighbors_com[static_cast<std::size_t>(i)], i) != nullptr) {
                 throw std::invalid_argument(
                     "self-loop at node " + std::to_string(i) +
                     ": self-loops are not supported with weighted_SBM or a separate group graph");
@@ -403,11 +417,10 @@ void MCMC::MCMC_sweep(double beta, int num_sweeps, bool merge_split_enabled) {
     // and does NOT help group_depth mixing -- the bottleneck is ridge traversal, not
     // proposal frequency (single-variable depth moves can't climb the sigma_I/sigma_C
     // ridge). The real fix is a joint (sigma_I, sigma_C) block proposal.
-    proposal_weights = {
-        {"parameter_move", static_cast<double>(free_parameters.size())}
-    };
+    proposal_weights.clear();
+    proposal_weights.emplace_back("parameter_move", static_cast<double>(free_parameters.size()));
     if (!partition_fixed) {
-        proposal_weights["single_site_move"] = static_cast<double>(n);
+        proposal_weights.emplace_back("single_site_move", static_cast<double>(n));
     }
     // Collective merge/split moves (Peixoto Eq. 37).  Weights are CONSTANT --
     // deliberately NOT proportional to num_groups, for the same reason the
@@ -423,18 +436,18 @@ void MCMC::MCMC_sweep(double beta, int num_sweeps, bool merge_split_enabled) {
                                * static_cast<double>(n + m);
             w = denom > 0.0 ? static_cast<double>(n) / denom : 1.0;
         }
-        if (MERGE_SPLIT_MOVES & 1) proposal_weights["merge_move"]       = w;
-        if (MERGE_SPLIT_MOVES & 2) proposal_weights["split_move"]       = w;
-        if (MERGE_SPLIT_MOVES & 4) proposal_weights["merge_split_move"] = w;
+        if (MERGE_SPLIT_MOVES & 1) proposal_weights.emplace_back("merge_move", w);
+        if (MERGE_SPLIT_MOVES & 2) proposal_weights.emplace_back("split_move", w);
+        if (MERGE_SPLIT_MOVES & 4) proposal_weights.emplace_back("merge_split_move", w);
     }
     if (!scores_fixed) {
-        proposal_weights["score_move"] = static_cast<double>(n);
+        proposal_weights.emplace_back("score_move", static_cast<double>(n));
         // Collective group-score-shift moves traverse the sigma_C ridge that
         // per-node and single-depth moves cannot. Weight is state-INDEPENDENT
         // (constant n, not num_groups) so the partition-move fraction does not
         // depend on the current q -- otherwise the q-marginal is biased. The move
         // is a no-op (early return) when num_groups <= 1.
-        proposal_weights["group_score_move"] = static_cast<double>(n);
+        proposal_weights.emplace_back("group_score_move", static_cast<double>(n));
     }
 
     for (int sweep = 0; sweep < num_sweeps; sweep++) {

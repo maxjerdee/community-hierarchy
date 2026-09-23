@@ -4,6 +4,8 @@
 #define GLOBALS_H
 
 #include <random>
+
+#include "rng.h"
 #include <chrono>
 #include <unordered_map>
 #include <unordered_set>
@@ -54,7 +56,9 @@ const double DEPTH_PRIOR_WIDTH = 4.0; // Keeping with the depth paper, scale of 
 // once per chain with seed + chain; the chain's tempering replicas are built with
 // seed -1 (no reseed) and share that stream.
 extern thread_local std::mt19937 rng;
-extern thread_local std::uniform_real_distribution<double> uniform_random; // Uniform on [0,1]
+// Not std::uniform_real_distribution: implementation-defined, so a seeded run
+// would differ between libstdc++ and libc++ (wasm).  See rng.h.
+inline constexpr UniformRandom uniform_random{};
 
 
 // ---- merge/split tuning (auxiliary: cannot affect correctness) ----
