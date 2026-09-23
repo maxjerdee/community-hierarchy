@@ -20,14 +20,22 @@ import pytest
 import directedstructure
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-SOURCE_DIRS = [REPO / "src", REPO / "bindings" / "python"]
+# Each artifact is compared against the sources IT is built from: the Python
+# extension does not rebuild from bindings/wasm, and the wasm bundle does not
+# rebuild from bindings/python.  Comparing against everything gives false
+# positives the moment you touch a binding you are not testing.
+EXTENSION_SOURCES = [REPO / "src", REPO / "bindings" / "python"]
+WASM_SOURCES = [REPO / "src", REPO / "bindings" / "wasm" / "src"]
+SOURCE_DIRS = EXTENSION_SOURCES
 WASM_DIST = REPO / "bindings" / "wasm" / "js" / "dist" / "ds_core.mjs"
 REBUILD = "python -m pip install -e . --no-build-isolation --no-deps"
 
 
-def _newest_source() -> tuple[pathlib.Path, float]:
+def _newest_source(dirs=None) -> tuple[pathlib.Path, float]:
     newest, newest_mtime = None, 0.0
-    for d in SOURCE_DIRS:
+    for d in (dirs or EXTENSION_SOURCES):
+        if not d.is_dir():
+            continue
         for path in d.rglob("*"):
             if path.suffix.lower() not in {".cpp", ".h", ".hpp"}:
                 continue
@@ -79,7 +87,7 @@ def test_wasm_bundle_is_not_older_than_the_sources():
     description length, so a DL-only comparison will not notice.
     """
     _skip_unless_source_checkout()
-    newest, newest_mtime = _newest_source()
+    newest, newest_mtime = _newest_source(WASM_SOURCES)
     if newest is None:
         pytest.skip("no C++ sources found")
     built_mtime = WASM_DIST.stat().st_mtime
