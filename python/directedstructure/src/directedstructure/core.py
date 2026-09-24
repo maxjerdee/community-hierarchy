@@ -143,17 +143,31 @@ class Result:
         """Minimum description length across all posterior samples."""
         return float(self._native.mdl_value)
 
+    @staticmethod
+    def _sort_groups_by_score(partition: np.ndarray, means: np.ndarray) -> np.ndarray:
+        """Relabel group ids so group 0 has the lowest mean score."""
+        group_means = {}
+        for node_idx, g in enumerate(partition):
+            group_means.setdefault(g, []).append(means[node_idx])
+        ranked = sorted(group_means, key=lambda g: np.mean(group_means[g]))
+        remap = {old: new for new, old in enumerate(ranked)}
+        return np.array([remap[g] for g in partition], dtype=int)
+
     @property
     def mdl_partition(self) -> np.ndarray:
-        """Community partition from the sample achieving the minimum description length."""
-        return np.asarray(self._native.mdl_partition(), dtype=int)
+        """Community partition from the sample achieving the minimum description length,
+        with groups sorted so group 0 has the lowest mean hierarchy score."""
+        part = np.asarray(self._native.mdl_partition(), dtype=int)
+        return self._sort_groups_by_score(part, self.score_means)
 
     def consensus_partition(self, refine: bool = True) -> np.ndarray:
         """Representative partition: the recorded sample at the modal number of
         groups whose coincidence matrix is closest in L1 to the aggregate, then a
         greedy single-node descent on the same loss with that group count held
-        fixed.  refine=False returns the unrefined argmin over samples."""
-        return np.asarray(self._native.consensus_partition(refine), dtype=int)
+        fixed.  refine=False returns the unrefined argmin over samples.
+        Groups are sorted so group 0 has the lowest mean hierarchy score."""
+        part = np.asarray(self._native.consensus_partition(refine), dtype=int)
+        return self._sort_groups_by_score(part, self.score_means)
 
     @property
     def score_means(self) -> np.ndarray:
@@ -676,6 +690,36 @@ def fit(
         show_progress=bool(show_progress),
         weighted_SBM=bool(config.weighted_SBM),
     )
+
+    # A timeout is enforced by simply breaking out of the sweep loops (see
+    # fit.cpp), so an expired run returns normally, with fewer samples than
+    # asked for -- or with NONE, if the clock ran out during burn-in. A
+    # zero-sample result is built from nothing and comes back looking like a
+    # converged fit: one group, every score exactly 0.0. That is
+    # indistinguishable from a real degenerate answer, and with the default of
+    # 60s it is easy to hit on any network big enough to be interesting, so it
+    # has to be said out loud rather than left for the caller to notice.
+    expected_samples = int(num_chains) * int(samples_per_chain)
+    recorded_samples = int(getattr(native_result, "num_samples", expected_samples))
+    if recorded_samples < expected_samples:
+        if recorded_samples == 0:
+            warnings.warn(
+                f"directedstructure: the {timeout:g}s timeout expired during burn-in, "
+                f"before a single sample was recorded. The returned result is NOT a fit: "
+                f"it will show one group and all-zero scores. Pass a larger timeout= "
+                f"(it defaults to 60s) or reduce burn_sweeps/samples_per_chain.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+        else:
+            warnings.warn(
+                f"directedstructure: the {timeout:g}s timeout expired after "
+                f"{recorded_samples} of {expected_samples} samples. The result is based "
+                f"only on those, so it is noisier than requested and may not have "
+                f"converged. Pass a larger timeout= to collect the full run.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
 
     return Result(native_result, node_order, config)
 
