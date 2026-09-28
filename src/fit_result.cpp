@@ -13,6 +13,39 @@
 FitResult::FitResult(int num_nodes, std::vector<SampleState> samples)
     : num_nodes_(num_nodes), samples_(std::move(samples)) {}
 
+// ---------------------------------------------------------------------------
+// sort_groups_by_score
+// ---------------------------------------------------------------------------
+
+std::vector<int> FitResult::sort_groups_by_score(
+    const std::vector<int>& partition,
+    const std::vector<double>& score_means)
+{
+    // Accumulate sum and count per group using std::map for deterministic order.
+    std::map<int, double> group_sum;
+    std::map<int, int>    group_cnt;
+    int n = static_cast<int>(partition.size());
+    for (int i = 0; i < n; ++i) {
+        group_sum[partition[i]] += score_means[i];
+        group_cnt[partition[i]]++;
+    }
+    // Build (mean_score, old_label) pairs and sort ascending by mean.
+    std::vector<std::pair<double, int>> ranked;
+    ranked.reserve(group_sum.size());
+    for (auto& kv : group_sum)
+        ranked.push_back({kv.second / group_cnt[kv.first], kv.first});
+    std::sort(ranked.begin(), ranked.end());
+
+    // Map old label → new label (0 = lowest mean score).
+    std::unordered_map<int, int> remap;
+    for (int new_label = 0; new_label < static_cast<int>(ranked.size()); ++new_label)
+        remap[ranked[new_label].second] = new_label;
+
+    std::vector<int> out(n);
+    for (int i = 0; i < n; ++i) out[i] = remap[partition[i]];
+    return out;
+}
+
 int FitResult::best_index() const {
     if (samples_.empty()) return -1;
     int best = 0;
@@ -353,6 +386,9 @@ NodePropertiesResult FitResult::node_properties(const std::string& mode) const {
 
     auto means = score_means();
     auto stds  = score_stds();
+
+    // Sort group labels so group 0 has the lowest mean score.
+    partition = sort_groups_by_score(partition, means);
 
     // group_score_mean: for each node, mean posterior score of its group.
     std::unordered_map<int, double> group_sum;

@@ -1,0 +1,35 @@
+{
+  "name": "directedstructure",
+  "version": "0.0.0-dev",
+  "description": "Joint community and hierarchy detection on directed networks: the directedstructure C++ core compiled to WebAssembly, run in a Web Worker",
+  "license": "MIT",
+  "author": "Maximilian Jerdee",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maxjerdee/directedstructure.git",
+    "directory": "bindings/wasm/js"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./index.js"
+    },
+    "./worker": "./worker.js",
+    "./core": "./dist/ds_core.mjs"
+  },
+  "files": [
+    "index.js",
+    "runner.js",
+    "worker.js",
+    "dist/ds_core.mjs",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "keywords": ["stochastic block model", "community detection", "hierarchy", "ranking", "networks", "mcmc", "webassembly"]
+}

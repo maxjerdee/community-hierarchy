@@ -388,6 +388,86 @@ class TestConvergence:
         assert mdl_k >= 2, f"WASM collapsed to K=1 for N={N} nodes"
 
 
+# ===========================================================================
+# 4. Independent coupling parity — group_depth fixed at 0.0
+# ===========================================================================
+class TestIndependentCoupling:
+    """
+    DS Config(interaction='independent') fixes group_depth=0.0 (hierarchy
+    decoupled from communities).  WASM must reproduce Python's exact MDL and
+    consensus partition for the same seed, because:
+    - The gd draw is still consumed (value_or is eager in fit.cpp), so the
+      subsequent tp draw stays aligned.
+    - Both backends then pass gd=0.0 + group_depth_fixed=True to the MCMC.
+
+    Additionally: every sample must report group_depth == 0.0 exactly in
+    both backends.
+    """
+
+    @pytest.fixture(scope="class")
+    def python_result(self):
+        import directedstructure as ds
+        G = _build_nx_graph()
+        return ds.fit(
+            ds.Config(interaction="independent"), G,
+            num_samples=10, seed=SEED,
+            burn_sweeps=50, sweeps_per_sample=1,
+            merge_split_enabled=True,
+        )
+
+    @pytest.fixture(scope="class")
+    def wasm_result(self):
+        return wasm_fit(WINS, TIES, {
+            "num_nodes": N,
+            "seed": SEED,
+            "burn_sweeps": 50,
+            "samples": 10,
+            "sweeps_per_sample": 1,
+            "assortative": True,
+            "merge_split_enabled": True,
+            "independent_coupling": 1,
+        })
+
+    def test_python_group_depth_is_zero(self, python_result):
+        df = python_result.samples_df()
+        assert "group_depth" in df.columns, "samples_df() must expose group_depth"
+        for i, gd in enumerate(df["group_depth"]):
+            assert gd == pytest.approx(0.0, abs=1e-12), \
+                f"Python sample {i}: group_depth={gd}, expected 0.0"
+
+    def test_wasm_group_depth_is_zero(self, wasm_result):
+        for i, s in enumerate(wasm_result["samples"]):
+            gd = s.get("groupDepth", None)
+            assert gd is not None, f"sample {i} missing groupDepth field"
+            assert gd == pytest.approx(0.0, abs=1e-12), \
+                f"WASM sample {i}: groupDepth={gd}, expected 0.0"
+
+    def test_wasm_mdl_matches_python_exactly(self, python_result, wasm_result):
+        """WASM independent-mode MDL must equal Python's to numerical precision."""
+        py_mdl = python_result.mdl_value
+        wasm_mdl = wasm_result["mdlValue"]
+        assert math.isfinite(wasm_mdl), f"WASM MDL is not finite: {wasm_mdl}"
+        assert wasm_mdl == pytest.approx(py_mdl, rel=0, abs=1e-9), (
+            f"WASM={wasm_mdl!r} != Python={py_mdl!r} "
+            f"(diff={wasm_mdl - py_mdl:.3e})"
+        )
+
+    def test_wasm_consensus_matches_python(self, python_result, wasm_result):
+        py = [int(x) for x in python_result.consensus_partition()]
+        raw = wasm_result["consensusPartition"]
+        wasm = [int(raw[str(i)] if isinstance(raw, dict) else raw[i]) for i in range(len(py))]
+        assert len(wasm) == len(py)
+        def canon(p):
+            m, out = {}, []
+            for x in p:
+                m.setdefault(x, len(m))
+                out.append(m[x])
+            return out
+        assert canon(wasm) == canon(py), (
+            f"consensus differs.\n  python: {canon(py)}\n  wasm  : {canon(wasm)}"
+        )
+
+
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------

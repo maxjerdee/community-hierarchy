@@ -68,6 +68,12 @@ public:
     NetworkPropertiesResult network_properties(double prob = 0.90) const;
     NodePropertiesResult    node_properties(const std::string& mode = "auto") const;
 
+    // Relabel group ids so group 0 has the lowest mean score, group 1 the next, etc.
+    // score_means[i] is the mean score of node i.
+    static std::vector<int> sort_groups_by_score(
+        const std::vector<int>& partition,
+        const std::vector<double>& score_means);
+
     int num_nodes() const { return num_nodes_; }
     int num_samples() const { return static_cast<int>(samples_.size()); }
     const std::vector<SampleState>& samples() const { return samples_; }
