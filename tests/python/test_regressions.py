@@ -79,7 +79,7 @@ def test_degree_correction_defaults_to_true():
 @pytest.mark.parametrize(("flag", "expected"), [(True, 0.5), (False, 0.0)])
 def test_degree_correction_is_a_binary_switch(flag, expected):
     """The flag alone sets degree correction, for every model preset."""
-    for model in ("general_canonical", "traditional_SBM", "general_ASBM"):
+    for model in ("traditional_SBM", "general_ASBM"):
         result = fit(Config(groups_model=model, degree_correction=flag), _graph(),
                      num_samples=3, burn_sweeps=1, show_progress=False)
         assert np.all(result.samples_df()["degree_correction"] == expected), model

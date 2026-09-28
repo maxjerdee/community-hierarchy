@@ -54,7 +54,7 @@ def _check_input_validity(
     *,
     group_attribute: Optional[str] = None,
     hierarchy_attribute: Optional[str] = None,
-    groups_model: str = "general_canonical",
+    groups_model: str = "general_ASBM",
     hierarchy_model: str = _UNSET,
     interaction: str = "coupled",
     assortative: bool = _UNSET,
@@ -104,7 +104,7 @@ def _check_input_validity(
                 raise ValueError(f"{attr_name} must be a non-empty string or None.")
     
     # Warn if group_attribute is provided alongside a non-default groups_model
-    if group_attribute is not None and groups_model != "general_canonical":
+    if group_attribute is not None and groups_model != "general_ASBM":
         warnings.warn(
             f"group_attribute '{group_attribute}' was provided alongside groups_model '{groups_model}'. "
             "The group_attribute will be used for model initialization, but the specified model type will still be applied. "
@@ -141,7 +141,6 @@ def _check_input_validity(
 
     # groups_model
     valid_models = [
-        "general_canonical",
         "traditional_SBM",
         "simple_ASBM",
         "hybrid_ASBM",
@@ -463,9 +462,7 @@ def _set_model_parameters(
     Convert the model_name to corresponding non-default parameter values (if not explicitly provided)
     """
     # groups_model
-    if groups_model == "general_canonical":
-        pass  # all parameters take default values
-    elif groups_model == "traditional_SBM":
+    if groups_model == "traditional_SBM":
         if mixing_variation is _UNSET:
             mixing_variation = "simple"
         if assortative is _UNSET:

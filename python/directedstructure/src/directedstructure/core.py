@@ -33,7 +33,6 @@ def _hdi(arr: np.ndarray, prob: float = 0.90) -> tuple[float, float]:
     return float(sorted_arr[min_idx]), float(sorted_arr[min_idx + interval_idx])
 
 _VALID_GROUPS_MODELS = frozenset({
-    "general_canonical",
     "traditional_SBM",
     "simple_ASBM",
     "hybrid_ASBM",
@@ -82,7 +81,7 @@ class Config:
         Node attribute name with fixed hierarchy scores.
     """
 
-    groups_model: str = "general_canonical"
+    groups_model: str = "general_ASBM"
     hierarchy_model: object = _UNSET  # str | _UNSET
     interaction: str = "coupled"
     assortative: object = _UNSET  # bool | _UNSET
@@ -99,6 +98,14 @@ class Config:
     weighted_SBM: bool = False
 
     def __post_init__(self) -> None:
+        if self.groups_model == "general_canonical":
+            # Removed: it was general_ASBM under another name, while asbm's reference
+            # notebook uses "general_canonical" for a different model (one that also
+            # integrates the degree-correction strength).
+            raise ValueError(
+                "groups_model 'general_canonical' was renamed 'general_ASBM' "
+                "(the same model; it is also the default)."
+            )
         if self.groups_model not in _VALID_GROUPS_MODELS:
             raise ValueError(
                 f"Unknown groups_model '{self.groups_model}'. "

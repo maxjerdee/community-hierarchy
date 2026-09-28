@@ -34,7 +34,7 @@ def test_version():
 
 def test_config_defaults():
     config = Config()
-    assert config.groups_model == "general_canonical"
+    assert config.groups_model == "general_ASBM"
     assert config.interaction == "coupled"
 
 
@@ -951,8 +951,8 @@ def test_weighted_SBM_unweighted_unchanged():
     G.add_edge("B", "C", weight=2)
     G.add_edge("A", "C", weight=1)
 
-    config_plain    = ds.Config(groups_model="general_canonical")
-    config_weighted = ds.Config(groups_model="general_canonical", weighted_SBM=False)
+    config_plain    = ds.Config(groups_model="general_ASBM")
+    config_weighted = ds.Config(groups_model="general_ASBM", weighted_SBM=False)
 
     r1 = ds.fit(config_plain,    G, num_chains=1, samples_per_chain=50, burn_sweeps=50, seed=7)
     r2 = ds.fit(config_weighted, G, num_chains=1, samples_per_chain=50, burn_sweeps=50, seed=7)
@@ -976,7 +976,7 @@ def test_weighted_SBM_produces_nonzero_H_W():
     G.add_edge("A", "C", weight=1.7)
     G.add_edge("C", "A", weight=0.8)
 
-    config = ds.Config(groups_model="general_canonical", weighted_SBM=True)
+    config = ds.Config(groups_model="general_ASBM", weighted_SBM=True)
     r = ds.fit(config, G, num_chains=1, samples_per_chain=50, burn_sweeps=50, seed=42)
     sdf = r.samples_df()
     # H_W is a finite real (DL contribution from weight model)

@@ -62,7 +62,7 @@ Edges may carry a `type` attribute (`'dominant'` or `'neutral'`) to distinguish 
 
 ```python
 config = ds.Config(
-    groups_model="general_canonical",   # community structure preset
+    groups_model="general_ASBM",        # community structure preset
     hierarchy_model="bradley_terry_ties",  # auto-selected if omitted
     interaction="coupled",              # coupling between communities and hierarchy
 )
