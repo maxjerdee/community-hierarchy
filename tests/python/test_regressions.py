@@ -206,3 +206,35 @@ def test_consensus_refinement_lowers_loss_and_keeps_group_count():
     assert list(r.consensus_partition()) == list(ref)           # deterministic
     # every group is still populated
     assert min(np.bincount(np.asarray(ref)) [np.bincount(np.asarray(ref)) > 0]) >= 1
+
+
+# ---------------------------------------------------------------------------
+# An omitted hierarchy_model was resolved from the edge types only inside
+# _check_input_validity, and the unset value was what reached
+# _set_model_parameters -- so ties_parameter was always fitted, even on a graph
+# with no neutral edges, where ties are not an outcome the data could record.
+# That inflated the scores of small tie-free networks against plain
+# Bradley-Terry (chickens: ~1.6x) in independent mode.
+# ---------------------------------------------------------------------------
+def _ties(G: nx.DiGraph, **cfg) -> float:
+    r = fit(Config(interaction="independent", **cfg), G, samples_per_chain=50,
+            sweeps_per_sample=2, burn_sweeps=20, seed=3, show_progress=False)
+    p = r.network_properties_df().set_index("parameter")["mean"]
+    return float(p["ties_parameter"])
+
+
+def test_no_neutral_edges_means_no_tie_parameter():
+    assert _ties(_graph()) == 0.0
+
+
+def test_neutral_edges_fit_the_tie_parameter():
+    G = nx.DiGraph()
+    for u, v in _graph().edges():
+        G.add_edge(u, v, type="dominant")
+    G.add_edge(0, 1, type="neutral")
+    G.add_edge(2, 3, type="neutral")
+    assert _ties(G) > 0.0
+
+
+def test_explicit_hierarchy_model_is_respected():
+    assert _ties(_graph(), hierarchy_model="bradley_terry_ties") > 0.0

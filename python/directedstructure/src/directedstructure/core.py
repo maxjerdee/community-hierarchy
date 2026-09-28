@@ -585,7 +585,16 @@ def fit(
     G_ties = nx.Graph()
     G_wins.add_nodes_from(G.nodes(data=True))
     G_ties.add_nodes_from(G.nodes(data=True))
+    # Resolve an omitted hierarchy model from the data, as documented: ties are
+    # modelled only when the graph has neutral edges. Without one, ties are not an
+    # outcome the data could record, so plain Bradley-Terry (ties_parameter fixed
+    # at 0) is the right model, not a tie rate fitted to "no ties seen". This
+    # choice used to be made only inside _check_input_validity and then dropped:
+    # _set_model_parameters got the unset value and fitted ties_parameter anyway.
     hierarchy_model = config.hierarchy_model
+    if hierarchy_model is _UNSET:
+        has_neutral = any(d.get("type") == "neutral" for _, _, d in G.edges(data=True))
+        hierarchy_model = "bradley_terry_ties" if has_neutral else "bradley_terry"
     for u, v, d in G.edges(data=True):
         if d.get("type") == "neutral":
             if hierarchy_model != "bradley_terry":
@@ -612,7 +621,7 @@ def fit(
         num_groups,
     ) = _set_model_parameters(
         config.groups_model,
-        config.hierarchy_model,
+        hierarchy_model,
         config.interaction,
         config.assortative,
         config.mixing_variation,
