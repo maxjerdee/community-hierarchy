@@ -489,3 +489,34 @@ def _build_nx_graph():
         G.add_edge(u, v, weight=w, type="neutral")
         # Do NOT add (v, u) — Python builds G_ties as undirected from these edges
     return G
+
+
+# ---------------------------------------------------------------------------
+# 5. Model presets: fixed mixing variations
+# ---------------------------------------------------------------------------
+# Python's groups_model presets fix the mixing variations (and traditional_SBM
+# turns assortativity off); the wasm binding takes the same fixed values
+# (variation_in / variation_out, negative = inferred). Same seed, same MDL.
+PRESETS = {
+    "simple_ASBM":       dict(assortative=True,  variation_in=0.5, variation_out=0.5),
+    "hybrid_ASBM":       dict(assortative=True,  variation_in=0.5, variation_out=0.0),
+    "planted_partition": dict(assortative=True,  variation_in=0.0, variation_out=0.0),
+    "traditional_SBM":   dict(assortative=False, variation_in=0.5, variation_out=0.5),
+}
+
+
+@pytest.mark.parametrize("model", sorted(PRESETS))
+def test_wasm_preset_mdl_matches_python(model):
+    import directedstructure as ds
+    py = ds.fit(ds.Config(groups_model=model), _build_nx_graph(), num_samples=10, seed=SEED,
+                burn_sweeps=50, sweeps_per_sample=1, merge_split_enabled=True)
+    wasm = wasm_fit(WINS, TIES, {
+        "num_nodes": N, "seed": SEED, "burn_sweeps": 50, "samples": 10,
+        "sweeps_per_sample": 1, "merge_split_enabled": True, **PRESETS[model],
+    })
+    assert math.isfinite(wasm["mdlValue"])
+    assert wasm["mdlValue"] == pytest.approx(py.mdl_value, rel=0, abs=1e-9), (
+        f"{model}: WASM={wasm['mdlValue']!r} != Python={py.mdl_value!r}")
+    for s in wasm["samples"]:
+        assert s["variationIn"] == pytest.approx(PRESETS[model]["variation_in"], abs=1e-12)
+        assert s["variationOut"] == pytest.approx(PRESETS[model]["variation_out"], abs=1e-12)

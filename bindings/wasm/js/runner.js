@@ -111,7 +111,11 @@ export async function runFit(core, job, { onProgress, isCancelled } = {}) {
       // weighted_sbm: 1 = model real-valued edge weights via uniform simplex prior (H_W term)
       o.weighted_sbm ?? 0,
       // independent_coupling: 1 = fix group_depth at 0.0 (hierarchy decoupled from communities)
-      o.independent_coupling ?? 0);
+      o.independent_coupling ?? 0,
+      // variation_in / variation_out: a fixed mixing variation (the model presets);
+      // omitted or negative = inferred (general_ASBM)
+      o.variation_in ?? -1,
+      o.variation_out ?? -1);
     if (!handle) throw new Error(readError(core));
 
     let chunk = 1;

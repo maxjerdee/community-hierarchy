@@ -322,7 +322,9 @@ DS_EXPORT int ds_session_create(
     const double* initial_scores, int initial_scores_length,
     int degree_correction_mode,
     int weighted_sbm,
-    int independent_coupling)
+    int independent_coupling,
+    double variation_in_fixed_value,
+    double variation_out_fixed_value)
 {
     last_error.clear();
     try {
@@ -461,6 +463,15 @@ DS_EXPORT int ds_session_create(
         };
         double vi = unif01(init_rng);
         double vo = unif01(init_rng);
+        // A fixed mixing variation (>= 0) replaces the drawn start and is not
+        // sampled -- the model presets (simple 0.5/0.5, hybrid 0.5/0, planted
+        // 0/0, traditional 0.5/0.5), as Python's Config sets them. Negative:
+        // inferred (general). The draws above happen regardless, as fit.cpp's
+        // value_or makes them, so seeded runs stay in step with Python.
+        const bool vi_fixed = variation_in_fixed_value >= 0.0;
+        const bool vo_fixed = variation_out_fixed_value >= 0.0;
+        if (vi_fixed) vi = variation_in_fixed_value;
+        if (vo_fixed) vo = variation_out_fixed_value;
         (void)unif01(init_rng);  // mirrors fit.cpp: degree_correction.value_or(unif01) is eager
         // degree_correction_mode: 0 = fixed at 0 (no DC), 1 = fixed at 0.5 (default)
         const double dc = (degree_correction_mode == 0) ? 0.0 : 0.5;
@@ -492,8 +503,8 @@ DS_EXPORT int ds_session_create(
             scores,    /*scores_fixed=*/false,
             ng,        /*num_groups_fixed=*/num_groups_fixed != 0,
             /*assortative=*/assortative != 0,
-            vi, /*variation_in_fixed=*/false,
-            vo, /*variation_out_fixed=*/false,
+            vi, /*variation_in_fixed=*/vi_fixed,
+            vo, /*variation_out_fixed=*/vo_fixed,
             dc, /*degree_correction_fixed=*/true,
             id, /*individual_depth_fixed=*/false,
             gd_fixed ? 0.0 : gd, /*group_depth_fixed=*/gd_fixed,
