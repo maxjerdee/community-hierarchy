@@ -4,7 +4,7 @@ Checks the Mathematica fixture directly (multigraph case: M_01=3, H_W=4.8926),
 then verifies that H_W changes when a node is moved between groups.
 """
 import math, pytest
-import directedstructure.MCMC_core as native
+import community_hierarchy.MCMC_core as native
 
 
 def make_mcmc_from_fixture(partition, w01, w02, w12):

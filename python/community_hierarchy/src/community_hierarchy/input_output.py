@@ -569,7 +569,7 @@ def write_gml_with_inferences(
     output_filename : str
         Filename to save the GML.
     result : Result
-        Inference result from :func:`directedstructure.fit`.
+        Inference result from :func:`community_hierarchy.fit`.
     partition : array-like, optional
         Community partition for the ``inferred_group`` node attribute.
         Defaults to ``result.mdl_partition``. Pass
@@ -582,7 +582,7 @@ def write_gml_with_inferences(
     if not isinstance(output_filename, str):
         raise TypeError("output_filename must be a string path.")
     if not isinstance(result, Result):
-        raise TypeError("result must be a directedstructure.Result instance.")
+        raise TypeError("result must be a community_hierarchy.Result instance.")
 
     if partition is None:
         partition = result.mdl_partition
@@ -672,7 +672,7 @@ def plot_node_properties(
     Parameters
     ----------
     result : Result
-        Inference result from :func:`directedstructure.fit`.
+        Inference result from :func:`community_hierarchy.fit`.
     partition : str
         Which partition to use; passed to :meth:`Result.node_properties_df`.
         ``"auto"`` (default) uses the consensus partition.
@@ -702,7 +702,7 @@ def plot_node_properties(
     from .core import Result  # local import to avoid circular
 
     if not isinstance(result, Result):
-        raise TypeError("result must be a directedstructure.Result instance.")
+        raise TypeError("result must be a community_hierarchy.Result instance.")
 
     node_df = result.node_properties_df(partition=partition, consensus_method=consensus_method)
 
@@ -817,7 +817,7 @@ def plot_adjacency_matrix(
     Parameters
     ----------
     result : Result
-        Inference result from :func:`directedstructure.fit`. Provides the
+        Inference result from :func:`community_hierarchy.fit`. Provides the
         node ordering and community labels; does not need to be the result
         of fitting *G* specifically (e.g. you can pass a grooming graph
         while ``result`` was fitted on an aggression graph).
@@ -855,7 +855,7 @@ def plot_adjacency_matrix(
     from .core import Result  # local import to avoid circular
 
     if not isinstance(result, Result):
-        raise TypeError("result must be a directedstructure.Result instance.")
+        raise TypeError("result must be a community_hierarchy.Result instance.")
     if not isinstance(G, nx.Graph):
         raise TypeError("G must be a NetworkX graph.")
 
@@ -963,14 +963,14 @@ def plot_MCMC_entropy(
     Parameters
     ----------
     result : Result
-        Inference result from :func:`directedstructure.fit`.
+        Inference result from :func:`community_hierarchy.fit`.
     output_filename : str, optional
         If given, save the figure to this path.
     """
     from .core import Result  # local import to avoid circular
 
     if not isinstance(result, Result):
-        raise TypeError("result must be a directedstructure.Result instance.")
+        raise TypeError("result must be a community_hierarchy.Result instance.")
 
     samples_df = result.samples_df()
     fig, ax = plt.subplots(figsize=(10, 6))

@@ -1,4 +1,4 @@
-// The directedstructure worker: loads the wasm core once and runs fits on request.
+// The community_hierarchy worker: loads the wasm core once and runs fits on request.
 // Runs as a browser module Web Worker or a Node worker_threads Worker.
 //
 // Protocol (all messages are plain objects):

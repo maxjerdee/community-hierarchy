@@ -1,4 +1,4 @@
-# directedstructure
+# community-hierarchy
 
 ```{toctree}
 :maxdepth: 2

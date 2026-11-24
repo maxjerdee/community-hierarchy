@@ -483,7 +483,7 @@ class Result:
         s = dict(self._native.summary())  # bypass DeprecationWarning
         n = len(self._node_order)
         return (
-            f"directedstructure.Result("
+            f"community_hierarchy.Result("
             f"n={n}, "
             f"samples={s['num_samples']}, "
             f"mean_groups={s['mean_num_groups']:.1f}, "
@@ -761,7 +761,7 @@ def fit(
     if recorded_samples < expected_samples:
         if recorded_samples == 0:
             warnings.warn(
-                f"directedstructure: the {timeout:g}s timeout expired during burn-in, "
+                f"community_hierarchy: the {timeout:g}s timeout expired during burn-in, "
                 f"before a single sample was recorded. The returned result is NOT a fit: "
                 f"it will show one group and all-zero scores. Pass a larger timeout= "
                 f"(it defaults to 60s) or reduce burn_sweeps/samples_per_chain.",
@@ -770,7 +770,7 @@ def fit(
             )
         else:
             warnings.warn(
-                f"directedstructure: the {timeout:g}s timeout expired after "
+                f"community_hierarchy: the {timeout:g}s timeout expired after "
                 f"{recorded_samples} of {expected_samples} samples. The result is based "
                 f"only on those, so it is noisier than requested and may not have "
                 f"converged. Pass a larger timeout= to collect the full run.",

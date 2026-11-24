@@ -3,13 +3,13 @@ from pathlib import Path
 import networkx as nx
 import matplotlib.pyplot as plt
 
-import directedstructure as ds
+import community_hierarchy as ch
 
 here = Path(__file__).resolve().parents[1]
 G = nx.read_gml(here / "data" / "networks" / "english-football.gml", label="id")
 
-result = ds.fit(
-    ds.Config(),
+result = ch.fit(
+    ch.Config(),
     G,
     num_chains=1,
     samples_per_chain=500,
@@ -43,7 +43,7 @@ print(f"\nMDL value: {result.mdl_value:.3f}")
 samples_df = result.samples_df()
 
 # Node properties plot — scores ranked within each inferred community
-fig_a, _ = ds.plot_node_properties(result)
+fig_a, _ = ch.plot_node_properties(result)
 fig_a.tight_layout()
 plot_a = Path(__file__).resolve().parent / "node_properties.png"
 fig_a.savefig(plot_a, dpi=150)
@@ -51,7 +51,7 @@ plt.close(fig_a)
 print("Saved node properties plot to:", plot_a)
 
 # Adjacency matrix reordered by inferred community
-fig_b, _ = ds.plot_adjacency_matrix(result, G, title="english-football")
+fig_b, _ = ch.plot_adjacency_matrix(result, G, title="english-football")
 plot_b = Path(__file__).resolve().parent / "adjacency.png"
 fig_b.savefig(plot_b, dpi=150, bbox_inches="tight")
 plt.close(fig_b)

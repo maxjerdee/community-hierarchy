@@ -1,4 +1,4 @@
-// Validate the MULTI-NODE path of MCMC::flip_nodes in directedstructure.
+// Validate the MULTI-NODE path of MCMC::flip_nodes in community_hierarchy.
 //
 // Ported from the asbm test of the same name.  Every call site in the package
 // passes {node}, so the batch path -- the node_counts == nodes.size() test,
@@ -101,7 +101,7 @@ int main() {
     make_graph(4242u);
     std::mt19937 rng(31337);
     int batches = 0;
-    std::printf("directedstructure: validating multi-node flip_nodes (N=%d)\n", N);
+    std::printf("community_hierarchy: validating multi-node flip_nodes (N=%d)\n", N);
 
     for (int trial = 0; trial < 400; ++trial) {
         int q = std::uniform_int_distribution<int>(1, 5)(rng);

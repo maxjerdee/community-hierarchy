@@ -40,7 +40,7 @@ def pylint(session: nox.Session) -> None:
     # This needs to be installed into the package environment, and is slower
     # than a pre-commit check
     session.install("-e.", "pylint>=3.2")
-    session.run("pylint", "directedstructure", *session.posargs)
+    session.run("pylint", "community_hierarchy", *session.posargs)
 
 
 @nox.session
@@ -99,7 +99,7 @@ def build_api_docs(session: nox.Session) -> None:
         "--module-first",
         "--no-toc",
         "--force",
-        "src/directedstructure",
+        "src/community_hierarchy",
     )
 
 

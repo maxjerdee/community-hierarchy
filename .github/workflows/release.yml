@@ -1,10 +1,12 @@
 name: release
 
+# Wheels and the sdist are built on every trigger; they are uploaded to PyPI
+# only when a version tag (v*) is pushed.
 on:
   workflow_dispatch:
-  release:
-    types:
-      - published
+  push:
+    tags:
+      - "v*"
   pull_request:
     paths:
       - .github/workflows/release.yml
@@ -62,6 +64,7 @@ jobs:
 
   upload_all:
     needs: [build_wheels, make_sdist]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     environment: pypi
     permissions:
       id-token: write

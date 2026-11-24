@@ -243,7 +243,7 @@ PYBIND11_MODULE(MCMC_core, m) {
     m.def("get_equal_spend_c", [](){ return MERGE_SPLIT_EQUAL_SPEND_C; });
 
     // --- MCMC class (kept for testing / advanced use) ---
-    // module_local(): asbm and directedstructure each define a bare (un-namespaced)
+    // module_local(): asbm and community_hierarchy each define a bare (un-namespaced)
     // MCMC and FitResultNative, so both compile to the same RTTI name.  pybind11's
     // type registry is shared process-wide, so without this the second package
     // imported raises  ImportError: generic_type: type "MCMC" is already registered

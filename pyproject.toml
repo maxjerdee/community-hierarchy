@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 
 [project]
-name = "directedstructure"
+name = "community-hierarchy"
 authors = [
   { name = "Maximilian Jerdee", email = "mjerdee@santafe.edu" },
 ]
@@ -38,10 +38,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/maxjerdee/directedstructure"
-"Bug Tracker" = "https://github.com/maxjerdee/directedstructure/issues"
-Discussions = "https://github.com/maxjerdee/directedstructure/discussions"
-Changelog = "https://github.com/maxjerdee/directedstructure/releases"
+Homepage = "https://github.com/maxjerdee/community-hierarchy"
+"Bug Tracker" = "https://github.com/maxjerdee/community-hierarchy/issues"
+Discussions = "https://github.com/maxjerdee/community-hierarchy/discussions"
+Changelog = "https://github.com/maxjerdee/community-hierarchy/releases"
 
 
 [dependency-groups]
@@ -65,20 +65,21 @@ docs = [
 minimum-version = "build-system.requires"
 build-dir = "build/{wheel_tag}"
 metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
-sdist.include = ["python/directedstructure/src/directedstructure/_version.py"]
-wheel.packages = ["python/directedstructure/src/directedstructure"]
+sdist.include = ["python/community_hierarchy/src/community_hierarchy/_version.py"]
+wheel.packages = ["python/community_hierarchy/src/community_hierarchy"]
 
 
 [tool.setuptools_scm]
-write_to = "python/directedstructure/src/directedstructure/_version.py"
+write_to = "python/community_hierarchy/src/community_hierarchy/_version.py"
 local_scheme = "no-local-version"
 
 
 [tool.cibuildwheel]
 build = "cp310-* cp311-* cp312-* cp313-*"
 skip = "*-manylinux_i686 *-musllinux_i686 *-win32"
-test-command = "pytest {project}/tests/python"
-test-requires = ["pytest"]
+# Smoke test of the installed wheel (the full suite, with its long statistical
+# tests, runs locally and in development, not once per wheel)
+test-command = "python {project}/tests/smoke_wheel.py"
 
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "manylinux_2_28"
@@ -106,14 +107,14 @@ testpaths = [
 
 
 [tool.coverage]
-run.source = ["directedstructure"]
+run.source = ["community_hierarchy"]
 report.exclude_also = [
   '\.\.\.',
   'if typing.TYPE_CHECKING:',
 ]
 
 [tool.mypy]
-files = ["python/directedstructure/src", "tests"]
+files = ["python/community_hierarchy/src", "tests"]
 python_version = "3.10"
 warn_unused_configs = true
 strict = true
@@ -123,7 +124,7 @@ disallow_untyped_defs = false
 disallow_incomplete_defs = false
 
 [[tool.mypy.overrides]]
-module = "directedstructure.*"
+module = "community_hierarchy.*"
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 
@@ -174,7 +175,7 @@ ignore = [
   "PLR2004",  # Magic value used in comparison
 ]
 # Uncomment if using a _compat.typing backport
-# typing-modules = ["directedstructure._compat.typing"]
+# typing-modules = ["community_hierarchy._compat.typing"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["T20"]
@@ -184,7 +185,7 @@ ignore = [
 [tool.pylint]
 py-version = "3.10"
 ignore-paths = [".*/_version.py"]
-extension-pkg-allow-list = ["directedstructure.MCMC_core"]
+extension-pkg-allow-list = ["community_hierarchy.MCMC_core"]
 reports.output-format = "colorized"
 similarities.ignore-imports = "yes"
 messages_control.disable = [

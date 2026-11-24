@@ -42,7 +42,7 @@ Q: Does the fact that the meaning of the scores, stored in the [0,1] interval, c
 3/15/26:
 - STAN implementation of the fixed groups model gives different and more sensible results
 - Re-implement this STAN model using the form we have derived integrated over the community scores.
-- Debug the directedstructure implementation until the outcomes match
+- Debug the community_hierarchy implementation until the outcomes match
 - Test out a way to just use the g++ compiler directly to configure the sampling code
 - Send the new version of the code to Elizabeth along with requests of what should be installed
 - Note that make test on the current multigraph example results in a seg fault that we need to track down (should run this with valgrind and sort out the error)

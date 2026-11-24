@@ -9,6 +9,7 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
+build-wasm/
 develop-eggs/
 dist/
 downloads/
@@ -169,8 +170,8 @@ cython_debug/
 
 # setuptools_scm
 src/*/_version.py
-python/directedstructure/src/directedstructure/_version.py
-python/directedstructure/src/directedstructure/_version.pyi
+python/community_hierarchy/src/community_hierarchy/_version.py
+python/community_hierarchy/src/community_hierarchy/_version.pyi
 
 
 # ruff
@@ -188,3 +189,7 @@ Thumbs.db
 # Common editor files
 *~
 *.swp
+
+# paper examples: map downloads and PDF copies of the figures
+examples/paper/*/.cache/
+examples/paper/*/figures/*.pdf

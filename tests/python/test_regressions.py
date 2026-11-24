@@ -9,7 +9,7 @@ import networkx as nx
 import numpy as np
 import pytest
 
-from directedstructure import Config, fit
+from community_hierarchy import Config, fit
 
 
 def _graph() -> nx.DiGraph:
@@ -96,8 +96,7 @@ def test_degree_correction_must_be_binary(value):
 # one stub to e_rr instead of two; they are rejected up front.
 # (The 2026-09 tempering-convention fix is verified by bit-identical output at
 # beta = 1 and by the argument in src/MCMC_core.h; a statistical test of it on the
-# depth parameters is not reliable because they mix too slowly -- see the review
-# notes in package-testing/directedstructure/review_2026_09.)
+# depth parameters is not reliable because they mix too slowly.)
 # ---------------------------------------------------------------------------
 
 def test_self_loops_rejected_in_binary_count_modes():
@@ -115,7 +114,7 @@ def test_self_loops_rejected_in_binary_count_modes():
 # builds replicas with seed -1, which must leave the stream untouched.
 # ---------------------------------------------------------------------------
 def test_negative_seed_does_not_reseed_the_generator():
-    import directedstructure.MCMC_core as native
+    import community_hierarchy.MCMC_core as native
 
     G = nx.gnp_random_graph(12, 0.3, seed=5, directed=True)
     wins = [dict() for _ in range(12)]
@@ -147,7 +146,7 @@ def test_negative_seed_does_not_reseed_the_generator():
 def test_raw_mcmc_degree_correction_default_and_range():
     # The raw class used to default to degree_correction=1.0 (Dirichlet
     # concentration 0): H_k was NaN and the first sweep threw.
-    import directedstructure.MCMC_core as native
+    import community_hierarchy.MCMC_core as native
     kw = dict(wins=[{1: 1.0}, {}, {}], ties=[{}, {}, {}], partition=[0, 0, 1],
               scores=[0.0, 0.0, 0.0], num_groups=2)
     m = native.MCMC(**kw)
@@ -158,22 +157,22 @@ def test_raw_mcmc_degree_correction_default_and_range():
 
 
 # ---------------------------------------------------------------------------
-# asbm and directedstructure each bind a bare (un-namespaced) MCMC and
+# asbm and community_hierarchy each bind a bare (un-namespaced) MCMC and
 # FitResultNative.  Their RTTI names collide, and pybind11's type registry is
 # process-wide, so importing both used to raise
 #   ImportError: generic_type: type "MCMC" is already registered!
 # py::module_local() on both classes keeps each registration inside its own
 # extension module.  Either package can be imported first, so test both orders.
 # ---------------------------------------------------------------------------
-@pytest.mark.parametrize("first", ["asbm", "directedstructure"])
-def test_imports_alongside_directedstructure(first):
+@pytest.mark.parametrize("first", ["asbm", "community_hierarchy"])
+def test_imports_alongside_community_hierarchy(first):
     pytest.importorskip("asbm")
-    second = "directedstructure" if first == "asbm" else "asbm"
+    second = "community_hierarchy" if first == "asbm" else "asbm"
     code = (f"import {first}, {second}; "
-            "import asbm.core as ac, directedstructure.core as dc; "
+            "import asbm.core as ac, community_hierarchy.core as dc; "
             "assert ac.fit_backend is not None, 'asbm native backend failed to load'; "
-            "assert dc._fit_backend is not None, 'ds native backend failed to load'; "
-            "import asbm._asbm, directedstructure.MCMC_core as dm; "
+            "assert dc._fit_backend is not None, 'community_hierarchy native backend failed to load'; "
+            "import asbm._asbm, community_hierarchy.MCMC_core as dm; "
             "assert asbm._asbm.MCMC is not dm.MCMC")
     r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=300)
     assert r.returncode == 0, r.stderr

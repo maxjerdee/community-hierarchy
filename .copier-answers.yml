@@ -7,8 +7,8 @@ email: mjerdee@santafe.edu
 full_name: Maximilian Jerdee
 license: MIT
 org: maxjerdee
-project_name: directedstructure
+project_name: community_hierarchy
 project_short_description: Infer communities, hierarchies, and their connection in
     directed graphs
-url: https://github.com/maxjerdee/directedstructure
+url: https://github.com/maxjerdee/community-hierarchy
 vcs: true

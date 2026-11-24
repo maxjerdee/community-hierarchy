@@ -4,7 +4,7 @@ PYTHON ?= python3
 CXX ?= g++
 BUILD_DIR := build
 SRC_DIR := src
-PKG_DIR := $(SRC_DIR)/directedstructure
+PKG_DIR := $(SRC_DIR)/community_hierarchy
 MODULE_NAME := MCMC_core
 EXT_SUFFIX := $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX') or '')")
 PYBIND11_INCLUDES := $(shell $(PYTHON) -m pybind11 --includes 2>/dev/null)
@@ -12,8 +12,8 @@ PYBIND11_INCLUDES := $(shell $(PYTHON) -m pybind11 --includes 2>/dev/null)
 PY_LDFLAGS := $(shell $(PYTHON)-config --embed --ldflags 2>/dev/null || $(PYTHON)-config --ldflags 2>/dev/null || python3-config --embed --ldflags 2>/dev/null || python3-config --ldflags 2>/dev/null || echo "")
 MKDIR_P := mkdir -p
 
-CXXFLAGS := -std=c++17 -Wall -Wextra -O3 -march=native -fPIC -I$(SRC_DIR) -DDIRECTEDSTRUCTURE_PYBIND
-DEBUG_CXXFLAGS := -std=c++17 -Wall -Wextra -O0 -g -fPIC -I$(SRC_DIR) -DDIRECTEDSTRUCTURE_PYBIND
+CXXFLAGS := -std=c++17 -Wall -Wextra -O3 -march=native -fPIC -I$(SRC_DIR) -DCOMMUNITY_HIERARCHY_PYBIND
+DEBUG_CXXFLAGS := -std=c++17 -Wall -Wextra -O0 -g -fPIC -I$(SRC_DIR) -DCOMMUNITY_HIERARCHY_PYBIND
 TEST_CXXFLAGS := -std=c++17 -Wall -Wextra -O3 -march=native -fPIC -I$(SRC_DIR)
 TEST_DEBUG_CXXFLAGS := -std=c++17 -Wall -Wextra -O0 -g -fPIC -I$(SRC_DIR)
 

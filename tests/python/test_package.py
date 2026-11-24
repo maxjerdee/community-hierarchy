@@ -10,9 +10,9 @@ import pytest
 
 import math
 
-import directedstructure as ds
-import directedstructure.MCMC_core as native
-from directedstructure import Config, Result, fit
+import community_hierarchy as ch
+import community_hierarchy.MCMC_core as native
+from community_hierarchy import Config, Result, fit
 
 _DATA_IN  = Path(__file__).parent.parent / "data" / "inputs"
 _DATA_OUT = Path(__file__).parent.parent / "data" / "outputs"
@@ -25,7 +25,7 @@ def _c2v(concentration: float) -> float:
 
 
 def test_version():
-    assert importlib.metadata.version("directedstructure") == ds.__version__
+    assert importlib.metadata.version("community-hierarchy") == ch.__version__
 
 
 # ---------------------------------------------------------------------------
@@ -333,7 +333,7 @@ def _triangle_graph() -> nx.DiGraph:
 
 def _make_fake_native_result(G):
     """Return a minimal fake native result for monkeypatching _fit_backend."""
-    import directedstructure.MCMC_core as _nc
+    import community_hierarchy.MCMC_core as _nc
     # Use a real tiny fit so we have a valid native object to introspect
     # but capture the kwargs passed to it.
     pass  # implemented inline below
@@ -341,7 +341,7 @@ def _make_fake_native_result(G):
 
 def test_fit_forwards_seed_and_chains_to_backend(monkeypatch):
     """fit() must pass seed, num_chains, burn_sweeps, samples_per_chain to backend."""
-    import directedstructure.core as core_mod
+    import community_hierarchy.core as core_mod
 
     captured = {}
     _real_backend = core_mod._fit_backend
@@ -373,7 +373,7 @@ def test_initial_partition_wrong_length_raises():
 
 def test_initial_partition_explicit_is_used(monkeypatch):
     """An explicit initial_partition of the correct length is forwarded to the backend."""
-    import directedstructure.core as core_mod
+    import community_hierarchy.core as core_mod
 
     captured = {}
     _real_backend = core_mod._fit_backend
@@ -545,7 +545,7 @@ def test_wins_ties_3node_coincidence():
 
 
 def _tempering_coincidence(seed, num_chains, samples_per_chain, timeout):
-    from directedstructure.MCMC_core import fit_backend
+    from community_hierarchy.MCMC_core import fit_backend
     n = 3
     wins_adj = [{1: 1.0, 2: 1.0}, {2: 1.0}, {}]
     ties_adj  = [{1: 1.0}, {0: 1.0}, {}]
@@ -608,7 +608,7 @@ def test_tempering_swap_uses_full_energy():
 
 def test_fit_forwards_num_tempering_chains(monkeypatch):
     """fit() must forward num_tempering_chains to the backend when provided."""
-    import directedstructure.core as core_mod
+    import community_hierarchy.core as core_mod
 
     captured = {}
     _real_backend = core_mod._fit_backend
@@ -908,7 +908,7 @@ def test_weighted_SBM_point_eval():
       → (npairs-1)*log(w_total) - log((npairs-1)!)
       → 2*log(w_total) - log(2)
     """
-    import directedstructure.MCMC_core as native
+    import community_hierarchy.MCMC_core as native
 
     w01, w02, w12 = 1.97558, 1.13873, 2.77927
 
@@ -953,11 +953,11 @@ def test_weighted_SBM_unweighted_unchanged():
     G.add_edge("B", "C", weight=2)
     G.add_edge("A", "C", weight=1)
 
-    config_plain    = ds.Config(groups_model="general_ASBM")
-    config_weighted = ds.Config(groups_model="general_ASBM", weighted_SBM=False)
+    config_plain    = ch.Config(groups_model="general_ASBM")
+    config_weighted = ch.Config(groups_model="general_ASBM", weighted_SBM=False)
 
-    r1 = ds.fit(config_plain,    G, num_chains=1, samples_per_chain=50, burn_sweeps=50, seed=7)
-    r2 = ds.fit(config_weighted, G, num_chains=1, samples_per_chain=50, burn_sweeps=50, seed=7)
+    r1 = ch.fit(config_plain,    G, num_chains=1, samples_per_chain=50, burn_sweeps=50, seed=7)
+    r2 = ch.fit(config_weighted, G, num_chains=1, samples_per_chain=50, burn_sweeps=50, seed=7)
 
     # Identical seeds → identical MDL
     assert r1.mdl_value == pytest.approx(r2.mdl_value, rel=1e-6)
@@ -978,8 +978,8 @@ def test_weighted_SBM_produces_nonzero_H_W():
     G.add_edge("A", "C", weight=1.7)
     G.add_edge("C", "A", weight=0.8)
 
-    config = ds.Config(groups_model="general_ASBM", weighted_SBM=True)
-    r = ds.fit(config, G, num_chains=1, samples_per_chain=50, burn_sweeps=50, seed=42)
+    config = ch.Config(groups_model="general_ASBM", weighted_SBM=True)
+    r = ch.fit(config, G, num_chains=1, samples_per_chain=50, burn_sweeps=50, seed=42)
     sdf = r.samples_df()
     # H_W is a finite real (DL contribution from weight model)
     assert sdf["H_W"].notna().all(), "H_W must be finite in weighted mode"

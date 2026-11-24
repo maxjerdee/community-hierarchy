@@ -68,7 +68,7 @@ constexpr double NEG_INF = -std::numeric_limits<double>::infinity();
 //  propose_single_site_move samples (its proposal cancels q! exp(-H_b)).
 // -----------------------------------------------------------------------------
 double MCMC::merge_split_log_pi() const {
-    // directedstructure's target over the partition (scores held fixed by these
+    // community_hierarchy's target over the partition (scores held fixed by these
     // moves, so H_Adir_G_A_s_nu is constant and omitted):
     //     pi propto exp(-(H_b + H_s_G_b_depths + beta * H_A_G_b)).
     // Only the data likelihood H_A_G_b is tempered; H_s_G_b_depths is the PRIOR of

@@ -3,7 +3,7 @@ if(NOT EMSCRIPTEN)
 endif()
 
 add_executable(ds_wasm src/ds_wasm.cpp)
-target_link_libraries(ds_wasm PRIVATE directedstructure_core)
+target_link_libraries(ds_wasm PRIVATE community_hierarchy_core)
 target_compile_options(ds_wasm PRIVATE -O3)
 
 set(DS_WASM_EXPORTS

@@ -1,4 +1,4 @@
-# directedstructure: architecture
+# community_hierarchy: architecture
 
 How the package is put together, what each part of the model is, why each MCMC
 move is valid, and where each property is tested. Read this before changing
@@ -8,7 +8,7 @@ the sampler.
 
 | layer | files | role |
 |---|---|---|
-| Python API | `python/directedstructure/src/directedstructure/core.py` | `Config` (model presets), `fit()`, `Result` (summaries, plots) |
+| Python API | `python/community_hierarchy/src/community_hierarchy/core.py` | `Config` (model presets), `fit()`, `Result` (summaries, plots) |
 | input handling | `.../input_output.py` | input validation, model presets → parameters (`_set_model_parameters`), GML output, plotting |
 | binding | `bindings/python/bindings.cpp` | pybind11: `fit_backend`, `FitResult`, and the raw `MCMC` class |
 | driver | `src/fit.{h,cpp}` | chains (threads), parallel tempering, burn-in, sampling, timeout/abort, progress callbacks |
@@ -132,7 +132,7 @@ Two traps worth knowing:
 
 - **The editable install serves the extension from a copy** under
   `site-packages`, not from the source tree. `cmake --build` alone updates the
-  tree and leaves `import directedstructure` on the old binary.
+  tree and leaves `import community_hierarchy` on the old binary.
 - **A stale wasm bundle passes any test that only compares description
   lengths.** The consensus partition can change with no change to any sample's
   DL, which is exactly how the refinement in 0245bd5 slipped past a green

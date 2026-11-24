@@ -1,4 +1,4 @@
-// Validate directedstructure's merge/split moves.
+// Validate community_hierarchy's merge/split moves.
 //
 //  1. BOOKKEEPING -- check_state_bookkeeping(true) after every move, so any
 //     incremental-update error aborts immediately.
@@ -151,7 +151,7 @@ std::vector<double> coincidence(int N, bool enabled, int moves, int sweeps) {
 }  // namespace
 
 int main() {
-    std::printf("directedstructure merge/split validation\n\n");
+    std::printf("community_hierarchy merge/split validation\n\n");
 
     // 1. bookkeeping integrity
     {

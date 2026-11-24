@@ -2,7 +2,7 @@
 
 A stale build is indistinguishable from a real numerical disagreement: the
 editable install serves the extension from a COPY under site-packages, so
-`cmake --build` updates the source tree and `import directedstructure` keeps loading the old
+`cmake --build` updates the source tree and `import community_hierarchy` keeps loading the old
 binary. That cost two sessions an afternoon of chasing a "parity failure" that
 was only a stale .so, so it is now a test.
 
@@ -17,7 +17,7 @@ import pathlib
 
 import pytest
 
-import directedstructure
+import community_hierarchy
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 # Each artifact is compared against the sources IT is built from: the Python
@@ -58,7 +58,7 @@ def _fmt(t: float) -> str:
 def test_extension_is_not_older_than_the_sources():
     """The loaded extension must post-date every .cpp/.h it is built from."""
     _skip_unless_source_checkout()
-    import directedstructure.MCMC_core as native
+    import community_hierarchy.MCMC_core as native
 
     newest, newest_mtime = _newest_source()
     if newest is None:

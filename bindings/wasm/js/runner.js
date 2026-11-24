@@ -9,7 +9,7 @@ const PEEK_INTERVAL_MS = 200;
 const yieldToEventLoop = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 function readError(core) {
-  return core.UTF8ToString(core._ds_last_error()) || "ds: unknown error";
+  return core.UTF8ToString(core._ds_last_error()) || "community-hierarchy: unknown error";
 }
 
 function readJSON(core, ptr) {

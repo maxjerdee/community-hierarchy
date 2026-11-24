@@ -1,4 +1,4 @@
-/* The MCMC state and moves of the directedstructure model (see docs/ARCHITECTURE.md). */
+/* The MCMC state and moves of the community_hierarchy model (see docs/ARCHITECTURE.md). */
 
 #ifndef MCMC_CORE_H
 #define MCMC_CORE_H

@@ -29,8 +29,8 @@ circular testing against the same implementation.
 """
 import math
 import networkx as nx
-import directedstructure.MCMC_core as native
-import directedstructure as ds
+import community_hierarchy.MCMC_core as native
+import community_hierarchy as ch
 
 
 # ---------------------------------------------------------------------------
@@ -253,7 +253,7 @@ def test_weighted_sbm_prefers_correct_partition():
             w = w_in if (i // n_per_block == j // n_per_block) else w_out
             group_adj[i][j] = w
 
-    import directedstructure.MCMC_core as native
+    import community_hierarchy.MCMC_core as native
 
     # K=1: all nodes in group 0
     mcmc_k1 = native.MCMC(

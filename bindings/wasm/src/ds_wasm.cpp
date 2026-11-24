@@ -1,4 +1,4 @@
-// C ABI over the directedstructure MCMC engine, for the WebAssembly build.
+// C ABI over the community_hierarchy MCMC engine, for the WebAssembly build.
 //
 // A fit is a DsSession advanced in chunks by the caller (ds_session_step), so
 // a Web Worker can return to its event loop between chunks and see a "cancel"

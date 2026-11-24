@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.15...3.26)
 if(DEFINED SKBUILD_PROJECT_NAME)
   project(${SKBUILD_PROJECT_NAME} LANGUAGES CXX)
 else()
-  project(directedstructure LANGUAGES CXX)
+  project(community_hierarchy LANGUAGES CXX)
 endif()
 
 option(BUILD_TESTING "Build Catch2-based native tests" OFF)
@@ -17,6 +17,7 @@ else()
   set(_ds_default_wasm OFF)
 endif()
 option(DS_BUILD_PYTHON "Build the pybind11 extension module (MCMC_core)" ${_ds_default_python})
+option(DS_NATIVE_ARCH "Optimise for the build machine's CPU (-march=native)" OFF)
 option(DS_BUILD_WASM "Build the WebAssembly module (bindings/wasm; configure with emcmake)" ${_ds_default_wasm})
 
 # Core sources: everything except fit.cpp (which uses std::async) so WASM can
@@ -31,19 +32,26 @@ set(DS_CORE_SOURCES
     src/fit_result.cpp)
 
 # Build a reusable core library so other language bindings can link against it
-add_library(directedstructure_core STATIC ${DS_CORE_SOURCES})
-target_include_directories(directedstructure_core PUBLIC ${CMAKE_SOURCE_DIR}/src)
-set_target_properties(directedstructure_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_compile_features(directedstructure_core PUBLIC cxx_std_17)
+add_library(community_hierarchy_core STATIC ${DS_CORE_SOURCES})
+target_include_directories(community_hierarchy_core PUBLIC ${CMAKE_SOURCE_DIR}/src)
+set_target_properties(community_hierarchy_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_compile_features(community_hierarchy_core PUBLIC cxx_std_17)
 
 if(EMSCRIPTEN)
   # C++ exceptions carry error messages to JavaScript.
-  target_compile_options(directedstructure_core PUBLIC -fexceptions -O3)
-  target_link_options(directedstructure_core PUBLIC -fexceptions)
+  target_compile_options(community_hierarchy_core PUBLIC -fexceptions -O3)
+  target_link_options(community_hierarchy_core PUBLIC -fexceptions)
 else()
-  target_compile_options(directedstructure_core PRIVATE -O3 -march=native)
+  # Portable by default, so that published wheels run on any CPU of their
+  # architecture; -DDS_NATIVE_ARCH=ON tunes a local build to the build machine.
+  if(NOT MSVC)
+    target_compile_options(community_hierarchy_core PRIVATE -O3)
+    if(DS_NATIVE_ARCH)
+      target_compile_options(community_hierarchy_core PRIVATE -march=native)
+    endif()
+  endif()
   # Native build: include fit.cpp (uses std::async)
-  target_sources(directedstructure_core PRIVATE src/fit.cpp)
+  target_sources(community_hierarchy_core PRIVATE src/fit.cpp)
 endif()
 
 if(DS_BUILD_PYTHON)
@@ -52,13 +60,13 @@ if(DS_BUILD_PYTHON)
 
   # Python bindings: a small pybind11 module that links to the core library
   pybind11_add_module(MCMC_core MODULE bindings/python/bindings.cpp)
-  target_link_libraries(MCMC_core PRIVATE directedstructure_core)
+  target_link_libraries(MCMC_core PRIVATE community_hierarchy_core)
   target_include_directories(MCMC_core PRIVATE ${CMAKE_SOURCE_DIR}/src)
   target_compile_features(MCMC_core PRIVATE cxx_std_17)
   set_target_properties(
     MCMC_core PROPERTIES LIBRARY_OUTPUT_DIRECTORY
-                           ${CMAKE_SOURCE_DIR}/python/directedstructure/src/directedstructure)
-  install(TARGETS MCMC_core LIBRARY DESTINATION ${PROJECT_NAME})
+                           ${CMAKE_SOURCE_DIR}/python/community_hierarchy/src/community_hierarchy)
+  install(TARGETS MCMC_core LIBRARY DESTINATION community_hierarchy)
 endif()
 
 if(DS_BUILD_WASM)

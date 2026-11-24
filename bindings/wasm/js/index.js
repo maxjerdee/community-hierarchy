@@ -1,7 +1,7 @@
-// directedstructure in the browser (and Node): the C++ core compiled to WebAssembly,
+// community_hierarchy in the browser (and Node): the C++ core compiled to WebAssembly,
 // run inside a worker so fits never block the page.
 //
-//   import { load } from "directedstructure";
+//   import { load } from "community-hierarchy";
 //   const m = await load();
 //   const run = m.fit(wins, ties, { num_nodes: N, num_groups: 5 }, { onProgress });
 //   const result = await run.result;   // run.cancel() stops early with partial results
@@ -18,7 +18,7 @@ async function createWorker(workerURL) {
     return {
       post: (m, t) => w.postMessage(m, t || []),
       onMessage: (fn) => { w.onmessage = (e) => fn(e.data); },
-      onError: (fn) => { w.onerror = (e) => fn(new Error(e.message || "ds worker failed")); },
+      onError: (fn) => { w.onerror = (e) => fn(new Error(e.message || "community-hierarchy worker failed")); },
       terminate: () => w.terminate(),
     };
   }
@@ -121,7 +121,7 @@ export async function load(config = {}) {
 
   return {
     /**
-     * Fit the directedstructure model to a directed network.
+     * Fit the community_hierarchy model to a directed network.
      * @param wins    directed win edges: [[u, v], ...] or {from, to, weight?}
      *                u beats v means u→v is a win for u
      * @param ties    undirected tie edges: [[u, v], ...] or {from, to, weight?}
@@ -173,7 +173,7 @@ export async function load(config = {}) {
     /** Stop the worker.  Pending fits are rejected. */
     terminate() {
       worker.terminate();
-      for (const p of pending.values()) p.reject(new Error("directedstructure worker terminated"));
+      for (const p of pending.values()) p.reject(new Error("community_hierarchy worker terminated"));
       pending.clear();
     },
   };

@@ -1,7 +1,7 @@
 # Module Documentation
 
 ```{eval-rst}
-.. automodule:: directedstructure
+.. automodule:: community_hierarchy
    :members:
    :undoc-members:
    :show-inheritance:

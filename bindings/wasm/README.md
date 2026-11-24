@@ -1,6 +1,6 @@
-# directedstructure WASM binding
+# community-hierarchy WASM binding
 
-WebAssembly build of the `directedstructure` C++ core, following the same
+WebAssembly build of the `community_hierarchy` C++ core, following the same
 session-step pattern as the `asbm` WASM binding.
 
 ## Build
@@ -8,7 +8,7 @@ session-step pattern as the `asbm` WASM binding.
 Requires [Emscripten](https://emscripten.org/) (`emcmake`, `emmake`).
 
 ```bash
-cd package-development/directedstructure
+cd community-hierarchy
 mkdir build-wasm && cd build-wasm
 emcmake cmake .. -DCMAKE_BUILD_TYPE=Release
 emmake make -j4
@@ -20,7 +20,7 @@ module (SINGLE_FILE=1, the binary is base64-inlined).
 ## Usage
 
 ```js
-import { load } from "directedstructure";
+import { load } from "community-hierarchy";
 
 const m = await load();
 
@@ -73,11 +73,11 @@ Node ids are 0-based integers.
 
 ## Symlink for edgewise
 
-The edgewise project resolves `directedstructure` via a local symlink (same
+The edgewise project resolves `community-hierarchy` via a local symlink (same
 pattern as `asbm`):
 
 ```bash
 cd edgewise/web
-ln -s ../../../package-development/directedstructure/bindings/wasm/js \
-      node_modules/directedstructure
+ln -s ../../../package-development/community-hierarchy/bindings/wasm/js \
+      node_modules/community-hierarchy
 ```

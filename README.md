@@ -1,4 +1,4 @@
-# directedstructure
+# community-hierarchy
 
 [![Documentation Status][rtd-badge]][rtd-link]
 [![PyPI version][pypi-version]][pypi-link]
@@ -7,17 +7,17 @@
 <!-- SPHINX-START -->
 
 <!-- prettier-ignore-start -->
-[actions-badge]:            https://github.com/maxjerdee/directedstructure/workflows/CI/badge.svg
-[actions-link]:             https://github.com/maxjerdee/directedstructure/actions
-[conda-badge]:              https://img.shields.io/conda/vn/conda-forge/directedstructure
-[conda-link]:               https://github.com/conda-forge/directedstructure-feedstock
+[actions-badge]:            https://github.com/maxjerdee/community-hierarchy/workflows/CI/badge.svg
+[actions-link]:             https://github.com/maxjerdee/community-hierarchy/actions
+[conda-badge]:              https://img.shields.io/conda/vn/conda-forge/community-hierarchy
+[conda-link]:               https://github.com/conda-forge/community-hierarchy-feedstock
 [github-discussions-badge]: https://img.shields.io/static/v1?label=Discussions&message=Ask&color=blue&logo=github
-[github-discussions-link]:  https://github.com/maxjerdee/directedstructure/discussions
-[pypi-link]:                https://pypi.org/project/directedstructure/
-[pypi-platforms]:           https://img.shields.io/pypi/pyversions/directedstructure
-[pypi-version]:             https://img.shields.io/pypi/v/directedstructure
-[rtd-badge]:                https://readthedocs.org/projects/directedstructure/badge/?version=latest
-[rtd-link]:                 https://directedstructure.readthedocs.io/en/latest/?badge=latest
+[github-discussions-link]:  https://github.com/maxjerdee/community-hierarchy/discussions
+[pypi-link]:                https://pypi.org/project/community-hierarchy/
+[pypi-platforms]:           https://img.shields.io/pypi/pyversions/community-hierarchy
+[pypi-version]:             https://img.shields.io/pypi/v/community-hierarchy
+[rtd-badge]:                https://readthedocs.org/projects/community-hierarchy/badge/?version=latest
+[rtd-link]:                 https://community-hierarchy.readthedocs.io/en/latest/?badge=latest
 
 <!-- prettier-ignore-end -->
 
@@ -32,7 +32,7 @@ We model community structure using a stochastic block model, hierarchy structure
 ## Installation
 
 ```bash
-pip install directedstructure
+pip install community-hierarchy
 ```
 
 Or build locally by cloning this repository and running
@@ -50,7 +50,7 @@ The public API has three objects: `Config`, `fit`, and `Result`.
 ### Load a network
 
 ```python
-import directedstructure as ds
+import community_hierarchy as ch
 import networkx as nx
 
 G = nx.read_gml("examples/data/networks/friends.gml")
@@ -61,7 +61,7 @@ Edges may carry a `type` attribute (`'dominant'` or `'neutral'`) to distinguish 
 ### Configure the model
 
 ```python
-config = ds.Config(
+config = ch.Config(
     groups_model="general_ASBM",        # community structure preset
     hierarchy_model="bradley_terry_ties",  # auto-selected if omitted
     interaction="coupled",              # coupling between communities and hierarchy
@@ -73,7 +73,7 @@ config = ds.Config(
 ### Run inference
 
 ```python
-result = ds.fit(
+result = ch.fit(
     config, G,
     num_samples=1000,       # posterior samples to collect
     sweeps_per_sample=10,   # MCMC sweeps between samples
@@ -87,7 +87,7 @@ result = ds.fit(
 ```python
 # A concise summary is printed by the result itself
 print(result)
-# directedstructure.Result(n=62, samples=1000, mean_groups=3.2, mdl=412.100)
+# community_hierarchy.Result(n=62, samples=1000, mean_groups=3.2, mdl=412.100)
 
 # Network-level posterior summary: columns parameter, mean, std, hdi_lo, hdi_hi
 # Includes ICC (intraclass correlation) and sigma_T.
@@ -132,29 +132,29 @@ import matplotlib.pyplot as plt
 
 # Node scores ranked within each inferred community (±1 std error bars,
 # group mean line, communities labeled G1/G2/…)
-fig, ax = ds.plot_node_properties(result)
+fig, ax = ch.plot_node_properties(result)
 plt.savefig("node_scores.png")
 
 # Adjacency matrix of G reordered by inferred community, with colored
 # community strips on the top and left edges.
 # G can be any graph — it does not have to be the graph used in fit().
-fig, ax = ds.plot_adjacency_matrix(result, G, cmap="Greens", title="Network")
+fig, ax = ch.plot_adjacency_matrix(result, G, cmap="Greens", title="Network")
 plt.savefig("adjacency.png")
 
 # Compose both panels side by side
 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-ds.plot_node_properties(result, ax=axes[0])
-ds.plot_adjacency_matrix(result, G, ax=axes[1])
+ch.plot_node_properties(result, ax=axes[0])
+ch.plot_adjacency_matrix(result, G, ax=axes[1])
 fig.tight_layout()
 plt.savefig("combined.png")
 
-fig, ax = ds.plot_MCMC_entropy(result)   # convergence diagnostic
+fig, ax = ch.plot_MCMC_entropy(result)   # convergence diagnostic
 ```
 
 Export the graph with inferred attributes for use in Gephi or other tools:
 
 ```python
-ds.write_gml_with_inferences(G, "output.gml", result)
+ch.write_gml_with_inferences(G, "output.gml", result)
 ```
 
 ### Fixing model components
@@ -162,15 +162,15 @@ ds.write_gml_with_inferences(G, "output.gml", result)
 Pass fixed values in `Config` to test submodels. For example, to fix group structure from node attributes and infer hierarchy only:
 
 ```python
-config = ds.Config(group_attribute="department", interaction="independent")
-result = ds.fit(config, G)
+config = ch.Config(group_attribute="department", interaction="independent")
+result = ch.fit(config, G)
 ```
 
 Or fix the number of groups:
 
 ```python
-config = ds.Config(num_groups=4)
-result = ds.fit(config, G)
+config = ch.Config(num_groups=4)
+result = ch.fit(config, G)
 ```
 
 ### Parallel tempering
@@ -178,7 +178,7 @@ result = ds.fit(config, G)
 For complex posteriors, enable parallel tempering:
 
 ```python
-result = ds.fit(config, G, num_tempering_chains=4, beta=1.0)
+result = ch.fit(config, G, num_tempering_chains=4, beta=1.0)
 ```
 
 Further usage examples can be found in the `examples/python/` directory of the

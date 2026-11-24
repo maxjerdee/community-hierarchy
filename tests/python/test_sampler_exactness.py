@@ -18,7 +18,7 @@ import math
 import numpy as np
 import pytest
 
-import directedstructure.MCMC_core as native
+import community_hierarchy.MCMC_core as native
 
 
 def _c2v(concentration: float) -> float:

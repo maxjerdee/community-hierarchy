@@ -1,7 +1,7 @@
 """
 Copyright (c) 2025 Maximilian Jerdee. Released under the MIT License (see LICENSE).
 
-directedstructure: Infer communities, hierarchies, and their connection in directed graphs
+community_hierarchy: Infer communities, hierarchies, and their connection in directed graphs
 """
 
 from __future__ import annotations

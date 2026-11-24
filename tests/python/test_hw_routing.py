@@ -5,8 +5,8 @@ Uses the same 3-node graph to isolate the routing difference.
 """
 import math
 import networkx as nx
-import directedstructure as ds
-import directedstructure.MCMC_core as native
+import community_hierarchy as ch
+import community_hierarchy.MCMC_core as native
 
 w01, w02, w12 = 1.97558, 1.13873, 2.77927
 
@@ -51,8 +51,8 @@ def test_neutral_edge_routing():
     # Fix partition [0,0,1]
     for nd in G.nodes(): G.nodes[nd]["group"] = [0,0,1][nd]
 
-    cfg = ds.Config(group_attribute="group", weighted_SBM=True, degree_correction=True)
-    r = ds.fit(cfg, G, num_samples=5, seed=42, show_progress=False)
+    cfg = ch.Config(group_attribute="group", weighted_SBM=True, degree_correction=True)
+    r = ch.fit(cfg, G, num_samples=5, seed=42, show_progress=False)
     sdf = r.samples_df()
     HW_api = sdf["H_W"].mean()
 
@@ -76,7 +76,7 @@ def test_neutral_edge_routing():
     # Now fix [0,1,1] and compare
     G2 = G.copy()
     for nd in G2.nodes(): G2.nodes[nd]["group"] = [0,1,1][nd]
-    r2 = ds.fit(ds.Config(group_attribute="group", weighted_SBM=True, degree_correction=True),
+    r2 = ch.fit(ch.Config(group_attribute="group", weighted_SBM=True, degree_correction=True),
                 G2, num_samples=5, seed=42, show_progress=False)
     sdf2 = r2.samples_df()
     HW_api2 = sdf2["H_W"].mean()

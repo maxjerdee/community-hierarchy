@@ -43,7 +43,7 @@ import pytest
 # ---------------------------------------------------------------------------
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WASM_JS = os.path.join(REPO, "bindings", "wasm", "js", "index.js")
-PYTHON_SRC = os.path.join(REPO, "python", "directedstructure", "src")
+PYTHON_SRC = os.path.join(REPO, "python", "community_hierarchy", "src")
 
 if PYTHON_SRC not in sys.path:
     sys.path.insert(0, PYTHON_SRC)
@@ -181,10 +181,10 @@ class TestParameterDraws:
 
     @pytest.fixture(scope="class")
     def python_params(self):
-        import directedstructure as ds
+        import community_hierarchy as ch
         G = _build_nx_graph()
-        result = ds.fit(
-            ds.Config(), G,
+        result = ch.fit(
+            ch.Config(), G,
             num_samples=1, seed=SEED,
             burn_sweeps=0, sweeps_per_sample=0,
             merge_split_enabled=False,
@@ -252,10 +252,10 @@ class TestInitialDLParity:
     @pytest.fixture(scope="class")
     def python_dl(self):
         """Python fit with explicit partition+scores, sweeps=0 → initial DL."""
-        import directedstructure as ds
+        import community_hierarchy as ch
         G = _build_nx_graph()
-        result = ds.fit(
-            ds.Config(), G,
+        result = ch.fit(
+            ch.Config(), G,
             num_samples=1, seed=SEED,
             burn_sweeps=0, sweeps_per_sample=0,
             merge_split_enabled=False,
@@ -320,10 +320,10 @@ class TestConvergence:
 
     @pytest.fixture(scope="class")
     def python_result(self):
-        import directedstructure as ds
+        import community_hierarchy as ch
         G = _build_nx_graph()
-        return ds.fit(
-            ds.Config(), G,
+        return ch.fit(
+            ch.Config(), G,
             num_samples=10, seed=SEED,
             burn_sweeps=50, sweeps_per_sample=1,
             merge_split_enabled=True,
@@ -396,10 +396,10 @@ class TestConvergenceMultiSweep(TestConvergence):
 
     @pytest.fixture(scope="class")
     def python_result(self):
-        import directedstructure as ds
+        import community_hierarchy as ch
         G = _build_nx_graph()
-        return ds.fit(
-            ds.Config(), G,
+        return ch.fit(
+            ch.Config(), G,
             num_samples=10, seed=SEED,
             burn_sweeps=20, sweeps_per_sample=3,
             merge_split_enabled=True,
@@ -436,10 +436,10 @@ class TestIndependentCoupling:
 
     @pytest.fixture(scope="class")
     def python_result(self):
-        import directedstructure as ds
+        import community_hierarchy as ch
         G = _build_nx_graph()
-        return ds.fit(
-            ds.Config(interaction="independent"), G,
+        return ch.fit(
+            ch.Config(interaction="independent"), G,
             num_samples=10, seed=SEED,
             burn_sweeps=50, sweeps_per_sample=1,
             merge_split_enabled=True,
@@ -537,8 +537,8 @@ PRESETS = {
 
 @pytest.mark.parametrize("model", sorted(PRESETS))
 def test_wasm_preset_mdl_matches_python(model):
-    import directedstructure as ds
-    py = ds.fit(ds.Config(groups_model=model), _build_nx_graph(), num_samples=10, seed=SEED,
+    import community_hierarchy as ch
+    py = ch.fit(ch.Config(groups_model=model), _build_nx_graph(), num_samples=10, seed=SEED,
                 burn_sweeps=50, sweeps_per_sample=1, merge_split_enabled=True)
     wasm = wasm_fit(WINS, TIES, {
         "num_nodes": N, "seed": SEED, "burn_sweeps": 50, "samples": 10,

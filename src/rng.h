@@ -11,8 +11,8 @@
 // These three functions fix the algorithm, so a seed pins the run everywhere:
 // native Linux/macOS/Windows and wasm all produce the same chain.  Use them
 // instead of the standard facilities anywhere the sampler draws.
-#ifndef DIRECTEDSTRUCTURE_RNG_H
-#define DIRECTEDSTRUCTURE_RNG_H
+#ifndef COMMUNITY_HIERARCHY_RNG_H
+#define COMMUNITY_HIERARCHY_RNG_H
 
 #include <cstdint>
 #include <cmath>
@@ -87,4 +87,4 @@ struct UniformRandom {
     double operator()(Gen& g) const { return next_uniform(g); }
 };
 
-#endif  // DIRECTEDSTRUCTURE_RNG_H
+#endif  // COMMUNITY_HIERARCHY_RNG_H

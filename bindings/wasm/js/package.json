@@ -1,12 +1,12 @@
 {
-  "name": "directedstructure",
+  "name": "community-hierarchy",
   "version": "0.0.0-dev",
-  "description": "Joint community and hierarchy detection on directed networks: the directedstructure C++ core compiled to WebAssembly, run in a Web Worker",
+  "description": "Joint community and hierarchy detection on directed networks: the community_hierarchy C++ core compiled to WebAssembly, run in a Web Worker",
   "license": "MIT",
   "author": "Maximilian Jerdee",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/maxjerdee/directedstructure.git",
+    "url": "git+https://github.com/maxjerdee/community-hierarchy.git",
     "directory": "bindings/wasm/js"
   },
   "type": "module",
