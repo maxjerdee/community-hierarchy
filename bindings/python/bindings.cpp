@@ -130,8 +130,9 @@ public:
         return d;
     }
 
-    py::dict node_properties_dict(const std::string& mode = "auto") const {
-        auto r = FitResult::node_properties(mode);
+    py::dict node_properties_dict(const std::string& mode = "auto",
+                                  const std::string& consensus_method = "moc") const {
+        auto r = FitResult::node_properties(mode, consensus_method);
         py::dict d;
         d["mode_used"]        = py::cast(r.mode_used);
         d["score_mean"]       = py::cast(r.score_mean);
@@ -323,6 +324,26 @@ PYBIND11_MODULE(MCMC_core, m) {
            .def_readonly("H_Adir_G_A_s_nu",    &MCMC::H_Adir_G_A_s_nu)
            .def_readonly("H_s_G_b_depths",     &MCMC::H_s_G_b_depths)
            .def_readonly("weighted_SBM",        &MCMC::weighted_SBM)
+           .def_readwrite("adapting",           &MCMC::adapting)
+           .def_readonly("step_score",          &MCMC::step_score)
+           .def_readonly("step_individual_depth", &MCMC::step_individual_depth)
+           .def_readonly("step_group_depth",    &MCMC::step_group_depth)
+           .def_readonly("step_ties",           &MCMC::step_ties)
+           .def_readonly("step_group_score",    &MCMC::step_group_score)
+           .def_readonly("single_site_proposals",          &MCMC::single_site_proposals)
+           .def_readonly("accepted_single_site_proposals", &MCMC::accepted_single_site_proposals)
+           .def_readonly("score_proposals",                &MCMC::score_proposals)
+           .def_readonly("accepted_score_proposals",       &MCMC::accepted_score_proposals)
+           .def_readonly("group_score_proposals",          &MCMC::group_score_proposals)
+           .def_readonly("accepted_group_score_proposals", &MCMC::accepted_group_score_proposals)
+           .def_readonly("group_depth_proposals",          &MCMC::group_depth_proposals)
+           .def_readonly("accepted_group_depth_proposals", &MCMC::accepted_group_depth_proposals)
+           .def_readonly("individual_depth_proposals",          &MCMC::individual_depth_proposals)
+           .def_readonly("accepted_individual_depth_proposals", &MCMC::accepted_individual_depth_proposals)
+           .def_readonly("new_group_proposals",            &MCMC::new_group_proposals)
+           .def_readonly("accepted_new_group_proposals",   &MCMC::accepted_new_group_proposals)
+           .def_readonly("vacate_proposals",               &MCMC::vacate_proposals)
+           .def_readonly("accepted_vacate_proposals",      &MCMC::accepted_vacate_proposals)
            .def_readonly("time_H_k",                    &MCMC::time_H_k)
            .def_readonly("time_H_M",                    &MCMC::time_H_M)
            .def_readonly("time_H_A_G_k_M_b",            &MCMC::time_H_A_G_k_M_b)
@@ -339,6 +360,16 @@ PYBIND11_MODULE(MCMC_core, m) {
            .def_readonly("merge_split_proposals",          &MCMC::merge_split_proposals)
            .def_readonly("accepted_merge_split_proposals", &MCMC::accepted_merge_split_proposals)
            .def("calculate_H_M", &MCMC::calculate_H_M)
+           // single moves, for exactness tests of each kernel on its own
+           .def("propose_single_site_move", &MCMC::propose_single_site_move)
+           .def("propose_score_move",       &MCMC::propose_score_move)
+           .def("propose_group_score_move", &MCMC::propose_group_score_move, py::arg("r") = -1)
+           .def("propose_parameter_move",   &MCMC::propose_parameter_move)
+           .def("propose_merge_move",       &MCMC::propose_merge_move)
+           .def("propose_split_move",       &MCMC::propose_split_move)
+           .def("propose_merge_split_move", &MCMC::propose_merge_split_move)
+           .def("set_beta", [](MCMC& self, double b) { self.beta = b; })
+           .def("check_state_bookkeeping", &MCMC::check_state_bookkeeping, py::arg("throw_error") = true)
            .def("change_parameter", &MCMC::change_parameter,
                 py::arg("param_name"),
                 py::arg("new_value"));
@@ -349,7 +380,12 @@ PYBIND11_MODULE(MCMC_core, m) {
         .def_property_readonly("num_samples", &FitResultNative::num_samples)
         .def("mdl_partition",       &FitResultNative::mdl_partition)
         .def("consensus_partition", &FitResultNative::consensus_partition,
-             py::arg("refine") = true)
+             py::arg("method") = "moc", py::arg("refine") = true,
+             py::arg("min_samples") = 1000)
+        .def("consensus_sample_indices", &FitResultNative::consensus_sample_indices,
+             py::arg("min_samples") = 1000)
+        .def("partition_ess",       &FitResultNative::partition_ess)
+        .def("modal_num_groups",    &FitResultNative::modal_num_groups)
         .def("coincidence_matrix",  &FitResultNative::coincidence_matrix_numpy)
         .def("score_means",         &FitResultNative::score_means)
         .def("score_stds",          &FitResultNative::score_stds)
@@ -360,7 +396,7 @@ PYBIND11_MODULE(MCMC_core, m) {
         .def("network_properties",   &FitResultNative::network_properties_dict,
              py::arg("prob") = 0.90)
         .def("node_properties",     &FitResultNative::node_properties_dict,
-             py::arg("mode") = "auto")
+             py::arg("mode") = "auto", py::arg("consensus_method") = "moc")
         .def("samples_df",          &FitResultNative::samples_df)
         .def("summary",             &FitResultNative::summary)
         .def("__getstate__",        &FitResultNative::getstate)

@@ -198,12 +198,12 @@ def test_consensus_refinement_lowers_loss_and_keeps_group_count():
     r = fit(Config(), G, num_chains=2, samples_per_chain=30, sweeps_per_sample=2,
             burn_sweeps=50, seed=3, show_progress=False)
     C = np.asarray(r.coincidence_matrix())
-    raw = r.consensus_partition(refine=False)
-    ref = r.consensus_partition()
+    raw = r.consensus_partition("binder", refine=False)
+    ref = r.consensus_partition("binder")
 
     assert len(set(ref)) == len(set(raw))                      # group count held
     assert _binder_loss(ref, C) <= _binder_loss(raw, C) + 1e-9  # never worse
-    assert list(r.consensus_partition()) == list(ref)           # deterministic
+    assert list(r.consensus_partition("binder")) == list(ref)   # deterministic
     # every group is still populated
     assert min(np.bincount(np.asarray(ref)) [np.bincount(np.asarray(ref)) > 0]) >= 1
 
@@ -238,3 +238,70 @@ def test_neutral_edges_fit_the_tie_parameter():
 
 def test_explicit_hierarchy_model_is_respected():
     assert _ties(_graph(), hierarchy_model="bradley_terry_ties") > 0.0
+
+
+# ---------------------------------------------------------------------------
+# Default consensus is the maximum-overlap consensus (Peixoto 2021) with the
+# number of groups held at the posterior mode; both methods return modal K,
+# and the thinning keeps max(min_samples, ESS of H_A_b) evenly spaced samples.
+# ---------------------------------------------------------------------------
+def _overlap(c, b):
+    from scipy.optimize import linear_sum_assignment
+    c, b = np.asarray(c), np.asarray(b)
+    _, c = np.unique(c, return_inverse=True)
+    _, b = np.unique(b, return_inverse=True)
+    M = np.zeros((c.max() + 1, b.max() + 1))
+    np.add.at(M, (c, b), 1)
+    r, s = linear_sum_assignment(-M)
+    return M[r, s].sum()
+
+
+def test_consensus_methods_return_modal_group_count():
+    G = nx.gnp_random_graph(40, 0.12, seed=4, directed=True)
+    r = fit(Config(), G, num_chains=2, samples_per_chain=40, sweeps_per_sample=2,
+            burn_sweeps=50, seed=3, show_progress=False)
+    K = int(r.samples_df()["num_groups"].mode().min())
+    moc = r.consensus_partition()                       # default is MOC
+    assert list(moc) == list(r.consensus_partition("MOC"))   # case-insensitive, deterministic
+    assert len(set(moc)) == K
+    assert len(set(r.consensus_partition("binder"))) == K
+    with pytest.raises(ValueError):
+        r.consensus_partition("vi")
+
+
+def test_moc_is_at_least_as_good_as_every_modal_sample():
+    """MOC optimises over all K-group partitions, so its total overlap with the
+    samples is no worse than that of any recorded modal-K sample it could have
+    returned (it starts from some of them and ascends)."""
+    G = nx.gnp_random_graph(40, 0.12, seed=4, directed=True)
+    r = fit(Config(), G, num_chains=2, samples_per_chain=40, sweeps_per_sample=2,
+            burn_sweeps=50, seed=3, show_progress=False)
+    df = r.samples_df()
+    P = df[[f"{v}_group" for v in r._node_order]].values
+    K = int(df["num_groups"].mode().min())
+    moc = r.consensus_partition()
+    total = sum(_overlap(moc, p) for p in P)
+    starts = [p for p in P if len(set(p)) == K][:1]   # the first restart's start
+    assert all(total >= sum(_overlap(s, p) for p in P) for s in starts)
+
+
+def test_consensus_thinning_floor_and_ess():
+    G = nx.gnp_random_graph(40, 0.12, seed=4, directed=True)
+    r = fit(Config(), G, num_chains=2, samples_per_chain=200, sweeps_per_sample=1,
+            burn_sweeps=20, seed=5, show_progress=False)
+    T = r._native.num_samples
+    assert len(r._native.consensus_sample_indices(1000)) == T       # fewer than floor: all
+    assert len(r._native.consensus_sample_indices(0)) == T          # 0 disables thinning
+    ess = r.partition_ess()
+    m = len(r._native.consensus_sample_indices(50))
+    assert m == min(T, max(50, int(np.ceil(ess))))
+    idx = r._native.consensus_sample_indices(50)
+    assert idx == sorted(set(idx)) and idx[0] == 0
+    try:
+        import arviz as az
+    except ImportError:
+        return
+    df = r.samples_df()
+    L = df.groupby("chain_id").size().min()
+    x = np.stack([g["H_A_b"].values[:L] for _, g in df.groupby("chain_id")])
+    assert abs(ess - float(az.ess(x, method="bulk"))) <= 0.02 * float(az.ess(x, method="bulk")) + 1

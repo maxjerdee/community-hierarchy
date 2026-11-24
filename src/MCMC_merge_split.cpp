@@ -397,11 +397,11 @@ void MCMC::propose_split_move() {
     }
 
     const double log_fwd = -std::log(static_cast<double>(K)) + log_sweep;  // Eq. 32
-    const double log_rev = merge_logprob(K + 1);                           // reverse is a merge
+    const double log_rev = pair_logprob(ga, gb);   // reverse is a merge of {ga, gb}, Eq. 19, in the K+1-group state
 
     const double delta = (H_b - H_b_old)
-                       + beta * ((H_A_G_b - H_A_G_b_old)
-                               + (H_s_G_b_depths - H_s_G_b_depths_old))
+                       + beta * (H_A_G_b - H_A_G_b_old)
+                       + (H_s_G_b_depths - H_s_G_b_depths_old)   // score prior: untempered (merge_split_log_pi)
                        + log_fwd - log_rev
                        - split_label_factor(K);      // x (K+1); H_b untouched
 
@@ -426,9 +426,9 @@ void MCMC::propose_merge_move() {
     const double H_s_G_b_depths_old = H_s_G_b_depths;
 
     const double H_b_old = H_b;
+    // Pair choice (Peixoto 2020 Eq. 19): r uniform, s ~ P(s | r, b).
     int r = next_int(rng, 0, K - 1);
-    int s = next_int(rng, 0, K - 2);
-    if (s >= r) ++s;
+    int s = sample_partner(r);
 
     std::vector<int> nodes_r = group_members[r];
     std::vector<int> nodes   = nodes_r;
@@ -441,7 +441,7 @@ void MCMC::propose_merge_move() {
     for (std::size_t i = 0; i < nodes.size(); ++i)
         target[i] = (partition[nodes[i]] == r) ? 0 : 1;
 
-    const double log_fwd = merge_logprob(K);
+    const double log_fwd = pair_logprob(r, s);      // P of choosing the unordered pair {r, s}
 
     // --- perform the merge ---
     flip_nodes(nodes_r, s);
@@ -470,8 +470,8 @@ void MCMC::propose_merge_move() {
     const double log_rev = -std::log(static_cast<double>(K - 1)) + log_sweep;  // Eq. 32
 
     const double delta = (H_b - H_b_old)
-                       + beta * ((H_A_G_b - H_A_G_b_old)
-                               + (H_s_G_b_depths - H_s_G_b_depths_old))
+                       + beta * (H_A_G_b - H_A_G_b_old)
+                       + (H_s_G_b_depths - H_s_G_b_depths_old)   // score prior: untempered (merge_split_log_pi)
                        + log_fwd - log_rev
                        - merge_label_factor(K);      // x 1/K; H_b untouched
 
@@ -513,9 +513,10 @@ void MCMC::propose_merge_split_move() {
     const double H_b_old = H_b, H_A_G_b_old = H_A_G_b;
     const double H_s_G_b_depths_old = H_s_G_b_depths;
 
+    // Pair choice (Peixoto 2020 Eq. 19): r uniform, s ~ P(s | r, b).
     int r = next_int(rng, 0, K - 1);
-    int s = next_int(rng, 0, K - 2);
-    if (s >= r) ++s;
+    int s = sample_partner(r);
+    const double log_pair_fwd = pair_logprob(r, s);
 
     const std::vector<int> nodes_r = group_members[r];
     std::vector<int> nodes = nodes_r;
@@ -566,12 +567,15 @@ void MCMC::propose_merge_split_move() {
     }
 
     set_split_assignment(nodes, ga2, gb2, proposed);        // land on the proposal
+    // The Eq. 19 pair probability depends on the state, so unlike a uniform pair
+    // choice it does not cancel: the reverse picks {ga2, gb2} in the proposed state.
+    const double log_pair_rev = pair_logprob(ga2, gb2);
 
-    // Eq. 36.  No label factor: q is unchanged.  Merge-pair factors cancel.
+    // Eq. 36.  No label factor: q is unchanged.
     const double delta = (H_b - H_b_old)
-                       + beta * ((H_A_G_b - H_A_G_b_old)
-                               + (H_s_G_b_depths - H_s_G_b_depths_old))
-                       + log_fwd - log_rev;
+                       + beta * (H_A_G_b - H_A_G_b_old)
+                       + (H_s_G_b_depths - H_s_G_b_depths_old)   // score prior: untempered (merge_split_log_pi)
+                       + log_fwd - log_rev + log_pair_fwd - log_pair_rev;
 
     if (uniform_random(rng) >= std::exp(-delta)) {
         set_split_assignment(nodes, ga2, gb2, original);    // reject

@@ -156,7 +156,11 @@ FitResult fit(FitParams p) {
         };
         retune();                                        // from the initial partition
 
-        // Burn-in
+        // Step sizes adapt during burn-in only (Robbins-Monro, globals.h) and are
+        // frozen for sampling, so the sampling kernel is fixed and exact.
+        for (auto& c : chain_stack) c.adapting = true;
+
+        // Burn-in: burn_sweeps iterations of sweeps_per_sample sweeps each.
         for (int b = 0; b < p.burn_sweeps && elapsed() < p.timeout && !aborted(); ++b) {
             for (int ci = 0; ci < p.num_tempering_chains; ++ci)
                 chain_stack[ci].MCMC_sweep(betas[ci], p.sweeps_per_sample, p.merge_split_enabled);
@@ -167,6 +171,8 @@ FitResult fit(FitParams p) {
                 p.on_burn_in(done, p.num_chains * p.burn_sweeps);
             }
         }
+
+        for (auto& c : chain_stack) c.adapting = false;
 
         // Sampling
         std::vector<SampleState> samples;

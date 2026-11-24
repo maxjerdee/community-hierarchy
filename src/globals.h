@@ -40,7 +40,39 @@ const double DEGREE_CORRECTION_STEP_SIZE = PARAMETER_PROPOSAL_STEP_SIZE;
 const double INDIVIDUAL_DEPTH_STEP_SIZE = PARAMETER_PROPOSAL_STEP_SIZE;
 const double GROUP_DEPTH_STEP_SIZE = PARAMETER_PROPOSAL_STEP_SIZE;
 const double TIES_PARAMETER_STEP_SIZE = PARAMETER_PROPOSAL_STEP_SIZE;
-const double GROUP_SCORE_STEP_SIZE = 0.1; // RW step (scaled-score units) for the collective group-score-shift move
+const double GROUP_SCORE_STEP_SIZE = 0.1; // INITIAL RW step (scaled-score units) for the group-score shift; adapted in burn-in
+
+// ---- step-size adaptation (burn-in only; frozen for sampling) ----
+// Robbins-Monro on log step: log s += gamma_t (accepted - target),
+// gamma_t = ADAPT_GAIN / (1 + t / ADAPT_T0)^ADAPT_KAPPA.  Applied to the score,
+// sigma_I, sigma_G, ties and group-score-shift steps; the others keep their fixed
+// steps.  Adapting only during burn-in leaves the sampling kernel fixed, so the
+// chain stays exactly invariant.  Target 0.44 is the optimal one-dimensional
+// random-walk rate (Roberts & Rosenthal 2001); the gain schedule is ad hoc.
+const double ADAPT_TARGET = 0.44;
+const double ADAPT_GAIN = 0.5;
+const double ADAPT_T0 = 20.0;
+const double ADAPT_KAPPA = 0.6;
+const double ADAPT_MIN_STEP = 1e-5;
+const double ADAPT_MAX_STEP_CDF = 0.5;   // CDF-space steps (scores, sigma_I, sigma_G, ties)
+const double ADAPT_MAX_STEP_GROUP_SCORE = 10.0;
+const double SCORE_STEP_SIZE = 0.01;     // INITIAL CDF-space step of single-node score moves
+
+// ---- proposal mix ----
+// Each free continuous parameter is proposed PARAMETER_MOVE_WEIGHT times as often
+// as under one-per-parameter weighting (weight = this x number of free parameters).
+const double PARAMETER_MOVE_WEIGHT = 10.0;
+// Probability that a sigma_G proposal also rescales every group's mean scaled
+// score about 0 by lambda = sigma_G' / sigma_G (Jacobian lambda^q).  A
+// state-independent coin, so the mixture of the two kernels stays valid.
+const double GROUP_DEPTH_RESCALE_PROB = 0.5;
+
+// ---- single-node group move (Peixoto 2020, Phys. Rev. E 102, 012305, Eq. 15) ----
+// With probability BLOCK_NEW_GROUP_PROB the node moves to a new group; otherwise
+// s ~ P_e(s | i, b) (Eq. 14): a uniform neighbour j, t = b_j, then s with
+// probability (e_ts + c) / (e_t + c B), c = BLOCK_SITE_EPS.  graph-tool defaults.
+const double BLOCK_SITE_EPS = 0.5;
+const double BLOCK_NEW_GROUP_PROB = 0.01;
 
 
 const int GIBBS_REFINEMENT_SWEEPS = 1; // Change back to 10 // Number of Gibbs sweeps to use when refining splits
@@ -66,7 +98,10 @@ inline constexpr UniformRandom uniform_random{};
 // auxiliary variable, so ANY value (including 0) gives a valid kernel; it trades
 // proposal quality against cost.  Peixoto reports M=10 across several networks;
 // on small easy networks M=0-1 is faster, but on celegansneural (N=297) M=0
-// FAILS to converge, so 10 is the safe default.
+// FAILS to converge.  Default 3: with weight 1 per collective move (below) and
+// the block-informed single-node move, M=3 mixed the international-football and
+// high-school networks as well as M=10 per unit time, with merge-split taking
+// about 60% of the run time on football.
 extern int MERGE_SPLIT_GIBBS_SWEEPS;
 
 // Which prestage strategy to draw from: 0 = all three uniformly (Peixoto),
@@ -110,6 +145,11 @@ extern int MERGE_SPLIT_MOVES;
 // The value is STATE-INDEPENDENT (n, m and M are fixed for a given run), which
 // matters: a weight that depended on num_groups would make the partition-move
 // fraction depend on q and bias the q-marginal.
+//
+// DEFAULT NOW 1.0 (Peixoto's omega_collective = 1 with omega_single = N): with
+// M = 3 Gibbs sweeps and the block-informed single-node move this gave the best
+// partition mixing per unit time on the benchmark networks.  Set it negative to
+// get the equal-spend retuning described below.
 extern double MERGE_SPLIT_WEIGHT;
 
 // Divisor of the equal-spend rule fit() applies while MERGE_SPLIT_WEIGHT is

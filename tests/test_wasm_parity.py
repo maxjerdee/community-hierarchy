@@ -388,6 +388,36 @@ class TestConvergence:
         assert mdl_k >= 2, f"WASM collapsed to K=1 for N={N} nodes"
 
 
+class TestConvergenceMultiSweep(TestConvergence):
+    """As TestConvergence with sweeps_per_sample = 3, which pins the burn-in
+    semantics: both backends burn in for burn_sweeps * sweeps_per_sample sweeps
+    (the wasm driver once ran burn_sweeps sweeps, which sweeps_per_sample = 1
+    could not detect)."""
+
+    @pytest.fixture(scope="class")
+    def python_result(self):
+        import directedstructure as ds
+        G = _build_nx_graph()
+        return ds.fit(
+            ds.Config(), G,
+            num_samples=10, seed=SEED,
+            burn_sweeps=20, sweeps_per_sample=3,
+            merge_split_enabled=True,
+        )
+
+    @pytest.fixture(scope="class")
+    def wasm_result(self):
+        return wasm_fit(WINS, TIES, {
+            "num_nodes": N,
+            "seed": SEED,
+            "burn_sweeps": 20,
+            "samples": 10,
+            "sweeps_per_sample": 3,
+            "assortative": True,
+            "merge_split_enabled": True,
+        })
+
+
 # ===========================================================================
 # 4. Independent coupling parity — group_depth fixed at 0.0
 # ===========================================================================

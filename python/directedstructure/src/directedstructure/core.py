@@ -167,14 +167,46 @@ class Result:
         part = np.asarray(self._native.mdl_partition(), dtype=int)
         return self._sort_groups_by_score(part, self.score_means)
 
-    def consensus_partition(self, refine: bool = True) -> np.ndarray:
-        """Representative partition: the recorded sample at the modal number of
-        groups whose coincidence matrix is closest in L1 to the aggregate, then a
-        greedy single-node descent on the same loss with that group count held
-        fixed.  refine=False returns the unrefined argmin over samples.
+    def consensus_partition(self, method: str = "moc", refine: bool = True,
+                            min_samples: int = 1000) -> np.ndarray:
+        """Point estimate of the community partition, with the posterior MODAL
+        number of groups K.
+
+        Parameters
+        ----------
+        method : {"moc", "binder"}
+            ``"moc"`` (default)
+                Maximum-overlap consensus (Peixoto 2021, Phys. Rev. X 11,
+                021003): the partition with K groups -- any such partition, not
+                only a recorded one -- that agrees with the most node labels
+                across the samples, after optimally relabelling each sample.
+                Coordinate ascent (align, then majority vote), restarted from up
+                to three modal-K samples.  No n x n matrix.
+            ``"binder"``
+                Binder loss (Binder 1978; Dahl 2006): the recorded sample with K
+                groups whose co-membership is closest in L1 to the posterior
+                co-membership matrix, then (``refine=True``) a greedy
+                single-node descent on the same loss with K held.
+        refine : bool
+            Binder only; ``False`` returns the unrefined argmin over samples.
+        min_samples : int
+            Samples are thinned, evenly spaced, to max(min_samples, ESS), where
+            ESS is the rank-normalised bulk ESS of H_A_b (see
+            :meth:`partition_ess`).  All samples are used when there are fewer
+            than ``min_samples``; ``min_samples=0`` disables thinning.
+
         Groups are sorted so group 0 has the lowest mean hierarchy score."""
-        part = np.asarray(self._native.consensus_partition(refine), dtype=int)
+        m = str(method).lower()
+        if m not in ("moc", "binder"):
+            raise ValueError(f"method must be 'moc' or 'binder', got {method!r}")
+        part = np.asarray(self._native.consensus_partition(m, refine, int(min_samples)), dtype=int)
         return self._sort_groups_by_score(part, self.score_means)
+
+    def partition_ess(self) -> float:
+        """Bulk ESS (Vehtari et al. 2021, rank-normalised, split chains, pooled)
+        of H_A_b, the description length of the network given the partition.
+        Used to thin the samples for :meth:`consensus_partition`."""
+        return float(self._native.partition_ess())
 
     @property
     def score_means(self) -> np.ndarray:
@@ -271,7 +303,8 @@ class Result:
         d = dict(self._native.network_properties(prob))
         return pd.DataFrame(d, columns=["parameter", "mean", "std", "hdi_lo", "hdi_hi"])
 
-    def node_properties_df(self, partition: str = "auto") -> pd.DataFrame:
+    def node_properties_df(self, partition: str = "auto",
+                           consensus_method: str = "moc") -> pd.DataFrame:
         """Posterior summary of node-level properties with community labels.
 
         Parameters
@@ -280,14 +313,16 @@ class Result:
             Which partition to use for community labels:
 
             ``"auto"`` (default)
-                Consensus partition for n ≤ 3000 (the recommended posterior
-                summary); MDL partition for larger networks, with a
-                ``UserWarning``.
+                The consensus partition; except with
+                ``consensus_method="binder"`` on networks with n > 3000, where
+                the MDL partition is used with a ``UserWarning``.
             ``"consensus"``
-                Always compute the consensus partition — O(n² × samples)
-                time and O(n²) memory; may be slow for n > ~3000.
+                Always the consensus partition (see :meth:`consensus_partition`).
             ``"mdl"``
                 MDL-optimal single sample; free but not a posterior summary.
+        consensus_method : {"moc", "binder"}
+            Passed to :meth:`consensus_partition`.  ``"moc"`` (default) needs no
+            n x n matrix; ``"binder"`` is O(n^2) in time and memory.
 
         Returns
         -------
@@ -296,27 +331,29 @@ class Result:
 
         Notes
         -----
-        The ``"consensus"`` partition is the natural posterior summary for a
-        Bayesian method — it is the sample whose coincidence matrix is closest
-        to the aggregate. ``"mdl"`` is a free byproduct of sampling (not an
-        optimisation result) and is provided as a fast fallback for large n.
+        Both consensus methods return a partition with the posterior modal
+        number of groups.  ``"mdl"`` is a free byproduct of sampling (not an
+        optimisation result).
 
         Examples
         --------
         >>> npdf = result.node_properties_df()
         >>> print(npdf.sort_values("score_mean", ascending=False).head())
         """
+        cm = str(consensus_method).lower()
+        if cm not in ("moc", "binder"):
+            raise ValueError(f"consensus_method must be 'moc' or 'binder', got {consensus_method!r}")
         # Resolve "auto" in Python so the threshold check is testable and the
         # warning fires before calling C++ (language-specific concern).
         n = len(self._node_order)
         if partition == "auto":
-            mode = "consensus" if n <= 3000 else "mdl"
+            mode = "mdl" if (cm == "binder" and n > 3000) else "consensus"
             if mode == "mdl":
                 warnings.warn(
                     f"Network is large (n={n} > 3000); using mdl_partition "
-                    "instead of consensus_partition. consensus_partition is "
-                    "O(n² × samples) and may be slow for networks this size. "
-                    "Pass partition='consensus' to force it, or "
+                    "instead of the Binder consensus, which is O(n^2) in time "
+                    "and memory. Use consensus_method='moc' (no n x n matrix), "
+                    "pass partition='consensus' to force Binder, or "
                     "partition='mdl' to suppress this warning.",
                     UserWarning,
                     stacklevel=2,
@@ -329,7 +366,7 @@ class Result:
                     f"got {partition!r}"
                 )
             mode = partition
-        d = dict(self._native.node_properties(mode))
+        d = dict(self._native.node_properties(mode, cm))
         d.pop("mode_used", None)
         d["node"] = list(self._node_order)
         # Reorder columns: node first, then the rest
@@ -497,7 +534,11 @@ def fit(
     sweeps_per_sample : int
         MCMC sweeps between recorded samples. Default 10.
     burn_sweeps : int
-        Burn-in sweeps before sampling begins (per chain). Default 500.
+        Burn-in length before sampling begins (per chain), in units of
+        ``sweeps_per_sample`` sweeps: the burn-in is
+        ``burn_sweeps * sweeps_per_sample`` sweeps (5000 with the defaults).
+        Proposal step sizes adapt during burn-in and are then frozen.
+        Default 500.
     thinning : int
         Additional sweeps between samples (total = sweeps_per_sample * thinning). Default 1.
     beta : float

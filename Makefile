@@ -21,8 +21,10 @@ SOURCES := $(SRC_DIR)/MCMC_core.cpp \
 		   $(SRC_DIR)/MCMC_proposals.cpp \
 		   $(SRC_DIR)/MCMC_bookkeeping.cpp \
 		   $(SRC_DIR)/MCMC_merge_split.cpp \
-		   $(SRC_DIR)/consensus.cpp \
-		   $(SRC_DIR)/helpers.cpp
+		   $(SRC_DIR)/helpers.cpp \
+		   $(SRC_DIR)/globals.cpp \
+		   $(SRC_DIR)/fit_result.cpp \
+		   $(SRC_DIR)/fit.cpp
 OBJECTS := $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))
 TEST_CORE_OBJECTS := $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%_test.o,$(SOURCES))
 
@@ -90,9 +92,16 @@ clean:
 	rm -f $(PKG_DIR)/$(MODULE_NAME)*.pdb
 	rm -f $(PKG_DIR)/$(MODULE_NAME)*.exp
 
-# Run the C++ harness
-test: $(TEST_BIN)
+# Plain-main() exactness tests of the collective moves (also built by CMake)
+EXTRA_TESTS := $(BUILD_DIR)/merge_split_test $(BUILD_DIR)/flip_nodes_multi_test
+$(BUILD_DIR)/merge_split_test $(BUILD_DIR)/flip_nodes_multi_test: $(BUILD_DIR)/%: $(BUILD_DIR)/tests_%.o $(TEST_CORE_OBJECTS) | $(BUILD_DIR)
+	$(CXX) $(TEST_CXXFLAGS) $^ -o $@
+
+# Run the C++ harness and the exactness tests
+test: $(TEST_BIN) $(EXTRA_TESTS)
 	./$(TEST_BIN)
+	./$(BUILD_DIR)/merge_split_test
+	./$(BUILD_DIR)/flip_nodes_multi_test
 
 # Build the C++ sampler-to-CSV binary only
 csv: $(CSV_BIN)

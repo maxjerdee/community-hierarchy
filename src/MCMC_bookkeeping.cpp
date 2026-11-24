@@ -294,7 +294,13 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     if(verbose){
         print("H_s_G_b_depths: " + std::to_string(H_s_G_b_depths));
     }
-    H_s_G_b_depths = value_check(H_s_G_b_depths_actual, H_s_G_b_depths, NUMERICAL_CHECK_EPSILON, throw_error, "H_s_G_b_depths");
+    // H_s is a difference of sums of s_hat^2-sized terms; far in the depth priors'
+    // tails (e.g. sigma_G ~ 1e5 on an edgeless graph, s_hat^2 ~ 1e10) rounding
+    // alone exceeds an absolute 1e-6, so scale the tolerance with those terms.
+    double s_hat_sq = 0.0;
+    for (int i = 0; i < n; i++) s_hat_sq += scaled_scores[i] * scaled_scores[i];
+    H_s_G_b_depths = value_check(H_s_G_b_depths_actual, H_s_G_b_depths,
+                                 std::max(NUMERICAL_CHECK_EPSILON, 1e-12 * s_hat_sq), throw_error, "H_s_G_b_depths");
     
     if (verbose) {
         if(throw_error){

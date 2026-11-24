@@ -52,11 +52,25 @@ public:
 
     double mdl_value() const;
     std::vector<int> mdl_partition() const;
-    // Dahl's method restricted to the modal number of groups, then (by default) a
-    // greedy single-node descent on the same loss with that count held.  Pass
-    // refine = false for the unrefined argmin over samples.
-    std::vector<int> consensus_partition(bool refine = true) const;
+    // Point estimate of the partition, always with the MODAL number of groups.
+    //   method = "moc"    (default) maximum-overlap consensus (Peixoto 2021,
+    //                     PRX 11:021003) over ALL partitions with modal-K groups,
+    //                     scored against every retained sample;
+    //   method = "binder" Dahl's method at the modal K, then (refine = true) a
+    //                     greedy single-node descent on the Binder loss with K held.
+    // Both use the samples thinned to max(min_samples, ESS of H_A_b), evenly
+    // spaced (all of them if there are fewer than min_samples).  refine is
+    // ignored by "moc".
+    std::vector<int> consensus_partition(const std::string& method = "moc",
+                                         bool refine = true,
+                                         int min_samples = 1000) const;
     static void refine_consensus(std::vector<int>& p, const std::vector<double>& C, int n);
+    // Indices of the samples the consensus uses (see consensus_partition).
+    std::vector<int> consensus_sample_indices(int min_samples = 1000) const;
+    // Rank-normalised split-chain bulk ESS (Vehtari et al. 2021) of the SBM
+    // description length H_A_b, pooled over chains; the thinning reference.
+    double partition_ess() const;
+    int modal_num_groups() const;
     std::vector<double> coincidence_matrix() const;
     std::vector<double> score_means() const;
     std::vector<double> score_stds() const;
@@ -66,7 +80,8 @@ public:
 
     // New posterior-summary methods (C++ core; language wrappers convert to DataFrames).
     NetworkPropertiesResult network_properties(double prob = 0.90) const;
-    NodePropertiesResult    node_properties(const std::string& mode = "auto") const;
+    NodePropertiesResult    node_properties(const std::string& mode = "auto",
+                                            const std::string& consensus_method = "moc") const;
 
     // Relabel group ids so group 0 has the lowest mean score, group 1 the next, etc.
     // score_means[i] is the mean score of node i.
@@ -84,6 +99,8 @@ protected:
 
 private:
     int best_index() const;
+    std::vector<int> binder_consensus(const std::vector<int>& idx, int modal_k, bool refine) const;
+    std::vector<int> moc_consensus(const std::vector<int>& idx, int modal_k) const;
     static std::pair<double, double> hdi_bounds(std::vector<double> arr, double prob);
 };
 

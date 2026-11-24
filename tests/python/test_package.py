@@ -301,7 +301,7 @@ def test_result_node_properties_df_auto_large_warns(monkeypatch):
     monkeypatch.setattr(result, "_node_order", big_order)
     with pytest.warns(UserWarning, match="mdl_partition"):
         try:
-            result.node_properties_df(partition="auto")
+            result.node_properties_df(partition="auto", consensus_method="binder")
         except (ValueError, Exception):
             pass  # expected: column length mismatch after monkeypatching
 
@@ -665,16 +665,19 @@ def test_prior_q_uniform():
         state = _make_state()
         for _ in range(burn_in):
             state.MCMC_sweep(0.0, 1)
-        counts = np.zeros(n + 1, dtype=float)
-        for _ in range(num_samples):
+        trace = np.empty(num_samples)
+        for t in range(num_samples):
             state.MCMC_sweep(0.0, 1)
-            counts[state.num_groups] += 1
-        obs = counts[1:]
-        mean_q = float(np.dot(q_vals, obs)) / num_samples
+            trace[t] = state.num_groups
+        obs = np.bincount(trace.astype(int), minlength=n + 1)[1:].astype(float)
+        mean_q = float(trace.mean())
         fracs = obs / num_samples
-        # Threshold: 5 standard errors — scales automatically with sample size.
-        # A truly uniform chain has < 1-in-3.5M chance of exceeding this.
-        se = ((n ** 2 - 1) / 12.0 / num_samples) ** 0.5
+        # Threshold: 5 Monte Carlo standard errors from batch means (50 batches),
+        # which accounts for autocorrelation -- consecutive sweeps are far from
+        # independent (ESS ~ 1300 of 200k sweeps with the block-informed node move,
+        # whose new-group probability is 0.01), so the iid SE would be ~10x too small.
+        batches = trace[: num_samples // 50 * 50].reshape(50, -1).mean(axis=1)
+        se = float(batches.std(ddof=1) / np.sqrt(50))
         mean_ok = abs(mean_q - expected_mean) < 5 * se
         bucket_ok = float(np.max(np.abs(fracs - 1.0 / n))) < 0.15
         return mean_ok and bucket_ok, mean_q, obs
@@ -687,11 +690,10 @@ def test_prior_q_uniform():
             return
 
     fracs = obs / num_samples
-    se = ((n ** 2 - 1) / 12.0 / num_samples) ** 0.5
     assert False, (
         f"q distribution at beta=0 not uniform after two attempts.\n"
         f"Last run: mean_q={mean_q:.3f}, expected={expected_mean:.1f}, "
-        f"5×SE={5*se:.4f}.\n"
+        f"(5 batch-means SE not met).\n"
         f"Counts per q: {obs.astype(int).tolist()}\n"
         f"Fractions:    {np.round(fracs, 4).tolist()}"
     )

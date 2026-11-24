@@ -179,14 +179,16 @@ int main() {
     std::printf("2. beta=0 prior, P(q) must be uniform = 1/n\n");
     for (int N : {4, 6}) {
         std::printf("   n=%d\n", N);
-        prior_check(N, false, 7, "single-site only");
+        // The block-informed node move opens a group with probability 0.01 per
+        // proposal (graph-tool's d), so on its own q mixes ~10x slower: run longer.
+        prior_check(N, false, 7, "single-site only", 600000);
         prior_check(N, true,  3, "+ merge/split");
         prior_check(N, true,  7, "+ merge/split + joint");
     }
 
     // 2b. beta=0 with a partition-dependent score prior: exact enumeration
     std::printf("\n2b. beta=0, fixed scores, group_depth > 0: exact target exp(-H_b - H_s)\n");
-    score_prior_check(false, 7, "single-site only");
+    score_prior_check(false, 7, "single-site only", 600000);   // slow q mixing alone, see above
     score_prior_check(true,  3, "+ merge/split");
     score_prior_check(true,  7, "+ merge/split + joint");
 

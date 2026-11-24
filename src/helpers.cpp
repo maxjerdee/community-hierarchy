@@ -22,7 +22,19 @@ double log_binom(double a, double b) {
 }
 
 // Logarithm of the factorial
-double log_factorial(int n) { return std::lgamma(n + 1); }
+// Tabulated per thread (chains are threads): the same values std::lgamma gives,
+// computed once.  lgamma dominated the single-node and merge-split moves.
+static thread_local std::vector<double> LOG_FACTORIAL_TABLE;
+double log_factorial(int n) {
+  if (n < 0) return std::lgamma(n + 1);
+  if (n >= static_cast<int>(LOG_FACTORIAL_TABLE.size())) {
+    const std::size_t old = LOG_FACTORIAL_TABLE.size();
+    const std::size_t want = std::max<std::size_t>(static_cast<std::size_t>(n) + 1, 2 * old + 64);
+    LOG_FACTORIAL_TABLE.resize(want);
+    for (std::size_t k = old; k < want; ++k) LOG_FACTORIAL_TABLE[k] = std::lgamma(static_cast<double>(k) + 1.0);
+  }
+  return LOG_FACTORIAL_TABLE[static_cast<std::size_t>(n)];
+}
 
 // Logarithm of the double factorial
 double log_factorial2(int n) {
@@ -52,7 +64,24 @@ double log_neg_binom(int x, double mean, double concentration) {
     // For very large concentration, approximate with Poisson
     return -mean + x * std::log(mean) - log_factorial(x);
   }
-  return log_binom(x + concentration_used - 1, x) + concentration_used * std::log(concentration_used) +
+  // log_binom(x + c - 1, x) = lgamma(x + c) - lgamma(x + 1) - lgamma(c).  The
+  // c-dependent pieces are tabulated per thread and rebuilt whenever c changes
+  // (only when a variation parameter is sampled).
+  static thread_local double tab_c = -1.0, tab_lgc = 0.0, tab_clogc = 0.0;
+  static thread_local std::vector<double> tab_lgxc;
+  if (concentration_used != tab_c) {
+    tab_c = concentration_used;
+    tab_lgc = std::lgamma(concentration_used);
+    tab_clogc = concentration_used * std::log(concentration_used);
+    tab_lgxc.clear();
+  }
+  if (x >= static_cast<int>(tab_lgxc.size())) {
+    const std::size_t old = tab_lgxc.size();
+    const std::size_t want = std::max<std::size_t>(static_cast<std::size_t>(x) + 1, 2 * old + 64);
+    tab_lgxc.resize(want);
+    for (std::size_t k = old; k < want; ++k) tab_lgxc[k] = std::lgamma(static_cast<double>(k) + concentration_used);
+  }
+  return (tab_lgxc[static_cast<std::size_t>(x)] - log_factorial(x) - tab_lgc) + tab_clogc +
          x * std::log(mean) - (concentration_used + x) * std::log(concentration_used + mean);
 }
 
@@ -277,7 +306,8 @@ double positive_uniform_proposal(double a, double move_sigma) {
 double uniform_proposal(double p, double move_sigma) {
   double p_new = p + next_normal(rng, move_sigma);
   // Impose reflective boundary conditions p_new \in [0,1]
-  p_new = fmod(p_new + 2.0, 2.0);
+  p_new = std::fmod(p_new, 2.0);           // any distance: fold onto [0, 2), then reflect
+  if (p_new < 0.0) p_new += 2.0;           // (fmod(p + 2, 2) failed for steps below -2)
   if(p_new > 1.0){
       p_new = 2.0 - p_new;
   }

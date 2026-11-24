@@ -10,6 +10,8 @@
 #include <unordered_map>
 #include <set>
 
+#include "globals.h"
+
 class MCMC {
 public:
     // Adjacency rows are kept SORTED by node id: they are summed over, and an
@@ -195,6 +197,22 @@ public:
     int accepted_group_depth_proposals = 0; // Total number of group_depth proposals accepted
     int ties_parameter_proposals = 0; // Total number of ties_parameter proposals attempted
     int accepted_ties_parameter_proposals = 0; // Total number of ties_parameter proposals
+    int new_group_proposals = 0;          // single-node moves to a new group (q -> q+1)
+    int accepted_new_group_proposals = 0;
+    int vacate_proposals = 0;             // single-node moves of a singleton (q -> q-1)
+    int accepted_vacate_proposals = 0;
+
+    // Step sizes: initial values below, adapted during burn-in (adapting = true,
+    // set by fit()) and frozen for sampling.  See ADAPT_* in globals.h.
+    bool adapting = false;
+    double step_score = SCORE_STEP_SIZE;            // CDF space, single-node score
+    double step_individual_depth = INDIVIDUAL_DEPTH_STEP_SIZE;   // CDF space
+    double step_group_depth = GROUP_DEPTH_STEP_SIZE;             // CDF space
+    double step_ties = TIES_PARAMETER_STEP_SIZE;                 // CDF space
+    double step_group_score = GROUP_SCORE_STEP_SIZE;             // scaled-score units
+    long adapt_t_score = 0, adapt_t_individual_depth = 0, adapt_t_group_depth = 0,
+         adapt_t_ties = 0, adapt_t_group_score = 0;
+    void adapt_step(double& step, long& t, bool accepted, double max_step);
 
     /* API */
     // Equal-spend weighting of the collective moves: sets
@@ -209,10 +227,21 @@ public:
 
     // Functions that include the logic to generate a proposal
     void propose_move(); // Generate and accept/reject a random proposal
-    void propose_single_site_move(); // Generate and accept/reject a single site move
+    void propose_single_site_move(); // Block-informed single-node move (Peixoto 2020 Eq. 15), may open or vacate a group
     void propose_parameter_move(); // Generate and accept/reject a change of a continuous parameter
     void propose_score_move(); // Generate and accept/reject a score change move
-    void propose_group_score_move(); // Shift all scores in a random group by a common offset (moves along the sigma_C ridge)
+    // Shift all scores in group r (random if r < 0) by a common offset (moves along
+    // the sigma_C ridge).  MCMC_sweep calls it once per group at the end of a sweep.
+    void propose_group_score_move(int r = -1);
+    void propose_group_depth_rescale(double new_group_depth); // sigma_G move carrying the group means (Jacobian lambda^q)
+    double group_cross_dA(int r, double d_raw) const; // exact change of H_Adir when group r's raw scores shift by d_raw
+
+    // Peixoto (2020, PRE 102:012305) block-informed proposals; neighbours from neighbors_com
+    double block_move_prob(int node, int g) const; // P_e(g | node, b), Eq. 14
+    int sample_block_move(int node);                // draw from P_e(. | node, b)
+    double partner_logprob(int r, int s) const;     // log P(s | r, b), Eq. 19
+    int sample_partner(int r);                       // draw s ~ P(s | r, b), s != r
+    double pair_logprob(int r, int s) const;        // log P of choosing the pair {r, s}: (P(s|r) + P(r|s)) / K
 
     // Functions that directly modify the Monte Carlo state (including the bookkeeping information like the entropy)
     void propose_merge_move();       // Merge two groups (Peixoto Eq. 17/34)

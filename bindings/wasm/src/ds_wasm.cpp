@@ -515,6 +515,7 @@ DS_EXPORT int ds_session_create(
             /*weighted_SBM=*/weighted_sbm != 0);
 
         sess.mcmc->retune_collective_weight();   // from the initial partition
+        sess.mcmc->adapting     = burn_sweeps > 0;   // step sizes adapt in burn-in only, as in fit()
         sess.phase              = Phase::BURN;
         sess.burn_done          = 0;
         sess.burn_total         = burn_sweeps;
@@ -539,9 +540,9 @@ DS_EXPORT int ds_session_step(int handle, int max_sweeps) {
         for (int i = 0; i < max_sweeps; ++i) {
             if (sess->phase == Phase::BURN) {
                 if (sess->burn_total > 0) {
-                    // One sweep per burn step so burn_sweeps == total burn sweeps,
-                    // matching Python where burn_sweeps and sweeps_per_sample are independent.
-                    sess->mcmc->MCMC_sweep(1.0, 1, sess->merge_split_enabled);
+                    // sweeps_per_sample sweeps per burn step, as fit() does: the
+                    // burn-in is burn_sweeps * sweeps_per_sample sweeps in both.
+                    sess->mcmc->MCMC_sweep(1.0, sess->sweeps_per_sample, sess->merge_split_enabled);
                     sess->burn_done++;
                     // Same equal-spend retuning fit() does, so this session and a
                     // native fit stay identical for the same seed.  This binding
@@ -549,8 +550,10 @@ DS_EXPORT int ds_session_step(int handle, int max_sweeps) {
                     // driver does during burn-in has to be mirrored here.
                     sess->mcmc->retune_collective_weight();
                 }
-                if (sess->burn_done >= sess->burn_total)
+                if (sess->burn_done >= sess->burn_total) {
+                    sess->mcmc->adapting = false;   // freeze the adapted steps, as fit() does
                     sess->phase = Phase::SAMPLE;
+                }
             } else if (sess->phase == Phase::SAMPLE) {
                 sess->mcmc->MCMC_sweep(1.0, sess->sweeps_per_sample,
                                        sess->merge_split_enabled);

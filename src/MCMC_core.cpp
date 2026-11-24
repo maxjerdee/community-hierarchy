@@ -418,7 +418,9 @@ void MCMC::MCMC_sweep(double beta, int num_sweeps, bool merge_split_enabled) {
     // proposal frequency (single-variable depth moves can't climb the sigma_I/sigma_C
     // ridge). The real fix is a joint (sigma_I, sigma_C) block proposal.
     proposal_weights.clear();
-    proposal_weights.emplace_back("parameter_move", static_cast<double>(free_parameters.size()));
+    // Each free parameter at weight PARAMETER_MOVE_WEIGHT (globals.h): about
+    // 10 proposals per parameter per sweep, cheap next to the n node moves.
+    proposal_weights.emplace_back("parameter_move", PARAMETER_MOVE_WEIGHT * static_cast<double>(free_parameters.size()));
     if (!partition_fixed) {
         proposal_weights.emplace_back("single_site_move", static_cast<double>(n));
     }
@@ -443,12 +445,8 @@ void MCMC::MCMC_sweep(double beta, int num_sweeps, bool merge_split_enabled) {
     }
     if (!scores_fixed) {
         proposal_weights.emplace_back("score_move", static_cast<double>(n));
-        // Collective group-score-shift moves traverse the sigma_C ridge that
-        // per-node and single-depth moves cannot. Weight is state-INDEPENDENT
-        // (constant n, not num_groups) so the partition-move fraction does not
-        // depend on the current q -- otherwise the q-marginal is biased. The move
-        // is a no-op (early return) when num_groups <= 1.
-        proposal_weights.emplace_back("group_score_move", static_cast<double>(n));
+        // The group-score shift is NOT in the random scan: each sweep ends with
+        // one shift per group (below).
     }
 
     for (int sweep = 0; sweep < num_sweeps; sweep++) {
@@ -458,6 +456,16 @@ void MCMC::MCMC_sweep(double beta, int num_sweeps, bool merge_split_enabled) {
             }
             propose_move();
         }
+        // Group-score block: one shift per group.  Collective group-score shifts
+        // traverse the sigma_C ridge that per-node and single-depth moves cannot.
+        // This is a COMPOSITION of kernels, not a mixture: each shift is
+        // reversible with respect to the target and leaves the partition -- hence
+        // q -- unchanged, so sweeping over the current q groups keeps the target
+        // invariant with no selection-probability correction (a random-scan weight
+        // proportional to q would bias the q-marginal).  Cost O(sum of group
+        // degrees) = O(m) per sweep with the fast path in propose_group_score_move.
+        if (!scores_fixed && num_groups > 1)
+            for (int r = 0; r < num_groups; r++) propose_group_score_move(r);
     }
     check_state_bookkeeping(true);
 

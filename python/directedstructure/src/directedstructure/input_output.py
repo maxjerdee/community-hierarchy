@@ -654,6 +654,7 @@ def plot_node_properties(
     result: "Result",
     *,
     partition: str = "auto",
+    consensus_method: str = "moc",
     ax=None,
     palette=None,
     xlabel: str = "Community (inferred)",
@@ -674,7 +675,9 @@ def plot_node_properties(
         Inference result from :func:`directedstructure.fit`.
     partition : str
         Which partition to use; passed to :meth:`Result.node_properties_df`.
-        ``"auto"`` (default) uses consensus for n ≤ 3000, MDL otherwise.
+        ``"auto"`` (default) uses the consensus partition.
+    consensus_method : {"moc", "binder"}
+        Consensus method; passed to :meth:`Result.node_properties_df`.
     ax : matplotlib.axes.Axes, optional
         Axes to draw into. If *None* a new figure is created.
     palette : list of colors or colormap, optional
@@ -701,7 +704,7 @@ def plot_node_properties(
     if not isinstance(result, Result):
         raise TypeError("result must be a directedstructure.Result instance.")
 
-    node_df = result.node_properties_df(partition=partition)
+    node_df = result.node_properties_df(partition=partition, consensus_method=consensus_method)
 
     # Sort communities by ascending group mean score
     grp_mean = node_df.groupby("group")["group_score_mean"].first().sort_values()
@@ -795,6 +798,7 @@ def plot_adjacency_matrix(
     G: nx.Graph,
     *,
     partition: str = "auto",
+    consensus_method: str = "moc",
     cmap=None,
     ax=None,
     title: str = "",
@@ -822,6 +826,8 @@ def plot_adjacency_matrix(
         ``weight`` attribute; missing weights default to 1.0.
     partition : str
         Which partition to use; passed to :meth:`Result.node_properties_df`.
+    consensus_method : {"moc", "binder"}
+        Consensus method; passed to :meth:`Result.node_properties_df`.
     cmap : str or colormap, optional
         Colormap for the matrix cells. Defaults to ``"Greens"``.
     ax : matplotlib.axes.Axes, optional
@@ -853,7 +859,7 @@ def plot_adjacency_matrix(
     if not isinstance(G, nx.Graph):
         raise TypeError("G must be a NetworkX graph.")
 
-    node_df = result.node_properties_df(partition=partition)
+    node_df = result.node_properties_df(partition=partition, consensus_method=consensus_method)
 
     # Sort communities by ascending group mean score, nodes within by score
     grp_mean = node_df.groupby("group")["group_score_mean"].first().sort_values()
