@@ -48,6 +48,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Pin the host Python that runs cibuildwheel: the macOS runner's default
+      # (3.15) is newer than the virtualenv bundled with cibuildwheel 2.20.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.20
 
