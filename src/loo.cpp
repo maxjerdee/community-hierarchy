@@ -104,7 +104,8 @@ DirectionLooResult direction_loo(const FitResult& result, const std::vector<int>
                                  const std::vector<double>& weight, double r_eff) {
     const std::size_t m = a.size();
     if (b.size() != m || draw.size() != m || weight.size() != m)
-        throw std::invalid_argument("direction_loo: a, b, draw and weight must have the same length");
+        throw std::invalid_argument(
+            "direction_loo: a, b, draw and weight must have the same length");
     const int n = result.num_nodes();
     for (std::size_t i = 0; i < m; ++i)
         if (a[i] < 0 || a[i] >= n || b[i] < 0 || b[i] >= n || a[i] == b[i])

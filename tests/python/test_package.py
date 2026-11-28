@@ -14,7 +14,7 @@ import community_hierarchy as ch
 import community_hierarchy.MCMC_core as native
 from community_hierarchy import Config, Result, fit
 
-_DATA_IN  = Path(__file__).parent.parent / "data" / "inputs"
+_DATA_IN = Path(__file__).parent.parent / "data" / "inputs"
 _DATA_OUT = Path(__file__).parent.parent / "data" / "outputs"
 
 
@@ -31,6 +31,7 @@ def test_version():
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
+
 
 def test_config_defaults():
     config = Config()
@@ -69,13 +70,27 @@ def test_config_is_frozen():
 # Helpers: small directed graph fixture
 # ---------------------------------------------------------------------------
 
+
 def _small_graph() -> nx.DiGraph:
     G = nx.DiGraph()
     G.add_nodes_from(range(6))
     # Two clique-like groups with directed edges
-    edges = [(0, 1), (1, 0), (0, 2), (2, 0), (1, 2), (2, 1),
-             (3, 4), (4, 3), (3, 5), (5, 3), (4, 5), (5, 4),
-             (0, 3), (3, 0)]
+    edges = [
+        (0, 1),
+        (1, 0),
+        (0, 2),
+        (2, 0),
+        (1, 2),
+        (2, 1),
+        (3, 4),
+        (4, 3),
+        (3, 5),
+        (5, 3),
+        (4, 5),
+        (5, 4),
+        (0, 3),
+        (3, 0),
+    ]
     G.add_edges_from(edges)
     return G
 
@@ -83,6 +98,7 @@ def _small_graph() -> nx.DiGraph:
 # ---------------------------------------------------------------------------
 # fit() and Result
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture(scope="module")
 def small_result():
@@ -92,7 +108,6 @@ def small_result():
     refitting per test bought nothing but wall time (~15 fits of the same graph).
     """
     return fit(Config(), _small_graph(), num_samples=20, timeout=10.0)
-
 
 
 def test_fit_returns_result():
@@ -122,8 +137,14 @@ def test_result_to_frame_shape(small_result):
     for node in G.nodes():
         assert f"{node}_group" in df.columns
         assert f"{node}_score" in df.columns
-    for param in ("num_groups", "density_in", "density_out", "H_A_b",
-                  "H_Adir_G_A_s_nu", "H_s_G_b_depths"):
+    for param in (
+        "num_groups",
+        "density_in",
+        "density_out",
+        "H_A_b",
+        "H_Adir_G_A_s_nu",
+        "H_s_G_b_depths",
+    ):
         assert param in df.columns
 
 
@@ -184,6 +205,7 @@ def test_result_coincidence_matrix_shape(small_result):
 # New API: network_properties_df and node_properties_df
 # ---------------------------------------------------------------------------
 
+
 def test_result_network_properties_df_columns(small_result):
     result = small_result
     npdf = result.network_properties_df()
@@ -212,9 +234,19 @@ def test_result_network_properties_df_agrees_with_draws():
     G = _small_graph()
     result = fit(Config(), G, num_samples=20, timeout=10.0)
     npdf = result.network_properties_df().set_index("parameter")
-    for p in ("num_groups", "density_in", "density_out", "variation_in", "variation_out",
-              "degree_correction", "individual_depth", "group_depth", "ties_parameter",
-              "sigma_T", "ICC"):
+    for p in (
+        "num_groups",
+        "density_in",
+        "density_out",
+        "variation_in",
+        "variation_out",
+        "degree_correction",
+        "individual_depth",
+        "group_depth",
+        "ties_parameter",
+        "sigma_T",
+        "ICC",
+    ):
         np.testing.assert_allclose(npdf.loc[p, "mean"], result[p].mean(), rtol=1e-9)
 
 
@@ -241,13 +273,11 @@ def test_result_node_properties_df_columns(small_result):
 def test_result_node_properties_df_partition_modes(small_result):
     result = small_result
     df_auto = result.node_properties_df(partition="auto")
-    df_mdl  = result.node_properties_df(partition="mdl")
+    df_mdl = result.node_properties_df(partition="mdl")
     df_cons = result.node_properties_df(partition="consensus")
     # score_mean must be identical across all modes (it's always the posterior mean)
-    np.testing.assert_array_equal(df_auto["score_mean"].values,
-                                  df_mdl["score_mean"].values)
-    np.testing.assert_array_equal(df_auto["score_mean"].values,
-                                  df_cons["score_mean"].values)
+    np.testing.assert_array_equal(df_auto["score_mean"].values, df_mdl["score_mean"].values)
+    np.testing.assert_array_equal(df_auto["score_mean"].values, df_cons["score_mean"].values)
     # group assignments may differ between mdl and consensus
 
 
@@ -278,6 +308,7 @@ def test_result_node_properties_df_invalid_partition(small_result):
 # Coincidence fixture tests (same graph as asbm test cases)
 # ---------------------------------------------------------------------------
 
+
 def _triangle_graph() -> nx.DiGraph:
     """3-node directed graph matching asbm's test3: edges 1→2 w=1, 2→3 w=2, 3→1 w=1."""
     G = nx.DiGraph()
@@ -291,6 +322,7 @@ def _triangle_graph() -> nx.DiGraph:
 # ---------------------------------------------------------------------------
 # fit() argument forwarding
 # ---------------------------------------------------------------------------
+
 
 def _make_fake_native_result(G):
     """Return a minimal fake native result for monkeypatching _fit_backend."""
@@ -319,10 +351,6 @@ def test_fit_forwards_seed_and_chains_to_backend(monkeypatch):
     assert captured["num_samples"] == 5
     assert captured["num_warmup"] == 10
     assert captured["seed"] == 99
-
-
-
-
 
 
 def test_initial_partition_wrong_length_raises():
@@ -355,6 +383,7 @@ def test_initial_partition_explicit_is_used(monkeypatch):
 # ---------------------------------------------------------------------------
 # planted_partition model smoke test
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.statistical
 def test_planted_partition_fit_runs():
@@ -419,24 +448,33 @@ def test_planted_partition_q_is_not_always_one():
 # Additional groups_model smoke tests
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("groups_model", [
-    "traditional_SBM",
-    "simple_ASBM",
-    "planted_partition",
-    "general_ASBM",
-])
+
+@pytest.mark.parametrize(
+    "groups_model",
+    [
+        "traditional_SBM",
+        "simple_ASBM",
+        "planted_partition",
+        "general_ASBM",
+    ],
+)
 def test_groups_model_smoke(groups_model):
     """Every supported groups_model must produce a finite MDL value on the small graph."""
     G = _small_graph()
     result = fit(
         Config(groups_model=groups_model),
-        G, num_samples=10, num_warmup=20, seed=0, timeout=20.0,
+        G,
+        num_samples=10,
+        num_warmup=20,
+        seed=0,
+        timeout=20.0,
     )
     assert np.isfinite(result.mdl_value)
 
 
-
-def _run_coincidence_native_wins_ties(num_chains: int, burn: int, samples: int, sweeps: int, seed: int) -> np.ndarray:
+def _run_coincidence_native_wins_ties(
+    num_chains: int, burn: int, samples: int, sweeps: int, seed: int
+) -> np.ndarray:
     """Multi-chain MCMC for the wins+ties 3-node graph with Mathematica-matched fixed params.
 
     This is the **coupled** model: scores {s[1], s[2], s[3]} are marginalized jointly
@@ -453,13 +491,28 @@ def _run_coincidence_native_wins_ties(num_chains: int, burn: int, samples: int, 
     acc = np.zeros((n, n))
     for chain in range(num_chains):
         state = native.MCMC(
-            wins, ties, [],
-            list(range(n)), False,
-            [0.0] * n, False,
-            n, False,
+            wins,
+            ties,
+            [],
+            list(range(n)),
+            False,
+            [0.0] * n,
+            False,
+            n,
+            False,
             True,
-            vi, True, vi, True, vi, True,
-            1.0, True, 2.0, True, 1.0, True,
+            vi,
+            True,
+            vi,
+            True,
+            vi,
+            True,
+            1.0,
+            True,
+            2.0,
+            True,
+            1.0,
+            True,
             seed + chain,
         )
         for _ in range(burn):
@@ -492,13 +545,21 @@ def test_wins_ties_3node_coincidence():
         header=None,
     ).to_numpy(dtype=float)
     coincidence = _run_coincidence_native_wins_ties(
-        num_chains=64, burn=500, samples=500, sweeps=10, seed=42,
+        num_chains=64,
+        burn=500,
+        samples=500,
+        sweeps=10,
+        seed=42,
     )
     max_abs_diff = np.max(np.abs(coincidence - expected))
     if max_abs_diff >= 0.05:
         # Retry with 2x chains and samples to reduce platform-specific variance
         coincidence = _run_coincidence_native_wins_ties(
-            num_chains=128, burn=500, samples=1000, sweeps=10, seed=42,
+            num_chains=128,
+            burn=500,
+            samples=1000,
+            sweeps=10,
+            seed=42,
         )
         max_abs_diff = np.max(np.abs(coincidence - expected))
     assert max_abs_diff < 0.05, f"Coincidence matrix mismatch (max_abs_diff={max_abs_diff:.6f})"
@@ -506,20 +567,30 @@ def test_wins_ties_3node_coincidence():
 
 def _tempering_coincidence(seed, num_chains, num_samples, timeout):
     from community_hierarchy.MCMC_core import fit_backend
+
     n = 3
     wins_adj = [{1: 1.0, 2: 1.0}, {2: 1.0}, {}]
-    ties_adj  = [{1: 1.0}, {0: 1.0}, {}]
+    ties_adj = [{1: 1.0}, {0: 1.0}, {}]
     vi = _c2v(1.0)
     r = fit_backend(
-        wins=wins_adj, ties=ties_adj,
-        initial_partition=list(range(n)), initial_scores=[0.0] * n,
+        wins=wins_adj,
+        ties=ties_adj,
+        initial_partition=list(range(n)),
+        initial_scores=[0.0] * n,
         assortative=True,
-        individual_depth=1.0, group_depth=2.0,
-        variation_in=vi, variation_out=vi, degree_correction=vi,
+        individual_depth=1.0,
+        group_depth=2.0,
+        variation_in=vi,
+        variation_out=vi,
+        degree_correction=vi,
         ties_parameter=1.0,
-        num_chains=num_chains, num_samples=num_samples,
-        num_warmup=50, sweeps_per_sample=500,
-        num_tempering_chains=2, seed=seed, timeout=timeout,
+        num_chains=num_chains,
+        num_samples=num_samples,
+        num_warmup=50,
+        sweeps_per_sample=500,
+        num_tempering_chains=2,
+        seed=seed,
+        timeout=timeout,
     )
     df = r.samples_df()
     ns = len(df)
@@ -546,8 +617,9 @@ def test_tempering_swap_uses_full_energy():
     Including H_s in the swap criterion causes systematic over-clustering (~0.06 bias).
     On first-pass failure the test retries with 4× more samples.
     """
-    expected = pd.read_csv(_DATA_OUT / "wins_ties_3node_coincidence.csv",
-                           header=None).to_numpy(dtype=float)
+    expected = pd.read_csv(_DATA_OUT / "wins_ties_3node_coincidence.csv", header=None).to_numpy(
+        dtype=float
+    )
 
     coin, ns = _tempering_coincidence(seed=0, num_chains=4, num_samples=2000, timeout=60.0)
     max_diff = np.max(np.abs(coin - expected))
@@ -606,17 +678,32 @@ def test_prior_q_uniform():
     wins = [{(i + 1) % n: 1.0} for i in range(n)]  # ring so density_in != NaN
     ties = [{} for _ in range(n)]
     vi = _c2v(1.0)
-    expected_mean = (n + 1) / 2.0   # 4.5 for n=8
+    expected_mean = (n + 1) / 2.0  # 4.5 for n=8
 
     def _make_state():
         return native.MCMC(
-            wins, ties, [],
-            list(range(n)), False,
-            [0.0] * n, False,
-            n, False,
+            wins,
+            ties,
+            [],
+            list(range(n)),
             False,
-            vi, True, vi, True, vi, True,
-            1.0, True, 1.0, True, 1.0, True,
+            [0.0] * n,
+            False,
+            n,
+            False,
+            False,
+            vi,
+            True,
+            vi,
+            True,
+            vi,
+            True,
+            1.0,
+            True,
+            1.0,
+            True,
+            1.0,
+            True,
             0,
         )
 
@@ -662,6 +749,7 @@ def test_prior_q_uniform():
 # Point-evaluation test against Mathematica fixture
 # ---------------------------------------------------------------------------
 
+
 def _parse_matrix_row(s: str) -> list[int]:
     """Parse a Mathematica-style '{a, b, c}' vector into a list of ints."""
     return [int(x) for x in s.strip().strip("{}").split(",")]
@@ -670,6 +758,7 @@ def _parse_matrix_row(s: str) -> list[int]:
 def _parse_matrix_line(line: str) -> list[list[int]]:
     """Parse a CSV line whose cells are '{...}' row-vectors into a 2-D list."""
     import csv as _csv
+
     cells = next(_csv.reader([line]))
     return [_parse_matrix_row(c) for c in cells]
 
@@ -681,8 +770,10 @@ def _wins_ties_from_rows(win_rows: list[list[int]], tie_rows: list[list[int]]):
     ties = [{} for _ in range(n)]
     for i in range(n):
         for j in range(n):
-            if win_rows[i][j]: wins[i][j] = float(win_rows[i][j])
-            if tie_rows[i][j]: ties[i][j] = float(tie_rows[i][j])
+            if win_rows[i][j]:
+                wins[i][j] = float(win_rows[i][j])
+            if tie_rows[i][j]:
+                ties[i][j] = float(tie_rows[i][j])
     return wins, ties
 
 
@@ -696,13 +787,13 @@ def test_point_eval_entropy_components():
     variations).  Regenerate with tests/mathematica/generate_fixtures.wls.
     Hnu, HsigmaI, HsigmaC are the half-Cauchy priors log(pi(w^2+x^2)/(2w)), w = 4.
     """
-    in_path  = _DATA_IN  / "wins_ties_3node_point_eval.csv"
+    in_path = _DATA_IN / "wins_ties_3node_point_eval.csv"
     out_path = _DATA_OUT / "wins_ties_3node_point_eval_components.csv"
 
     lines = in_path.read_text().splitlines()
     # Input file: two brace-lines (all rows of Awins, then all rows of Aties),
     # followed by scalar lines (partition, scores, then one param per line).
-    brace_lines  = [ln for ln in lines if "{" in ln]
+    brace_lines = [ln for ln in lines if "{" in ln]
     scalar_lines = [ln for ln in lines if ln and "{" not in ln]
 
     win_rows = _parse_matrix_line(brace_lines[0])
@@ -710,47 +801,58 @@ def test_point_eval_entropy_components():
     wins, ties = _wins_ties_from_rows(win_rows, tie_rows)
 
     partition = [int(x) - 1 for x in scalar_lines[0].split(",")]
-    scores    = [float(x) for x in scalar_lines[1].split(",")]
-    rho_in, rho_out, c_in, c_out, alpha, nu, sigma_i, sigma_c = \
-        [float(scalar_lines[i]) for i in range(2, 10)]
+    scores = [float(x) for x in scalar_lines[1].split(",")]
+    rho_in, rho_out, c_in, c_out, alpha, nu, sigma_i, sigma_c = [
+        float(scalar_lines[i]) for i in range(2, 10)
+    ]
 
     ref = pd.read_csv(out_path)
 
     state = native.MCMC(
-        wins, ties, [],
-        partition, True,
-        scores, True,
-        max(partition) + 1, True,
-        True,                        # assortative (ρIn ≠ ρOut)
-        _c2v(c_in),  True,           # variation_in  ← concentration c_in
-        _c2v(c_out), True,           # variation_out ← concentration c_out
-        _c2v(alpha), True,           # degree_correction ← concentration alpha
-        sigma_i,     True,           # individual_depth σI
-        sigma_c,     True,           # group_depth σC
-        nu,          True,           # ties_parameter ν
+        wins,
+        ties,
+        [],
+        partition,
+        True,
+        scores,
+        True,
+        max(partition) + 1,
+        True,
+        True,  # assortative (ρIn ≠ ρOut)
+        _c2v(c_in),
+        True,  # variation_in  ← concentration c_in
+        _c2v(c_out),
+        True,  # variation_out ← concentration c_out
+        _c2v(alpha),
+        True,  # degree_correction ← concentration alpha
+        sigma_i,
+        True,  # individual_depth σI
+        sigma_c,
+        True,  # group_depth σC
+        nu,
+        True,  # ties_parameter ν
         0,
-        rho_in,                      # density_in
-        rho_out,                     # density_out
+        rho_in,  # density_in
+        rho_out,  # density_out
     )
 
     # ── Components also checkable individually (Mathematica element 2 & 3) ──
-    np.testing.assert_allclose(
-        float(state.H_Adir_G_A_s_nu), ref["H_Adir"].iloc[0], rtol=1e-6)
-    np.testing.assert_allclose(
-        float(state.H_s_G_b_depths),  ref["H_s"].iloc[0],    rtol=1e-6)
+    np.testing.assert_allclose(float(state.H_Adir_G_A_s_nu), ref["H_Adir"].iloc[0], rtol=1e-6)
+    np.testing.assert_allclose(float(state.H_s_G_b_depths), ref["H_s"].iloc[0], rtol=1e-6)
 
     # ── SBM components (part of Mathematica element 1, without param priors) ─
-    np.testing.assert_allclose(float(state.H_b),          ref["H_b"].iloc[0],          rtol=1e-6)
-    np.testing.assert_allclose(float(state.H_k),          ref["H_k"].iloc[0],          rtol=1e-6)
-    np.testing.assert_allclose(float(state.H_M),          ref["H_M"].iloc[0],          rtol=1e-6)
+    np.testing.assert_allclose(float(state.H_b), ref["H_b"].iloc[0], rtol=1e-6)
+    np.testing.assert_allclose(float(state.H_k), ref["H_k"].iloc[0], rtol=1e-6)
+    np.testing.assert_allclose(float(state.H_M), ref["H_M"].iloc[0], rtol=1e-6)
     np.testing.assert_allclose(float(state.H_A_G_k_M_b), ref["H_A_G_k_M_b"].iloc[0], rtol=1e-6)
 
     # ── Half-Cauchy priors: Hx = log(π(w²+x²)/(2w)), w=4 (Mathematica elements 4-6) ──
     w = 4.0
+
     def h_hc(x: float) -> float:
         return math.log(math.pi * (w**2 + x**2) / (2.0 * w))
 
-    np.testing.assert_allclose(h_hc(nu),      ref["H_nu"].iloc[0],     rtol=1e-6)
+    np.testing.assert_allclose(h_hc(nu), ref["H_nu"].iloc[0], rtol=1e-6)
     np.testing.assert_allclose(h_hc(sigma_i), ref["H_sigmaI"].iloc[0], rtol=1e-6)
     np.testing.assert_allclose(h_hc(sigma_c), ref["H_sigmaC"].iloc[0], rtol=1e-6)
 
@@ -765,6 +867,7 @@ def test_point_eval_entropy_components():
 # ---------------------------------------------------------------------------
 # direction_probabilities
 # ---------------------------------------------------------------------------
+
 
 def _ranked_graph() -> nx.DiGraph:
     """String-labelled graph with a clear dominant node for hierarchy tests."""
@@ -785,7 +888,12 @@ def ranked_result():
     G = _ranked_graph()
     return fit(
         Config(hierarchy_model="bradley_terry_ties"),
-        G, num_chains=2, num_samples=100, seed=0, timeout=30.0, show_progress=False,
+        G,
+        num_chains=2,
+        num_samples=100,
+        seed=0,
+        timeout=30.0,
+        show_progress=False,
     )
 
 
@@ -817,15 +925,15 @@ def test_direction_probabilities_agrees_with_samples(ranked_result):
         sd = samp["D_score"].values
         # Subtract per-sample max to match C++ overflow-safe computation
         if ties_allowed:
-            nu    = samp["ties_parameter"].values
+            nu = samp["ties_parameter"].values
             shift = np.maximum(np.maximum(sa, sd), (sa + sd) / 2.0)
-            tie   = nu * np.exp((sa + sd) / 2.0 - shift)
+            tie = nu * np.exp((sa + sd) / 2.0 - shift)
         else:
             shift = np.maximum(sa, sd)
-            tie   = np.zeros(len(sa))
+            tie = np.zeros(len(sa))
         ea = np.exp(sa - shift)
         ed = np.exp(sd - shift)
-        Z  = ea + ed + tie
+        Z = ea + ed + tie
         p_py = {"a_to_b": float((ea / Z).mean()), "b_to_a": float((ed / Z).mean())}
         if ties_allowed:
             p_py["tie"] = float((tie / Z).mean())
@@ -843,6 +951,7 @@ def test_direction_probabilities_unknown_node(ranked_result):
 # ---------------------------------------------------------------------------
 # Weighted SBM
 # ---------------------------------------------------------------------------
+
 
 def test_weighted_SBM_point_eval():
     """Numerical ground truth for H_W on a 3-node, 2-group binary graph.
@@ -880,12 +989,17 @@ def test_weighted_SBM_point_eval():
 
     n = 3
     wins = [{} for _ in range(n)]
-    wins[0][1] = 1.0; wins[0][2] = 1.0; wins[1][2] = 1.0
+    wins[0][1] = 1.0
+    wins[0][2] = 1.0
+    wins[1][2] = 1.0
 
     group_adj = [{} for _ in range(n)]
-    group_adj[0][1] = w01; group_adj[1][0] = w01
-    group_adj[0][2] = w02; group_adj[2][0] = w02
-    group_adj[1][2] = w12; group_adj[2][1] = w12
+    group_adj[0][1] = w01
+    group_adj[1][0] = w01
+    group_adj[0][2] = w02
+    group_adj[2][0] = w02
+    group_adj[1][2] = w12
+    group_adj[2][1] = w12
 
     mcmc = native.MCMC(
         wins=wins,
@@ -908,10 +1022,10 @@ def test_weighted_SBM_unweighted_unchanged():
     G.add_edge("B", "C", weight=2)
     G.add_edge("A", "C", weight=1)
 
-    config_plain    = ch.Config(groups_model="general_ASBM")
+    config_plain = ch.Config(groups_model="general_ASBM")
     config_weighted = ch.Config(groups_model="general_ASBM", weighted_SBM=False)
 
-    r1 = ch.fit(config_plain,    G, num_chains=1, num_samples=50, num_warmup=50, seed=7)
+    r1 = ch.fit(config_plain, G, num_chains=1, num_samples=50, num_warmup=50, seed=7)
     r2 = ch.fit(config_weighted, G, num_chains=1, num_samples=50, num_warmup=50, seed=7)
 
     # Identical seeds → identical MDL
@@ -945,9 +1059,11 @@ def test_plot_node_properties_options(small_result):
     """plot_node_properties draws from a Result or a node_properties_df table, with
     every label mode and the per-node options."""
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from community_hierarchy import plot_node_properties
+
     result = small_result
     df = result.node_properties_df()
     groups = sorted(df.group.unique())
@@ -955,8 +1071,14 @@ def test_plot_node_properties_options(small_result):
     for src in (result, df):
         for labels in ("ticks", "ladder", "none"):
             fig, ax = plot_node_properties(
-                src, labels=labels, flip=True, annotate={first: "x"}, filled={first},
-                palette={g: "C0" for g in groups}, group_labels={g: f"g{g}" for g in groups})
+                src,
+                labels=labels,
+                flip=True,
+                annotate={first: "x"},
+                filled={first},
+                palette={g: "C0" for g in groups},
+                group_labels={g: f"g{g}" for g in groups},
+            )
             assert ax.get_ylabel()
             plt.close(fig)
     with pytest.raises(ValueError):
@@ -994,6 +1116,14 @@ def test_source_high_rank_false_reads_edges_as_target_wins():
 def test_num_thin_keeps_every_kth_iteration_as_in_stan():
     # As in PyStan: num_samples iterations, ceil(num_samples / num_thin) draws per chain.
     G = _small_graph()
-    r = fit(Config(), G, num_chains=2, num_samples=9, num_thin=4, num_warmup=2, seed=1,
-            show_progress=False)
+    r = fit(
+        Config(),
+        G,
+        num_chains=2,
+        num_samples=9,
+        num_thin=4,
+        num_warmup=2,
+        seed=1,
+        show_progress=False,
+    )
     assert len(r.to_frame()) == 2 * 3

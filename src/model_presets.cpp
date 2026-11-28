@@ -5,7 +5,8 @@
 namespace {
 
 void unknown(const char* what, const std::string& name) {
-    throw std::invalid_argument(std::string("resolve_model: unknown ") + what + " \"" + name + "\"");
+    throw std::invalid_argument(std::string("resolve_model: unknown ") + what + " \"" + name +
+                                "\"");
 }
 
 std::optional<std::optional<double>> setting(const ModelChoice& m, const char* name) {
@@ -28,17 +29,31 @@ ResolvedModel resolve_model(const ModelChoice& m, bool has_neutral) {
 
     std::string mixing = m.mixing_variation;
     if (mixing.empty()) {
-        if (m.groups_model == "general_ASBM") mixing = "general";
-        else if (m.groups_model == "simple_ASBM" || m.groups_model == "traditional_SBM") mixing = "simple";
-        else if (m.groups_model == "hybrid_ASBM") mixing = "internal";
-        else if (m.groups_model == "planted_partition") mixing = "none";
-        else unknown("groups_model", m.groups_model);
+        if (m.groups_model == "general_ASBM")
+            mixing = "general";
+        else if (m.groups_model == "simple_ASBM" || m.groups_model == "traditional_SBM")
+            mixing = "simple";
+        else if (m.groups_model == "hybrid_ASBM")
+            mixing = "internal";
+        else if (m.groups_model == "planted_partition")
+            mixing = "none";
+        else
+            unknown("groups_model", m.groups_model);
     }
-    if (mixing == "simple") { r.variation_in = 0.5; r.variation_out = 0.5; }
-    else if (mixing == "none") { r.variation_in = 0.0; r.variation_out = 0.0; }
-    else if (mixing == "internal") { r.variation_in = 0.5; r.variation_out = 0.0; }
-    else if (mixing == "external") { r.variation_in = 0.0; r.variation_out = 0.5; }
-    else if (mixing != "general") unknown("mixing_variation", mixing);
+    if (mixing == "simple") {
+        r.variation_in = 0.5;
+        r.variation_out = 0.5;
+    } else if (mixing == "none") {
+        r.variation_in = 0.0;
+        r.variation_out = 0.0;
+    } else if (mixing == "internal") {
+        r.variation_in = 0.5;
+        r.variation_out = 0.0;
+    } else if (mixing == "external") {
+        r.variation_in = 0.0;
+        r.variation_out = 0.5;
+    } else if (mixing != "general")
+        unknown("mixing_variation", mixing);
     if (auto s = setting(m, "variation_in")) r.variation_in = *s;
     if (auto s = setting(m, "variation_out")) r.variation_out = *s;
 

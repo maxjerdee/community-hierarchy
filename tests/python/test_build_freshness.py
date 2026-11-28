@@ -32,7 +32,7 @@ REBUILD = "python -m pip install -e . --no-build-isolation --no-deps"
 
 def _newest_source(dirs=None) -> tuple[pathlib.Path, float]:
     newest, newest_mtime = None, 0.0
-    for d in (dirs or EXTENSION_SOURCES):
+    for d in dirs or EXTENSION_SOURCES:
         if not d.is_dir():
             continue
         for path in d.rglob("*"):
@@ -51,6 +51,7 @@ def _skip_unless_source_checkout() -> None:
 
 def _fmt(t: float) -> str:
     import datetime
+
     return datetime.datetime.fromtimestamp(t).strftime("%Y-%m-%d %H:%M:%S")
 
 

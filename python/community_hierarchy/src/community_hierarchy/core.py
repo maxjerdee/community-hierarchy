@@ -30,13 +30,24 @@ logger = logging.getLogger(__name__)
 
 # The choices of each model setting.  The presets they select are applied in the
 # C++ core (src/model_presets.h), shared with the other bindings.
-_GROUPS_MODELS = ("traditional_SBM", "general_ASBM", "simple_ASBM", "hybrid_ASBM",
-                  "planted_partition")
+_GROUPS_MODELS = (
+    "traditional_SBM",
+    "general_ASBM",
+    "simple_ASBM",
+    "hybrid_ASBM",
+    "planted_partition",
+)
 _HIERARCHY_MODELS = ("bradley_terry", "bradley_terry_ties")
 _INTERACTIONS = ("coupled", "independent")
 _MIXING_VARIATIONS = ("general", "simple", "none", "internal", "external")
-_MODEL_SETTINGS = ("variation_in", "variation_out", "individual_depth", "group_depth",
-                   "ties_parameter", "num_groups")
+_MODEL_SETTINGS = (
+    "variation_in",
+    "variation_out",
+    "individual_depth",
+    "group_depth",
+    "ties_parameter",
+    "num_groups",
+)
 
 
 def _one_of(value, valid: tuple, name: str, hint: str = "") -> None:
@@ -48,11 +59,16 @@ def _check_model(config: "Config") -> None:
     """The checks of a Config that need no graph: names, ranges, and explicit
     values that a preset would override."""
     if config.groups_model == "general_canonical":
-        raise ValueError("groups_model 'general_canonical' was renamed 'general_ASBM' "
-                         "(the same model).")
-    _one_of(config.groups_model, _GROUPS_MODELS, "groups_model",
-            " Degree correction is not part of the model name; set it with "
-            "Config(degree_correction=True | False).")
+        raise ValueError(
+            "groups_model 'general_canonical' was renamed 'general_ASBM' (the same model)."
+        )
+    _one_of(
+        config.groups_model,
+        _GROUPS_MODELS,
+        "groups_model",
+        " Degree correction is not part of the model name; set it with "
+        "Config(degree_correction=True | False).",
+    )
     if config.hierarchy_model is not _UNSET:
         _one_of(config.hierarchy_model, _HIERARCHY_MODELS, "hierarchy_model")
     _one_of(config.interaction, _INTERACTIONS, "interaction")
@@ -82,29 +98,36 @@ def _check_model(config: "Config") -> None:
         raise ValueError(
             f"hierarchy_model='bradley_terry' fixes ties_parameter at 0, but "
             f"ties_parameter={config.ties_parameter!r} was given. Use "
-            "hierarchy_model='bradley_terry_ties' to model draws.")
+            "hierarchy_model='bradley_terry_ties' to model draws."
+        )
     if config.interaction == "independent" and nonzero(config.group_depth):
         raise ValueError(
             f"interaction='independent' fixes group_depth at 0, but "
             f"group_depth={config.group_depth!r} was given. Use interaction='coupled' "
-            "to fit group_depth.")
+            "to fit group_depth."
+        )
 
 
 def _check_model_for_graph(config: "Config", has_neutral: bool, num_nodes: int) -> None:
     """The checks of a Config that need the graph."""
-    if config.hierarchy_model is _UNSET and not has_neutral and \
-            config.ties_parameter is not _UNSET and \
-            not (config.ties_parameter is not None and float(config.ties_parameter) == 0.0):
+    if (
+        config.hierarchy_model is _UNSET
+        and not has_neutral
+        and config.ties_parameter is not _UNSET
+        and not (config.ties_parameter is not None and float(config.ties_parameter) == 0.0)
+    ):
         raise ValueError(
             f"ties_parameter={config.ties_parameter!r} was given, but G has no neutral "
             "edges, so hierarchy_model resolves to 'bradley_terry', which fixes "
             "ties_parameter at 0. Pass hierarchy_model='bradley_terry_ties' to fit a draw "
-            "rate anyway.")
+            "rate anyway."
+        )
     if config.hierarchy_model == "bradley_terry" and has_neutral:
         raise ValueError(
             "hierarchy_model='bradley_terry' has no draws, but G has neutral edges. Use "
             "hierarchy_model='bradley_terry_ties' (the default when G has neutral edges), "
-            "or remove the neutral edges.")
+            "or remove the neutral edges."
+        )
     k = config.num_groups
     if k is not _UNSET and k is not None and int(k) > num_nodes:
         raise ValueError(f"num_groups={int(k)} is larger than the number of nodes ({num_nodes}).")
@@ -258,15 +281,20 @@ class Config:
     def _model_choice(self) -> dict:
         """The configuration as the C++ core's ModelChoice (src/model_presets.h)."""
         unset = lambda v: "" if v is _UNSET else v
-        given = {name: (None if getattr(self, name) is None else float(getattr(self, name)))
-                 for name in _MODEL_SETTINGS if getattr(self, name) is not _UNSET}
-        return dict(groups_model=self.groups_model,
-                    hierarchy_model=unset(self.hierarchy_model),
-                    interaction=self.interaction,
-                    mixing_variation=unset(self.mixing_variation),
-                    assortative=-1 if self.assortative is _UNSET else int(self.assortative),
-                    degree_correction=self.degree_correction,
-                    given=given)
+        given = {
+            name: (None if getattr(self, name) is None else float(getattr(self, name)))
+            for name in _MODEL_SETTINGS
+            if getattr(self, name) is not _UNSET
+        }
+        return dict(
+            groups_model=self.groups_model,
+            hierarchy_model=unset(self.hierarchy_model),
+            interaction=self.interaction,
+            mixing_variation=unset(self.mixing_variation),
+            assortative=-1 if self.assortative is _UNSET else int(self.assortative),
+            degree_correction=self.degree_correction,
+            given=given,
+        )
 
 
 class Result:
@@ -282,8 +310,9 @@ class Result:
     A Result can be pickled.
     """
 
-    def __init__(self, native_result, node_order: tuple, config: Config,
-                 interactions: dict | None = None) -> None:
+    def __init__(
+        self, native_result, node_order: tuple, config: Config, interactions: dict | None = None
+    ) -> None:
         self._native = native_result
         self._node_order = node_order
         self._config = config
@@ -314,8 +343,9 @@ class Result:
         part = np.asarray(self._native.mdl_partition(), dtype=int)
         return np.asarray(_sort_groups_by_score(part, self.score_means), dtype=int)
 
-    def consensus_partition(self, method: str = "moc", refine: bool = True,
-                            min_samples: int = 1000) -> np.ndarray:
+    def consensus_partition(
+        self, method: str = "moc", refine: bool = True, min_samples: int = 1000
+    ) -> np.ndarray:
         """Point estimate of the community partition.
 
         Parameters
@@ -421,8 +451,9 @@ class Result:
         d = dict(self._native.network_properties(float(prob)))
         return pd.DataFrame(d, columns=["parameter", "mean", "std", "hdi_lo", "hdi_hi"])
 
-    def node_properties_df(self, partition: str = "auto",
-                           consensus_method: str = "moc") -> pd.DataFrame:
+    def node_properties_df(
+        self, partition: str = "auto", consensus_method: str = "moc"
+    ) -> pd.DataFrame:
         """Posterior summary of node-level properties with community labels.
 
         Parameters
@@ -465,8 +496,10 @@ class Result:
         """
         cm = str(consensus_method).lower()
         if cm not in ("moc", "moc_modal_k", "binder"):
-            raise ValueError(f"consensus_method must be 'moc', 'moc_modal_k' or 'binder', "
-                             f"got {consensus_method!r}")
+            raise ValueError(
+                f"consensus_method must be 'moc', 'moc_modal_k' or 'binder', "
+                f"got {consensus_method!r}"
+            )
         # Resolve "auto" in Python so the threshold check is testable and the
         # warning fires before calling C++ (language-specific concern).
         n = len(self._node_order)
@@ -486,15 +519,16 @@ class Result:
             _valid = {"consensus", "mdl"}
             if partition not in _valid:
                 raise ValueError(
-                    f"partition must be one of {sorted(_valid)!r} or 'auto', "
-                    f"got {partition!r}"
+                    f"partition must be one of {sorted(_valid)!r} or 'auto', got {partition!r}"
                 )
             mode = partition
         d = dict(self._native.node_properties(mode, cm))
         d.pop("mode_used", None)
         d["node"] = list(self._node_order)
         # Reorder columns: node first, then the rest
-        return pd.DataFrame(d, columns=["node", "score_mean", "score_std", "group", "group_score_mean"])
+        return pd.DataFrame(
+            d, columns=["node", "score_mean", "score_std", "group", "group_score_mean"]
+        )
 
     # ------------------------------------------------------------------
     # Distribution summaries
@@ -558,8 +592,10 @@ class Result:
             suffix = "_score" if name == "scores" else "_group"
             return df[[f"{i}{suffix}" for i in range(n)]].to_numpy().T
         if name not in df.columns or name.endswith(("_score", "_group")):
-            raise KeyError(f"{name!r} is not a quantity of the fit; use 'scores', 'groups' or a "
-                           "column of to_frame().")
+            raise KeyError(
+                f"{name!r} is not a quantity of the fit; use 'scores', 'groups' or a "
+                "column of to_frame()."
+            )
         return df[name].to_numpy()
 
     def diagnostics_df(self) -> pd.DataFrame:
@@ -587,7 +623,9 @@ class Result:
         rows = [d]
         for label, relative in (("scores_median", False), ("relative_scores_median", True)):
             s = pd.DataFrame(self._native.score_diagnostics(relative))
-            rows.append(pd.DataFrame({"quantity": [label], **{c: [s[c].median()] for c in s.columns}}))
+            rows.append(
+                pd.DataFrame({"quantity": [label], **{c: [s[c].median()] for c in s.columns}})
+            )
         return pd.concat(rows, ignore_index=True)
 
     def score_diagnostics_df(self, relative: bool = False) -> pd.DataFrame:
@@ -640,19 +678,30 @@ class Result:
             ``sqrt(n) * std(elpd_1 - elpd_2)``.
         """
         if self._interactions is None:
-            raise ValueError("This result has no edges recorded (pickled by an older version); refit "
-                             "to cross-validate.")
+            raise ValueError(
+                "This result has no edges recorded (pickled by an older version); refit "
+                "to cross-validate."
+            )
         if self._native.num_samples == 0:
             raise ValueError("The fit has no samples.")
         e = self._interactions
         r = self._native.direction_loo(e["a"], e["b"], e["draw"], e["weight"], float(r_eff))
         nodes = list(self._node_order)
-        return pd.DataFrame(dict(
-            winner=[nodes[i] for i in e["a"]], loser=[nodes[i] for i in e["b"]],
-            draw=np.asarray(e["draw"], dtype=bool), weight=np.asarray(e["weight"], dtype=float),
-            elpd=r["elpd"], pareto_k=r["pareto_k"], p_win=r["p_win"]))
+        return pd.DataFrame(
+            dict(
+                winner=[nodes[i] for i in e["a"]],
+                loser=[nodes[i] for i in e["b"]],
+                draw=np.asarray(e["draw"], dtype=bool),
+                weight=np.asarray(e["weight"], dtype=float),
+                elpd=r["elpd"],
+                pareto_k=r["pareto_k"],
+                p_win=r["p_win"],
+            )
+        )
 
-    def direction_probabilities(self, node_a, node_b, ties_allowed: bool = True) -> dict[str, float]:
+    def direction_probabilities(
+        self, node_a, node_b, ties_allowed: bool = True
+    ) -> dict[str, float]:
         """Posterior-predictive probabilities of the outcome of a new
         interaction between ``node_a`` and ``node_b``.
 
@@ -694,14 +743,18 @@ class Result:
         return {"a_to_b": probs[0], "b_to_a": probs[1]}
 
     def __getstate__(self) -> dict:
-        return {"native": self._native, "node_order": self._node_order, "config": self._config,
-                "interactions": self._interactions}
+        return {
+            "native": self._native,
+            "node_order": self._node_order,
+            "config": self._config,
+            "interactions": self._interactions,
+        }
 
     def __setstate__(self, state: dict) -> None:
         self._native = state["native"]
         self._node_order = state["node_order"]
         self._config = state["config"]
-        self._interactions = state.get("interactions")   # absent in results pickled by 0.5
+        self._interactions = state.get("interactions")  # absent in results pickled by 0.5
 
     def __repr__(self) -> str:
         s = dict(self._native.summary())
@@ -858,9 +911,11 @@ def fit(
         timeout=timeout,
         show_progress=show_progress,
     )
-    for name, val in (("source_high_rank", source_high_rank),
-                      ("merge_split_enabled", merge_split_enabled),
-                      ("num_groups_fixed", num_groups_fixed)):
+    for name, val in (
+        ("source_high_rank", source_high_rank),
+        ("merge_split_enabled", merge_split_enabled),
+        ("num_groups_fixed", num_groups_fixed),
+    ):
         if not isinstance(val, bool):
             raise TypeError(f"{name} must be True or False, got {val!r}")
     if initial_partition is not None:
@@ -893,8 +948,10 @@ def fit(
     node_order = tuple(G.nodes())
     index = {node: i for i, node in enumerate(node_order)}
     interactions = _build_interactions(
-        len(node_order), *_edges(G, index, integer_weights=not config.weighted_SBM),
-        source_high_rank=source_high_rank)
+        len(node_order),
+        *_edges(G, index, integer_weights=not config.weighted_SBM),
+        source_high_rank=source_high_rank,
+    )
 
     # The model's parameters from the presets and the explicit values (C++ core).
     # An unset hierarchy_model models draws only when the graph has neutral edges:
@@ -939,7 +996,9 @@ def fit(
         variation_out=None if variation_out is None else float(variation_out),
         degree_correction=None if degree_correction is None else float(degree_correction),
         individual_depth=None if individual_depth is None else float(individual_depth),
-        initial_individual_depth=None if initial_individual_depth is None else float(initial_individual_depth),
+        initial_individual_depth=None
+        if initial_individual_depth is None
+        else float(initial_individual_depth),
         group_depth=None if group_depth is None else float(group_depth),
         initial_group_depth=None if initial_group_depth is None else float(initial_group_depth),
         ties_parameter=None if ties_parameter is None else float(ties_parameter),
@@ -989,6 +1048,10 @@ def fit(
                 stacklevel=2,
             )
 
-    edges = {"a": interactions.a, "b": interactions.b, "draw": interactions.draw,
-             "weight": interactions.weight}
+    edges = {
+        "a": interactions.a,
+        "b": interactions.b,
+        "draw": interactions.draw,
+        "weight": interactions.weight,
+    }
     return Result(native_result, node_order, config, edges)

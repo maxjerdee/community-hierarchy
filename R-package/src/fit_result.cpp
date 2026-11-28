@@ -4,16 +4,16 @@
 #include "helpers.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <limits>
 #include <map>
+#include <numeric>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include <numeric>
-#include <cctype>
-#include <stdexcept>
 
 FitResult::FitResult(int num_nodes, std::vector<SampleState> samples)
     : num_nodes_(num_nodes), samples_(std::move(samples)) {}
@@ -22,13 +22,11 @@ FitResult::FitResult(int num_nodes, std::vector<SampleState> samples)
 // sort_groups_by_score
 // ---------------------------------------------------------------------------
 
-std::vector<int> FitResult::sort_groups_by_score(
-    const std::vector<int>& partition,
-    const std::vector<double>& score_means)
-{
+std::vector<int> FitResult::sort_groups_by_score(const std::vector<int>& partition,
+                                                 const std::vector<double>& score_means) {
     // Accumulate sum and count per group using std::map for deterministic order.
     std::map<int, double> group_sum;
-    std::map<int, int>    group_cnt;
+    std::map<int, int> group_cnt;
     int n = static_cast<int>(partition.size());
     for (int i = 0; i < n; ++i) {
         group_sum[partition[i]] += score_means[i];
@@ -37,8 +35,7 @@ std::vector<int> FitResult::sort_groups_by_score(
     // Build (mean_score, old_label) pairs and sort ascending by mean.
     std::vector<std::pair<double, int>> ranked;
     ranked.reserve(group_sum.size());
-    for (auto& kv : group_sum)
-        ranked.push_back({kv.second / group_cnt[kv.first], kv.first});
+    for (auto& kv : group_sum) ranked.push_back({kv.second / group_cnt[kv.first], kv.first});
     std::sort(ranked.begin(), ranked.end());
 
     // Map old label → new label (0 = lowest mean score).
@@ -58,7 +55,10 @@ int FitResult::best_index() const {
     for (int i = 0; i < static_cast<int>(samples_.size()); ++i) {
         const auto& s = samples_[i];
         double dl = s.H_A_b + s.H_Adir_G_A_s_nu + s.H_s_G_b_depths;
-        if (dl < best_dl) { best_dl = dl; best = i; }
+        if (dl < best_dl) {
+            best_dl = dl;
+            best = i;
+        }
     }
     return best;
 }
@@ -101,16 +101,29 @@ std::vector<int> hungarian_min(const std::vector<double>& a, int S) {
             for (int j = 1; j <= S; ++j) {
                 if (used[j]) continue;
                 const double cur = a[static_cast<std::size_t>(i0 - 1) * S + (j - 1)] - u[i0] - v[j];
-                if (cur < minv[j]) { minv[j] = cur; way[j] = j0; }
-                if (minv[j] < delta) { delta = minv[j]; j1 = j; }
+                if (cur < minv[j]) {
+                    minv[j] = cur;
+                    way[j] = j0;
+                }
+                if (minv[j] < delta) {
+                    delta = minv[j];
+                    j1 = j;
+                }
             }
             for (int j = 0; j <= S; ++j) {
-                if (used[j]) { u[p[j]] += delta; v[j] -= delta; }
-                else minv[j] -= delta;
+                if (used[j]) {
+                    u[p[j]] += delta;
+                    v[j] -= delta;
+                } else
+                    minv[j] -= delta;
             }
             j0 = j1;
         } while (p[j0] != 0);
-        do { const int j1 = way[j0]; p[j0] = p[j1]; j0 = j1; } while (j0);
+        do {
+            const int j1 = way[j0];
+            p[j0] = p[j1];
+            j0 = j1;
+        } while (j0);
     }
     std::vector<int> row_to_col(S, -1);
     for (int j = 1; j <= S; ++j)
@@ -125,7 +138,8 @@ std::vector<int> compact_labels(const std::vector<int>& p, int& K) {
     K = static_cast<int>(labels.size());
     std::vector<int> out(p.size());
     for (std::size_t i = 0; i < p.size(); ++i)
-        out[i] = static_cast<int>(std::lower_bound(labels.begin(), labels.end(), p[i]) - labels.begin());
+        out[i] =
+            static_cast<int>(std::lower_bound(labels.begin(), labels.end(), p[i]) - labels.begin());
     return out;
 }
 
@@ -140,7 +154,10 @@ int FitResult::modal_num_groups() const {
     for (const auto& s : samples_) ++group_hist[s.num_groups];
     int modal_k = samples_.front().num_groups, modal_count = -1;
     for (const auto& kv : group_hist)
-        if (kv.second > modal_count) { modal_count = kv.second; modal_k = kv.first; }
+        if (kv.second > modal_count) {
+            modal_count = kv.second;
+            modal_k = kv.first;
+        }
     return modal_k;
 }
 
@@ -160,7 +177,8 @@ std::vector<int> FitResult::consensus_sample_indices(int min_samples) const {
     int m = T;
     if (min_samples > 0 && T > min_samples) {
         const double ess = partition_ess();
-        const double target = std::isfinite(ess) ? std::max<double>(min_samples, std::ceil(ess)) : min_samples;
+        const double target =
+            std::isfinite(ess) ? std::max<double>(min_samples, std::ceil(ess)) : min_samples;
         m = static_cast<int>(std::min<double>(T, target));
     }
     idx.reserve(static_cast<std::size_t>(m));
@@ -173,20 +191,23 @@ std::vector<int> FitResult::consensus_partition(const std::string& method, bool 
                                                 int min_samples) const {
     if (samples_.empty()) return std::vector<int>(num_nodes_, 0);
     std::string m = method;
-    std::transform(m.begin(), m.end(), m.begin(), [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+    std::transform(m.begin(), m.end(), m.begin(),
+                   [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
     const auto idx = consensus_sample_indices(min_samples);
     const int modal_k = modal_num_groups();
     if (m == "moc") return moc_unrestricted(idx);
     if (m == "moc_modal_k") return moc_consensus(idx, modal_k);
     if (m == "binder") return binder_consensus(idx, modal_k, refine);
-    throw std::invalid_argument("consensus method must be \"moc\", \"moc_modal_k\" or \"binder\", got \"" + method + "\"");
+    throw std::invalid_argument(
+        "consensus method must be \"moc\", \"moc_modal_k\" or \"binder\", got \"" + method + "\"");
 }
 
 // Dahl's method at the modal number of groups.  Dahl's method is an argmin over
 // the recorded samples, so with a broad posterior over q it can land on a sample
 // with an atypical q; fixing q to the mode first makes the reported group count
 // a stable summary of the run.
-std::vector<int> FitResult::binder_consensus(const std::vector<int>& idx, int modal_k, bool refine) const {
+std::vector<int> FitResult::binder_consensus(const std::vector<int>& idx, int modal_k,
+                                             bool refine) const {
     const int n = num_nodes_;
     const double inv = 1.0 / static_cast<double>(idx.size());
     // Aggregate coincidence: C[i*n+j] = fraction of samples co-assigning i and j (i < j)
@@ -210,14 +231,18 @@ std::vector<int> FitResult::binder_consensus(const std::vector<int>& idx, int mo
             double score = 0.0;
             for (int i = 0; i < n; ++i)
                 for (int j = i + 1; j < n; ++j)
-                    if (s.partition[i] == s.partition[j]) score += 1.0 - 2.0 * C[static_cast<std::size_t>(i) * n + j];
-            if (score < best_score) { best_score = score; best_idx = si; }
+                    if (s.partition[i] == s.partition[j])
+                        score += 1.0 - 2.0 * C[static_cast<std::size_t>(i) * n + j];
+            if (score < best_score) {
+                best_score = score;
+                best_idx = si;
+            }
         }
         return best_idx;
     };
     int best_idx = pick(true);
-    if (best_idx < 0) best_idx = pick(false);   // thinning skipped every modal-K sample
-    if (best_idx < 0) best_idx = 0;             // modal_k comes from a sample, so unreachable
+    if (best_idx < 0) best_idx = pick(false);  // thinning skipped every modal-K sample
+    if (best_idx < 0) best_idx = 0;            // modal_k comes from a sample, so unreachable
     std::vector<int> best = samples_[static_cast<std::size_t>(best_idx)].partition;
     if (refine) refine_consensus(best, C, n);
     return best;
@@ -241,20 +266,27 @@ std::vector<int> FitResult::moc_consensus(const std::vector<int>& idx, int K) co
     const int T = static_cast<int>(idx.size());
     std::vector<std::vector<int>> P(static_cast<std::size_t>(T));
     std::vector<int> Kt(static_cast<std::size_t>(T));
-    for (int t = 0; t < T; ++t) P[t] = compact_labels(samples_[static_cast<std::size_t>(idx[t])].partition, Kt[t]);
+    for (int t = 0; t < T; ++t)
+        P[t] = compact_labels(samples_[static_cast<std::size_t>(idx[t])].partition, Kt[t]);
     if (K <= 1) return std::vector<int>(n, 0);
 
     std::vector<int> inits;
-    for (int t = 0; t < T; ++t) if (Kt[t] == K) inits.push_back(t);
+    for (int t = 0; t < T; ++t)
+        if (Kt[t] == K) inits.push_back(t);
     std::vector<std::vector<int>> starts;
-    if (inits.empty()) {                              // thinning skipped every modal-K sample
+    if (inits.empty()) {  // thinning skipped every modal-K sample
         for (const auto& s : samples_)
-            if (s.num_groups == K) { int k; starts.push_back(compact_labels(s.partition, k)); break; }
+            if (s.num_groups == K) {
+                int k;
+                starts.push_back(compact_labels(s.partition, k));
+                break;
+            }
         if (starts.empty()) return std::vector<int>(n, 0);
     } else {
         const int R = std::min<int>(3, static_cast<int>(inits.size()));
         for (int r = 0; r < R; ++r)
-            starts.push_back(P[static_cast<std::size_t>(inits[static_cast<std::size_t>(r * static_cast<int>(inits.size()) / R)])]);
+            starts.push_back(P[static_cast<std::size_t>(
+                inits[static_cast<std::size_t>(r * static_cast<int>(inits.size()) / R)])]);
     }
 
     std::vector<int> best_c;
@@ -276,15 +308,22 @@ std::vector<int> FitResult::moc_consensus(const std::vector<int>& idx, int K) co
                 for (int k = 0; k < K; ++k) col_to_row[static_cast<std::size_t>(row_to_col[k])] = k;
                 for (int i = 0; i < n; ++i) {
                     const int k = col_to_row[static_cast<std::size_t>(b[i])];
-                    if (k >= 0) { ++votes[static_cast<std::size_t>(i) * K + k]; if (k == c[i]) ++total; }
+                    if (k >= 0) {
+                        ++votes[static_cast<std::size_t>(i) * K + k];
+                        if (k == c[i]) ++total;
+                    }
                 }
             }
-            if (total > best_total) { best_total = total; best_c = c; }
+            if (total > best_total) {
+                best_total = total;
+                best_c = c;
+            }
             prev = c;
             for (int i = 0; i < n; ++i) {
                 const int* v = &votes[static_cast<std::size_t>(i) * K];
                 int bk = c[i];
-                for (int k = 0; k < K; ++k) if (v[k] > v[bk]) bk = k;
+                for (int k = 0; k < K; ++k)
+                    if (v[k] > v[bk]) bk = k;
                 c[i] = bk;
             }
             std::vector<int> counts(static_cast<std::size_t>(K), 0);
@@ -294,11 +333,17 @@ std::vector<int> FitResult::moc_consensus(const std::vector<int>& idx, int K) co
                 int bi = -1, bl = std::numeric_limits<int>::max();
                 for (int i = 0; i < n; ++i) {
                     if (counts[static_cast<std::size_t>(c[i])] <= 1) continue;
-                    const int loss = votes[static_cast<std::size_t>(i) * K + c[i]] - votes[static_cast<std::size_t>(i) * K + e];
-                    if (loss < bl) { bl = loss; bi = i; }
+                    const int loss = votes[static_cast<std::size_t>(i) * K + c[i]] -
+                                     votes[static_cast<std::size_t>(i) * K + e];
+                    if (loss < bl) {
+                        bl = loss;
+                        bi = i;
+                    }
                 }
                 if (bi < 0) break;
-                --counts[static_cast<std::size_t>(c[bi])]; ++counts[static_cast<std::size_t>(e)]; c[bi] = e;
+                --counts[static_cast<std::size_t>(c[bi])];
+                ++counts[static_cast<std::size_t>(e)];
+                c[bi] = e;
             }
             if (c == prev) break;
         }
@@ -361,12 +406,16 @@ std::vector<int> FitResult::moc_unrestricted(const std::vector<int>& idx) const 
                     if (k == c[i]) ++total;
                 }
             }
-            if (total > best_total) { best_total = total; best_c = c; }
+            if (total > best_total) {
+                best_total = total;
+                best_c = c;
+            }
             std::vector<int> next(c);
             for (int i = 0; i < n; ++i) {
                 const int* v = &votes[static_cast<std::size_t>(i) * L];
                 int bk = c[i];
-                for (int k = 0; k < L; ++k) if (v[k] > v[bk]) bk = k;
+                for (int k = 0; k < L; ++k)
+                    if (v[k] > v[bk]) bk = k;
                 next[i] = bk;
             }
             next = compact_labels(next, Kc);
@@ -390,7 +439,7 @@ std::vector<int> FitResult::moc_unrestricted(const std::vector<int>& idx) const 
 void FitResult::refine_consensus(std::vector<int>& p, const std::vector<double>& C, int n) {
     if (n < 3) return;
     const auto at = [&C, n](int i, int j) {
-        return (i < j) ? C[i * n + j] : C[j * n + i];      // C holds the upper triangle
+        return (i < j) ? C[i * n + j] : C[j * n + i];  // C holds the upper triangle
     };
     std::vector<int> labels(p);
     std::sort(labels.begin(), labels.end());
@@ -411,13 +460,19 @@ void FitResult::refine_consensus(std::vector<int>& p, const std::vector<double>&
             if (counts[static_cast<std::size_t>(a)] == 1) continue;
             std::fill(S.begin(), S.end(), 0.0);
             for (int j = 0; j < n; ++j)
-                if (j != i) S[static_cast<std::size_t>(p[static_cast<std::size_t>(j)])] += 1.0 - 2.0 * at(i, j);
+                if (j != i)
+                    S[static_cast<std::size_t>(p[static_cast<std::size_t>(j)])] +=
+                        1.0 - 2.0 * at(i, j);
             int b = a;
             double best_delta = 0.0;
             for (int g = 0; g < K; ++g) {
                 if (g == a || counts[static_cast<std::size_t>(g)] == 0) continue;
-                const double delta = S[static_cast<std::size_t>(g)] - S[static_cast<std::size_t>(a)];
-                if (delta < best_delta - 1e-12) { best_delta = delta; b = g; }
+                const double delta =
+                    S[static_cast<std::size_t>(g)] - S[static_cast<std::size_t>(a)];
+                if (delta < best_delta - 1e-12) {
+                    best_delta = delta;
+                    b = g;
+                }
             }
             if (b != a) {
                 --counts[static_cast<std::size_t>(a)];
@@ -442,7 +497,8 @@ std::vector<double> FitResult::coincidence_matrix() const {
                 if (s.partition[i] == s.partition[j]) {
                     const std::size_t N = static_cast<std::size_t>(n);
                     mat[static_cast<std::size_t>(i) * N + static_cast<std::size_t>(j)] += inv;
-                    if (i != j) mat[static_cast<std::size_t>(j) * N + static_cast<std::size_t>(i)] += inv;
+                    if (i != j)
+                        mat[static_cast<std::size_t>(j) * N + static_cast<std::size_t>(i)] += inv;
                 }
             }
         }
@@ -484,18 +540,19 @@ std::vector<double> FitResult::score_stds() const {
 // calculate_H_Adir_G_A_s_nu (Davidson's Bradley-Terry with ties, pi = exp(s)):
 //   ties_allowed: {P(a beats b), P(tie), P(b beats a)} with each sample's nu;
 //   otherwise:    {P(a beats b), P(b beats a)}, plain Bradley-Terry (nu = 0).
-std::vector<double> FitResult::direction_probabilities(int node_a, int node_b, bool ties_allowed) const {
+std::vector<double> FitResult::direction_probabilities(int node_a, int node_b,
+                                                       bool ties_allowed) const {
     if (node_a < 0 || node_a >= num_nodes_ || node_b < 0 || node_b >= num_nodes_)
         throw std::out_of_range("direction_probabilities: node index out of range [0, " +
                                 std::to_string(num_nodes_) + ")");
     int ns = static_cast<int>(samples_.size());
-    if (ns == 0) return ties_allowed ? std::vector<double>{0.0, 0.0, 0.0}
-                                     : std::vector<double>{0.0, 0.0};
+    if (ns == 0)
+        return ties_allowed ? std::vector<double>{0.0, 0.0, 0.0} : std::vector<double>{0.0, 0.0};
     double sum_a = 0.0, sum_tie = 0.0, sum_b = 0.0;
     for (const auto& s : samples_) {
         const double sa = s.scores[node_a], sb = s.scores[node_b];
-        const double log_nu = ties_allowed ? std::log(s.ties_parameter)
-                                           : -std::numeric_limits<double>::infinity();
+        const double log_nu =
+            ties_allowed ? std::log(s.ties_parameter) : -std::numeric_limits<double>::infinity();
         const double log_z = davidson_log_z(sa, sb, log_nu);
         sum_a += std::exp(sa - log_z);
         sum_tie += std::exp(davidson_log_tie(sa, sb, log_nu) - log_z);
@@ -507,17 +564,17 @@ std::vector<double> FitResult::direction_probabilities(int node_a, int node_b, b
 
 const std::vector<NetworkParameter>& network_parameters() {
     static const std::vector<NetworkParameter> p = {
-        {"num_groups",        [](const SampleState& s) { return static_cast<double>(s.num_groups); }},
-        {"density_in",        [](const SampleState& s) { return s.density_in; }},
-        {"density_out",       [](const SampleState& s) { return s.density_out; }},
-        {"variation_in",      [](const SampleState& s) { return s.variation_in; }},
-        {"variation_out",     [](const SampleState& s) { return s.variation_out; }},
+        {"num_groups", [](const SampleState& s) { return static_cast<double>(s.num_groups); }},
+        {"density_in", [](const SampleState& s) { return s.density_in; }},
+        {"density_out", [](const SampleState& s) { return s.density_out; }},
+        {"variation_in", [](const SampleState& s) { return s.variation_in; }},
+        {"variation_out", [](const SampleState& s) { return s.variation_out; }},
         {"degree_correction", [](const SampleState& s) { return s.degree_correction; }},
-        {"individual_depth",  [](const SampleState& s) { return s.individual_depth; }},
-        {"group_depth",       [](const SampleState& s) { return s.group_depth; }},
-        {"ties_parameter",    [](const SampleState& s) { return s.ties_parameter; }},
-        {"sigma_T",           [](const SampleState& s) { return sigma_T(s); }},
-        {"ICC",               [](const SampleState& s) { return icc(s); }},
+        {"individual_depth", [](const SampleState& s) { return s.individual_depth; }},
+        {"group_depth", [](const SampleState& s) { return s.group_depth; }},
+        {"ties_parameter", [](const SampleState& s) { return s.ties_parameter; }},
+        {"sigma_T", [](const SampleState& s) { return sigma_T(s); }},
+        {"ICC", [](const SampleState& s) { return icc(s); }},
     };
     return p;
 }
@@ -547,7 +604,10 @@ std::pair<double, double> FitResult::hdi_bounds(std::vector<double> arr, double 
     double best_width = arr[interval_idx] - arr[0];
     for (int i = 1; i < n_intervals; ++i) {
         double w = arr[i + interval_idx] - arr[i];
-        if (w < best_width) { best_width = w; best = i; }
+        if (w < best_width) {
+            best_width = w;
+            best = i;
+        }
     }
     return {arr[best], arr[best + interval_idx]};
 }
@@ -568,7 +628,10 @@ NetworkPropertiesResult FitResult::network_properties(double prob) const {
         for (double v : vals) mean += v;
         mean /= n;
         double var = 0.0;
-        for (double v : vals) { double d = v - mean; var += d * d; }
+        for (double v : vals) {
+            double d = v - mean;
+            var += d * d;
+        }
         double std_val = (n > 1) ? std::sqrt(var / (n - 1)) : 0.0;
         auto [lo, hi] = hdi_bounds(std::move(vals), prob);
         result.parameter.push_back(name);
@@ -596,10 +659,10 @@ NodePropertiesResult FitResult::node_properties(const std::string& mode,
     // Resolve "auto": consensus, except Binder on large networks (its n x n
     // coincidence matrix), which falls back to mdl.  MOC needs no n x n matrix.
     std::string cm = consensus_method;
-    std::transform(cm.begin(), cm.end(), cm.begin(), [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+    std::transform(cm.begin(), cm.end(), cm.begin(),
+                   [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
     std::string resolved = mode;
-    if (mode == "auto")
-        resolved = (cm == "binder" && num_nodes_ > 3000) ? "mdl" : "consensus";
+    if (mode == "auto") resolved = (cm == "binder" && num_nodes_ > 3000) ? "mdl" : "consensus";
 
     std::vector<int> partition;
     if (resolved == "consensus")
@@ -608,14 +671,14 @@ NodePropertiesResult FitResult::node_properties(const std::string& mode,
         partition = mdl_partition();
 
     auto means = score_means();
-    auto stds  = score_stds();
+    auto stds = score_stds();
 
     // Sort group labels so group 0 has the lowest mean score.
     partition = sort_groups_by_score(partition, means);
 
     // group_score_mean: for each node, mean posterior score of its group.
     std::unordered_map<int, double> group_sum;
-    std::unordered_map<int, int>    group_cnt;
+    std::unordered_map<int, int> group_cnt;
     for (int i = 0; i < num_nodes_; ++i) {
         group_sum[partition[i]] += means[i];
         group_cnt[partition[i]]++;
@@ -627,10 +690,10 @@ NodePropertiesResult FitResult::node_properties(const std::string& mode,
     }
 
     NodePropertiesResult result;
-    result.mode_used        = resolved;
-    result.score_mean       = std::move(means);
-    result.score_std        = std::move(stds);
-    result.group            = std::move(partition);
+    result.mode_used = resolved;
+    result.score_mean = std::move(means);
+    result.score_std = std::move(stds);
+    result.group = std::move(partition);
     result.group_score_mean = std::move(gsm);
     return result;
 }

@@ -1,11 +1,11 @@
 #ifndef FIT_RESULT_H
 #define FIT_RESULT_H
 
-#include <vector>
 #include <limits>
 #include <map>
 #include <string>
 #include <utility>
+#include <vector>
 
 struct SampleState {
     int chain_id;
@@ -38,10 +38,10 @@ struct NetworkPropertiesResult {
 
 // Return type for node_properties(): one row per node (integer-indexed).
 struct NodePropertiesResult {
-    std::string mode_used;          // "consensus" or "mdl"
+    std::string mode_used;  // "consensus" or "mdl"
     std::vector<double> score_mean;
     std::vector<double> score_std;
-    std::vector<int>    group;
+    std::vector<int> group;
     std::vector<double> group_score_mean;
 };
 
@@ -79,8 +79,7 @@ public:
     // All use the samples thinned to max(min_samples, ESS of H_A_b), evenly
     // spaced (all of them if there are fewer than min_samples).  refine is
     // ignored by the MOC methods.
-    std::vector<int> consensus_partition(const std::string& method = "moc",
-                                         bool refine = true,
+    std::vector<int> consensus_partition(const std::string& method = "moc", bool refine = true,
                                          int min_samples = 1000) const;
     static void refine_consensus(std::vector<int>& p, const std::vector<double>& C, int n);
     // Indices of the samples the consensus uses (see consensus_partition).
@@ -92,18 +91,18 @@ public:
     std::vector<double> coincidence_matrix() const;
     std::vector<double> score_means() const;
     std::vector<double> score_stds() const;
-    std::vector<double> direction_probabilities(int node_a, int node_b, bool ties_allowed = true) const;
+    std::vector<double> direction_probabilities(int node_a, int node_b,
+                                                bool ties_allowed = true) const;
 
     // New posterior-summary methods (C++ core; language wrappers convert to DataFrames).
     NetworkPropertiesResult network_properties(double prob = 0.90) const;
-    NodePropertiesResult    node_properties(const std::string& mode = "auto",
-                                            const std::string& consensus_method = "moc") const;
+    NodePropertiesResult node_properties(const std::string& mode = "auto",
+                                         const std::string& consensus_method = "moc") const;
 
     // Relabel group ids so group 0 has the lowest mean score, group 1 the next, etc.
     // score_means[i] is the mean score of node i.
-    static std::vector<int> sort_groups_by_score(
-        const std::vector<int>& partition,
-        const std::vector<double>& score_means);
+    static std::vector<int> sort_groups_by_score(const std::vector<int>& partition,
+                                                 const std::vector<double>& score_means);
 
     int num_nodes() const { return num_nodes_; }
     int num_samples() const { return static_cast<int>(samples_.size()); }
@@ -121,4 +120,4 @@ private:
     static std::pair<double, double> hdi_bounds(std::vector<double> arr, double prob);
 };
 
-#endif // FIT_RESULT_H
+#endif  // FIT_RESULT_H

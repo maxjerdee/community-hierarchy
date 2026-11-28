@@ -21,7 +21,8 @@ Interactions build_interactions(int n, const std::vector<int>& from, const std::
                                 bool source_high_rank) {
     const std::size_t m = weight.size();
     check_shape(n, from, to, m);
-    if (draw.size() != m) throw std::invalid_argument("interactions: edge vectors of different lengths");
+    if (draw.size() != m)
+        throw std::invalid_argument("interactions: edge vectors of different lengths");
     Interactions r;
     r.wins.assign(static_cast<std::size_t>(n), {});
     r.ties.assign(static_cast<std::size_t>(n), {});

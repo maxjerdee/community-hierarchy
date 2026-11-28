@@ -8,8 +8,8 @@
 // FitResult, which the summaries use.  A handle does not survive saveRDS(); the R
 // side then rebuilds it once from the samples (.ch_build_result).
 
-#include <Rcpp.h>
 #include <R_ext/Utils.h>
+#include <Rcpp.h>
 
 #include <atomic>
 #include <chrono>
@@ -19,8 +19,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "fit.h"
 #include "diagnostics.h"
+#include "fit.h"
 #include "fit_result.h"
 #include "interactions.h"
 #include "loo.h"
@@ -44,8 +44,12 @@ std::optional<int> opt_int(const List& opts, const char* name) {
 
 // R_CheckUserInterrupt() longjmps on an interrupt; run it inside R_ToplevelExec so
 // the C++ stack is unwound normally instead.
-void check_interrupt_fn(void*) { R_CheckUserInterrupt(); }
-bool interrupt_pending() { return R_ToplevelExec(check_interrupt_fn, nullptr) == FALSE; }
+void check_interrupt_fn(void*) {
+    R_CheckUserInterrupt();
+}
+bool interrupt_pending() {
+    return R_ToplevelExec(check_interrupt_fn, nullptr) == FALSE;
+}
 
 void progress_line(const char* label, int cur, int total) {
     const int pct = total > 0 ? static_cast<int>(100.0 * cur / total) : 100;
@@ -61,9 +65,9 @@ List samples_to_r(const FitResult& res) {
     NumericMatrix scores(m, n);
     IntegerVector chain_id(m), num_groups(m);
     NumericVector beta(m), density_in(m), density_out(m), variation_in(m), variation_out(m),
-        degree_correction(m), individual_depth(m), group_depth(m), ties_parameter(m),
-        H_A_b(m), H_b(m), H_M(m), H_k(m), H_A_G_k_M_b(m), H_A_G_b(m), H_W(m),
-        H_Adir_G_A_s_nu(m), H_s_G_b_depths(m);
+        degree_correction(m), individual_depth(m), group_depth(m), ties_parameter(m), H_A_b(m),
+        H_b(m), H_M(m), H_k(m), H_A_G_k_M_b(m), H_A_G_b(m), H_W(m), H_Adir_G_A_s_nu(m),
+        H_s_G_b_depths(m);
     LogicalVector two_layer_mode(m), weighted_SBM(m);
     for (int k = 0; k < m; ++k) {
         const SampleState& s = ss[k];
@@ -71,30 +75,39 @@ List samples_to_r(const FitResult& res) {
             partitions(k, i) = s.partition[i];
             scores(k, i) = s.scores[i];
         }
-        chain_id[k] = s.chain_id;            beta[k] = s.beta;
+        chain_id[k] = s.chain_id;
+        beta[k] = s.beta;
         num_groups[k] = s.num_groups;
-        density_in[k] = s.density_in;        density_out[k] = s.density_out;
-        variation_in[k] = s.variation_in;    variation_out[k] = s.variation_out;
+        density_in[k] = s.density_in;
+        density_out[k] = s.density_out;
+        variation_in[k] = s.variation_in;
+        variation_out[k] = s.variation_out;
         degree_correction[k] = s.degree_correction;
         individual_depth[k] = s.individual_depth;
-        group_depth[k] = s.group_depth;      ties_parameter[k] = s.ties_parameter;
-        H_A_b[k] = s.H_A_b;  H_b[k] = s.H_b;  H_M[k] = s.H_M;  H_k[k] = s.H_k;
-        H_A_G_k_M_b[k] = s.H_A_G_k_M_b;      H_A_G_b[k] = s.H_A_G_b;  H_W[k] = s.H_W;
+        group_depth[k] = s.group_depth;
+        ties_parameter[k] = s.ties_parameter;
+        H_A_b[k] = s.H_A_b;
+        H_b[k] = s.H_b;
+        H_M[k] = s.H_M;
+        H_k[k] = s.H_k;
+        H_A_G_k_M_b[k] = s.H_A_G_k_M_b;
+        H_A_G_b[k] = s.H_A_G_b;
+        H_W[k] = s.H_W;
         H_Adir_G_A_s_nu[k] = s.H_Adir_G_A_s_nu;
         H_s_G_b_depths[k] = s.H_s_G_b_depths;
-        two_layer_mode[k] = s.two_layer_mode; weighted_SBM[k] = s.weighted_SBM;
+        two_layer_mode[k] = s.two_layer_mode;
+        weighted_SBM[k] = s.weighted_SBM;
     }
     List params = List::create(
         _["chain_id"] = chain_id, _["beta"] = beta, _["num_groups"] = num_groups,
         _["density_in"] = density_in, _["density_out"] = density_out,
         _["variation_in"] = variation_in, _["variation_out"] = variation_out,
-        _["degree_correction"] = degree_correction,
-        _["individual_depth"] = individual_depth, _["group_depth"] = group_depth,
-        _["ties_parameter"] = ties_parameter,
-        _["H_b"] = H_b, _["H_M"] = H_M, _["H_k"] = H_k, _["H_A_G_k_M_b"] = H_A_G_k_M_b,
-        _["H_W"] = H_W, _["H_A_G_b"] = H_A_G_b, _["H_A_b"] = H_A_b,
-        _["H_Adir_G_A_s_nu"] = H_Adir_G_A_s_nu, _["H_s_G_b_depths"] = H_s_G_b_depths,
-        _["two_layer_mode"] = two_layer_mode, _["weighted_SBM"] = weighted_SBM);
+        _["degree_correction"] = degree_correction, _["individual_depth"] = individual_depth,
+        _["group_depth"] = group_depth, _["ties_parameter"] = ties_parameter, _["H_b"] = H_b,
+        _["H_M"] = H_M, _["H_k"] = H_k, _["H_A_G_k_M_b"] = H_A_G_k_M_b, _["H_W"] = H_W,
+        _["H_A_G_b"] = H_A_G_b, _["H_A_b"] = H_A_b, _["H_Adir_G_A_s_nu"] = H_Adir_G_A_s_nu,
+        _["H_s_G_b_depths"] = H_s_G_b_depths, _["two_layer_mode"] = two_layer_mode,
+        _["weighted_SBM"] = weighted_SBM);
     // The derived parameters (network_parameters(), fit_result.h).
     NumericVector sigma_T_(m), icc_(m);
     for (int k = 0; k < m; ++k) {
@@ -103,8 +116,7 @@ List samples_to_r(const FitResult& res) {
     }
     params["sigma_T"] = sigma_T_;
     params["ICC"] = icc_;
-    return List::create(_["params"] = params, _["partitions"] = partitions,
-                        _["scores"] = scores);
+    return List::create(_["params"] = params, _["partitions"] = partitions, _["scores"] = scores);
 }
 
 // The inverse of samples_to_r: a FitResult for the summaries.
@@ -114,13 +126,15 @@ FitResult build_result(const List& params, const IntegerMatrix& partitions,
     auto col_d = [&](const char* name) { return as<NumericVector>(params[name]); };
     IntegerVector chain_id = params["chain_id"], num_groups = params["num_groups"];
     NumericVector beta = col_d("beta"), density_in = col_d("density_in"),
-        density_out = col_d("density_out"), variation_in = col_d("variation_in"),
-        variation_out = col_d("variation_out"), degree_correction = col_d("degree_correction"),
-        individual_depth = col_d("individual_depth"), group_depth = col_d("group_depth"),
-        ties_parameter = col_d("ties_parameter"), H_A_b = col_d("H_A_b"), H_b = col_d("H_b"),
-        H_M = col_d("H_M"), H_k = col_d("H_k"), H_A_G_k_M_b = col_d("H_A_G_k_M_b"),
-        H_A_G_b = col_d("H_A_G_b"), H_W = col_d("H_W"),
-        H_Adir_G_A_s_nu = col_d("H_Adir_G_A_s_nu"), H_s_G_b_depths = col_d("H_s_G_b_depths");
+                  density_out = col_d("density_out"), variation_in = col_d("variation_in"),
+                  variation_out = col_d("variation_out"),
+                  degree_correction = col_d("degree_correction"),
+                  individual_depth = col_d("individual_depth"), group_depth = col_d("group_depth"),
+                  ties_parameter = col_d("ties_parameter"), H_A_b = col_d("H_A_b"),
+                  H_b = col_d("H_b"), H_M = col_d("H_M"), H_k = col_d("H_k"),
+                  H_A_G_k_M_b = col_d("H_A_G_k_M_b"), H_A_G_b = col_d("H_A_G_b"),
+                  H_W = col_d("H_W"), H_Adir_G_A_s_nu = col_d("H_Adir_G_A_s_nu"),
+                  H_s_G_b_depths = col_d("H_s_G_b_depths");
     LogicalVector two_layer_mode = params["two_layer_mode"], weighted_SBM = params["weighted_SBM"];
     std::vector<SampleState> ss(m);
     for (int k = 0; k < m; ++k) {
@@ -131,18 +145,28 @@ FitResult build_result(const List& params, const IntegerMatrix& partitions,
             s.partition[i] = partitions(k, i);
             s.scores[i] = scores(k, i);
         }
-        s.chain_id = chain_id[k];            s.beta = beta[k];
+        s.chain_id = chain_id[k];
+        s.beta = beta[k];
         s.num_groups = num_groups[k];
-        s.density_in = density_in[k];        s.density_out = density_out[k];
-        s.variation_in = variation_in[k];    s.variation_out = variation_out[k];
+        s.density_in = density_in[k];
+        s.density_out = density_out[k];
+        s.variation_in = variation_in[k];
+        s.variation_out = variation_out[k];
         s.degree_correction = degree_correction[k];
         s.individual_depth = individual_depth[k];
-        s.group_depth = group_depth[k];      s.ties_parameter = ties_parameter[k];
-        s.H_A_b = H_A_b[k];  s.H_b = H_b[k];  s.H_M = H_M[k];  s.H_k = H_k[k];
-        s.H_A_G_k_M_b = H_A_G_k_M_b[k];      s.H_A_G_b = H_A_G_b[k];  s.H_W = H_W[k];
+        s.group_depth = group_depth[k];
+        s.ties_parameter = ties_parameter[k];
+        s.H_A_b = H_A_b[k];
+        s.H_b = H_b[k];
+        s.H_M = H_M[k];
+        s.H_k = H_k[k];
+        s.H_A_G_k_M_b = H_A_G_k_M_b[k];
+        s.H_A_G_b = H_A_G_b[k];
+        s.H_W = H_W[k];
         s.H_Adir_G_A_s_nu = H_Adir_G_A_s_nu[k];
         s.H_s_G_b_depths = H_s_G_b_depths[k];
-        s.two_layer_mode = two_layer_mode[k]; s.weighted_SBM = weighted_SBM[k];
+        s.two_layer_mode = two_layer_mode[k];
+        s.weighted_SBM = weighted_SBM[k];
     }
     return FitResult(n, std::move(ss));
 }
@@ -154,19 +178,19 @@ List ch_fit_native(int n, IntegerVector from, IntegerVector to, LogicalVector dr
                    NumericVector weight, bool source_high_rank, IntegerVector group_a,
                    IntegerVector group_b, NumericVector group_weight, bool two_layer,
                    IntegerVector initial_partition, bool partition_fixed,
-                   NumericVector initial_scores, bool scores_fixed,
-                   List opts, bool show_progress) {
+                   NumericVector initial_scores, bool scores_fixed, List opts, bool show_progress) {
     std::vector<bool> is_draw(draw.size());
     for (R_xlen_t k = 0; k < draw.size(); ++k) is_draw[k] = draw[k] == TRUE;
-    Interactions edges = build_interactions(n, as<std::vector<int>>(from), as<std::vector<int>>(to),
-                                            is_draw, as<std::vector<double>>(weight),
-                                            source_high_rank);
+    Interactions edges =
+        build_interactions(n, as<std::vector<int>>(from), as<std::vector<int>>(to), is_draw,
+                           as<std::vector<double>>(weight), source_high_rank);
     FitParams p;
     p.wins = edges.wins;
     p.ties = edges.ties;
     if (two_layer)
-        p.group_adj = build_group_layer(n, as<std::vector<int>>(group_a), as<std::vector<int>>(group_b),
-                                        as<std::vector<double>>(group_weight));
+        p.group_adj =
+            build_group_layer(n, as<std::vector<int>>(group_a), as<std::vector<int>>(group_b),
+                              as<std::vector<double>>(group_weight));
     p.initial_partition = as<std::vector<int>>(initial_partition);
     p.partition_fixed = partition_fixed;
     p.initial_scores = as<std::vector<double>>(initial_scores);
@@ -212,10 +236,8 @@ List ch_fit_native(int n, IntegerVector from, IntegerVector to, LogicalVector dr
     const int warm_total = p.num_chains * (p.num_param_warmup + p.num_warmup);
     const int sample_total = p.num_chains * draws_per_chain(p);
 
-    std::future<FitResult> job = std::async(std::launch::async,
-                                            [params = std::move(p)]() mutable {
-                                                return fit(std::move(params));
-                                            });
+    std::future<FitResult> job = std::async(
+        std::launch::async, [params = std::move(p)]() mutable { return fit(std::move(params)); });
     bool interrupted = false;
     int shown_warm = -1, shown_sample = -1;
     bool warm_line_open = false;
@@ -258,8 +280,8 @@ List ch_fit_native(int n, IntegerVector from, IntegerVector to, LogicalVector dr
     out["native"] = XPtr<FitResult>(new FitResult(std::move(res)), true);
     // The edges as the core reads them, nodes from 1: a won against b, or they drew.
     IntegerVector a(edges.a.begin(), edges.a.end()), b(edges.b.begin(), edges.b.end());
-    out["interactions"] = List::create(_["a"] = a + 1, _["b"] = b + 1,
-                                       _["draw"] = wrap(edges.draw), _["weight"] = wrap(edges.weight));
+    out["interactions"] = List::create(_["a"] = a + 1, _["b"] = b + 1, _["draw"] = wrap(edges.draw),
+                                       _["weight"] = wrap(edges.weight));
     return out;
 }
 
@@ -276,8 +298,8 @@ bool ch_handle_valid(SEXP handle) {
 // [[Rcpp::export(.ch_network_properties)]]
 List ch_network_properties(XPtr<FitResult> res, double prob) {
     const NetworkPropertiesResult net = res->network_properties(prob);
-    return List::create(_["parameter"] = net.parameter, _["mean"] = net.mean,
-                        _["std"] = net.std, _["hdi_lo"] = net.hdi_lo, _["hdi_hi"] = net.hdi_hi);
+    return List::create(_["parameter"] = net.parameter, _["mean"] = net.mean, _["std"] = net.std,
+                        _["hdi_lo"] = net.hdi_lo, _["hdi_hi"] = net.hdi_hi);
 }
 
 // [[Rcpp::export(.ch_node_properties)]]
@@ -303,7 +325,9 @@ List ch_mdl(XPtr<FitResult> res) {
 }
 
 // [[Rcpp::export(.ch_partition_ess)]]
-double ch_partition_ess(XPtr<FitResult> res) { return res->partition_ess(); }
+double ch_partition_ess(XPtr<FitResult> res) {
+    return res->partition_ess();
+}
 
 // [[Rcpp::export(.ch_coincidence_matrix)]]
 NumericMatrix ch_coincidence_matrix(XPtr<FitResult> res) {
@@ -332,14 +356,17 @@ List ch_direction_loo(XPtr<FitResult> res, IntegerVector a, IntegerVector b, Log
 
 namespace {
 List diagnostics_to_r(const DiagnosticsResult& r) {
-    List out = List::create(_["ess_bulk"] = r.ess_bulk, _["ess_tail"] = r.ess_tail, _["rhat"] = r.rhat);
+    List out =
+        List::create(_["ess_bulk"] = r.ess_bulk, _["ess_tail"] = r.ess_tail, _["rhat"] = r.rhat);
     if (!r.quantity.empty()) out.push_front(wrap(r.quantity), "quantity");
     return out;
 }
 }  // namespace
 
 // [[Rcpp::export(.ch_diagnostics)]]
-List ch_diagnostics(XPtr<FitResult> res) { return diagnostics_to_r(network_diagnostics(*res)); }
+List ch_diagnostics(XPtr<FitResult> res) {
+    return diagnostics_to_r(network_diagnostics(*res));
+}
 
 // [[Rcpp::export(.ch_score_diagnostics)]]
 List ch_score_diagnostics(XPtr<FitResult> res, bool relative) {
@@ -372,7 +399,9 @@ ModelChoice model_choice(std::string groups_model, std::string hierarchy_model,
     return m;
 }
 
-SEXP opt(const std::optional<double>& x) { return x ? wrap(*x) : R_NilValue; }
+SEXP opt(const std::optional<double>& x) {
+    return x ? wrap(*x) : R_NilValue;
+}
 
 }  // namespace
 
@@ -380,10 +409,10 @@ SEXP opt(const std::optional<double>& x) { return x ? wrap(*x) : R_NilValue; }
 List ch_resolve_model(std::string groups_model, std::string hierarchy_model,
                       std::string interaction, std::string mixing_variation, int assortative,
                       bool degree_correction, List given, bool has_neutral) {
-    const ResolvedModel r = resolve_model(
-        model_choice(groups_model, hierarchy_model, interaction, mixing_variation, assortative,
-                     degree_correction, given),
-        has_neutral);
+    const ResolvedModel r =
+        resolve_model(model_choice(groups_model, hierarchy_model, interaction, mixing_variation,
+                                   assortative, degree_correction, given),
+                      has_neutral);
     List out = List::create(
         _["hierarchy_model"] = r.hierarchy_model, _["assortative"] = r.assortative,
         _["variation_in"] = opt(r.variation_in), _["variation_out"] = opt(r.variation_out),

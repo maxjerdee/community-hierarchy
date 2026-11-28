@@ -55,8 +55,10 @@ except (FileNotFoundError, subprocess.CalledProcessError):
     pytest.skip("node not found — skipping WASM parity tests", allow_module_level=True)
 
 if not os.path.isfile(WASM_JS):
-    pytest.skip(f"WASM bundle not built ({WASM_JS}) — run cmake/make first",
-                allow_module_level=True)
+    pytest.skip(
+        f"WASM bundle not built ({WASM_JS}) — run cmake/make first", allow_module_level=True
+    )
+
 
 # ---------------------------------------------------------------------------
 # WASM helper
@@ -111,13 +113,21 @@ process.stdout.write(JSON.stringify(r));
 #   No pair appears in both WINS and TIES (avoids nx.DiGraph edge-type collision).
 # ---------------------------------------------------------------------------
 WINS = [
-    [0, 1, 2], [0, 2, 1], [2, 3, 2],
-    [4, 5, 1], [4, 6, 2], [6, 7, 2],
-    [0, 4, 1], [1, 5, 1], [3, 7, 1],
+    [0, 1, 2],
+    [0, 2, 1],
+    [2, 3, 2],
+    [4, 5, 1],
+    [4, 6, 2],
+    [6, 7, 2],
+    [0, 4, 1],
+    [1, 5, 1],
+    [3, 7, 1],
 ]
 TIES = [
-    [0, 3, 1], [1, 3, 1],
-    [4, 7, 1], [5, 7, 1],
+    [0, 3, 1],
+    [1, 3, 1],
+    [4, 7, 1],
+    [5, 7, 1],
 ]
 N = 8
 SEED = 42
@@ -127,8 +137,8 @@ PARTITION = [0, 0, 0, 0, 1, 1, 1, 1]
 
 # Scores with known unit-RMS norm (arbitrary relative ordering).
 _RAW_SCORES = np.array([1.2, 0.8, 0.3, 0.5, -0.4, -0.7, -0.9, -0.6], dtype=float)
-_RMS = float(np.sqrt(np.mean(_RAW_SCORES ** 2)))
-SCORES_NORMED = (_RAW_SCORES / _RMS).tolist()   # unit-RMS, fed directly to both
+_RMS = float(np.sqrt(np.mean(_RAW_SCORES**2)))
+SCORES_NORMED = (_RAW_SCORES / _RMS).tolist()  # unit-RMS, fed directly to both
 
 # ---------------------------------------------------------------------------
 # Reference parameter values from mt19937_64(seed * 2654435761).
@@ -140,19 +150,19 @@ SCORES_NORMED = (_RAW_SCORES / _RMS).tolist()   # unit-RMS, fed directly to both
 # Values pre-computed with g++ mt19937_64(42*2654435761):
 # ---------------------------------------------------------------------------
 _DRAWS = [
-    0.698254558812732,   # draw1 → vi
-    0.053127790888864,   # draw2 → vo
-    0.443816873552025,   # draw3 → discarded (dc value_or eager eval)
-    0.587370122562773,   # draw4 → id  (auto scores) / gd (explicit scores)
-    0.035126700331400,   # draw5 → gd  (auto scores) / tp (explicit scores)
-    0.802060025783624,   # draw6 → tp  (auto scores)
+    0.698254558812732,  # draw1 → vi
+    0.053127790888864,  # draw2 → vo
+    0.443816873552025,  # draw3 → discarded (dc value_or eager eval)
+    0.587370122562773,  # draw4 → id  (auto scores) / gd (explicit scores)
+    0.035126700331400,  # draw5 → gd  (auto scores) / tp (explicit scores)
+    0.802060025783624,  # draw6 → tp  (auto scores)
 ]
 
 EXPECTED_VI = _DRAWS[0]
 EXPECTED_VO = _DRAWS[1]
-EXPECTED_ID_AUTO  = _DRAWS[3]
-EXPECTED_GD_AUTO  = _DRAWS[4]
-EXPECTED_TP_AUTO  = _DRAWS[5]
+EXPECTED_ID_AUTO = _DRAWS[3]
+EXPECTED_GD_AUTO = _DRAWS[4]
+EXPECTED_TP_AUTO = _DRAWS[5]
 
 DRAW_TOL = 1e-10
 
@@ -169,26 +179,34 @@ class TestParameterDraws:
 
     @pytest.fixture(scope="class")
     def wasm_sample(self):
-        return wasm_fit(WINS, TIES, {
-            "num_nodes": N,
-            "seed": SEED,
-            "num_warmup": 0,
-            "sweeps_per_sample": 0,
-            "num_samples": 1,
-            "assortative": True,
-            "variation_in": -1,     # inferred: general_ASBM
-            "variation_out": -1,
-            "merge_split_enabled": False,
-        })["samples"][0]
+        return wasm_fit(
+            WINS,
+            TIES,
+            {
+                "num_nodes": N,
+                "seed": SEED,
+                "num_warmup": 0,
+                "sweeps_per_sample": 0,
+                "num_samples": 1,
+                "assortative": True,
+                "variation_in": -1,  # inferred: general_ASBM
+                "variation_out": -1,
+                "merge_split_enabled": False,
+            },
+        )["samples"][0]
 
     @pytest.fixture(scope="class")
     def python_params(self):
         import community_hierarchy as ch
+
         G = _build_nx_graph()
         result = ch.fit(
-            ch.Config(groups_model="general_ASBM"), G,
-            num_samples=1, seed=SEED,
-            num_warmup=0, sweeps_per_sample=0,
+            ch.Config(groups_model="general_ASBM"),
+            G,
+            num_samples=1,
+            seed=SEED,
+            num_warmup=0,
+            sweeps_per_sample=0,
             merge_split_enabled=False,
         )
         npdf = result.network_properties_df()
@@ -248,7 +266,7 @@ class TestInitialDLParity:
         sweeps_per_sample=0,
         num_samples=1,
         assortative=True,
-        variation_in=-1,      # inferred: general_ASBM
+        variation_in=-1,  # inferred: general_ASBM
         variation_out=-1,
         merge_split_enabled=False,
     )
@@ -257,27 +275,37 @@ class TestInitialDLParity:
     def python_dl(self):
         """Python fit with explicit partition+scores, sweeps=0 → initial DL."""
         import community_hierarchy as ch
+
         G = _build_nx_graph()
         result = ch.fit(
-            ch.Config(groups_model="general_ASBM"), G,
-            num_samples=1, seed=SEED,
-            num_warmup=0, sweeps_per_sample=0,
+            ch.Config(groups_model="general_ASBM"),
+            G,
+            num_samples=1,
+            seed=SEED,
+            num_warmup=0,
+            sweeps_per_sample=0,
             merge_split_enabled=False,
             initial_partition=PARTITION,
             initial_scores=SCORES_NORMED,
         )
-        return result.to_frame()["H_A_b"].iloc[0] \
-             + result.to_frame()["H_Adir_G_A_s_nu"].iloc[0] \
-             + result.to_frame()["H_s_G_b_depths"].iloc[0]
+        return (
+            result.to_frame()["H_A_b"].iloc[0]
+            + result.to_frame()["H_Adir_G_A_s_nu"].iloc[0]
+            + result.to_frame()["H_s_G_b_depths"].iloc[0]
+        )
 
     @pytest.fixture(scope="class")
     def wasm_dl(self):
-        result = wasm_fit(WINS, TIES, {
-            "num_nodes": N,
-            **self._COMMON_OPTS,
-            "initialPartition": PARTITION,
-            "initialScores": SCORES_NORMED,
-        })
+        result = wasm_fit(
+            WINS,
+            TIES,
+            {
+                "num_nodes": N,
+                **self._COMMON_OPTS,
+                "initialPartition": PARTITION,
+                "initialScores": SCORES_NORMED,
+            },
+        )
         return result["samples"][0]["descriptionLength"]
 
     def test_dl_matches_reference(self, python_dl):
@@ -286,16 +314,13 @@ class TestInitialDLParity:
         # the four weight-2 pairs (0,1), (2,3), (4,6), (6,7) had log 2! counted twice.
         reference = 78.027630
         rel_err = abs(python_dl - reference) / abs(reference)
-        assert rel_err < 1e-5, (
-            f"Python DL {python_dl:.6f} deviates from reference {reference}"
-        )
+        assert rel_err < 1e-5, f"Python DL {python_dl:.6f} deviates from reference {reference}"
 
     def test_wasm_dl_matches_python(self, python_dl, wasm_dl):
         """WASM DL for the explicit initial state matches Python to 1e-6."""
         rel_err = abs(wasm_dl - python_dl) / abs(python_dl)
         assert rel_err < 1e-6, (
-            f"DL mismatch: WASM={wasm_dl:.6f}, Python={python_dl:.6f}, "
-            f"rel_err={rel_err:.2e}"
+            f"DL mismatch: WASM={wasm_dl:.6f}, Python={python_dl:.6f}, rel_err={rel_err:.2e}"
         )
 
     def test_wasm_dl_is_finite_and_positive(self, python_dl, wasm_dl):
@@ -327,11 +352,15 @@ class TestConvergence:
     @pytest.fixture(scope="class")
     def python_result(self):
         import community_hierarchy as ch
+
         G = _build_nx_graph()
         return ch.fit(
-            ch.Config(groups_model="general_ASBM"), G,
-            num_samples=10, seed=SEED,
-            num_warmup=50, sweeps_per_sample=1,
+            ch.Config(groups_model="general_ASBM"),
+            G,
+            num_samples=10,
+            seed=SEED,
+            num_warmup=50,
+            sweeps_per_sample=1,
             merge_split_enabled=True,
         )
 
@@ -341,17 +370,21 @@ class TestConvergence:
 
     @pytest.fixture(scope="class")
     def wasm_result(self):
-        return wasm_fit(WINS, TIES, {
-            "num_nodes": N,
-            "seed": SEED,
-            "num_warmup": 50,
-            "num_samples": 10,
-            "sweeps_per_sample": 1,
-            "assortative": True,
-            "variation_in": -1,     # inferred: general_ASBM
-            "variation_out": -1,
-            "merge_split_enabled": True,
-        })
+        return wasm_fit(
+            WINS,
+            TIES,
+            {
+                "num_nodes": N,
+                "seed": SEED,
+                "num_warmup": 50,
+                "num_samples": 10,
+                "sweeps_per_sample": 1,
+                "assortative": True,
+                "variation_in": -1,  # inferred: general_ASBM
+                "variation_out": -1,
+                "merge_split_enabled": True,
+            },
+        )
 
     def test_wasm_mdl_matches_python_exactly(self, python_mdl, wasm_result):
         """WASM MDL must equal Python's to numerical precision after a short run."""
@@ -377,6 +410,7 @@ class TestConvergence:
         raw = wasm_result["consensusPartition"]
         wasm = [int(raw[str(i)] if isinstance(raw, dict) else raw[i]) for i in range(len(py))]
         assert len(wasm) == len(py)
+
         # Compare as partitions: labels are arbitrary, the grouping is not.
         def canon(p):
             m, out = {}, []
@@ -384,6 +418,7 @@ class TestConvergence:
                 m.setdefault(x, len(m))
                 out.append(m[x])
             return out
+
         assert canon(wasm) == canon(py), (
             f"consensus differs.\n  python: {canon(py)}\n  wasm  : {canon(wasm)}\n"
             "If the DL test passed but this failed, the wasm bundle is almost "
@@ -405,27 +440,35 @@ class TestConvergenceMultiSweep(TestConvergence):
     @pytest.fixture(scope="class")
     def python_result(self):
         import community_hierarchy as ch
+
         G = _build_nx_graph()
         return ch.fit(
-            ch.Config(groups_model="general_ASBM"), G,
-            num_samples=10, seed=SEED,
-            num_warmup=20, sweeps_per_sample=3,
+            ch.Config(groups_model="general_ASBM"),
+            G,
+            num_samples=10,
+            seed=SEED,
+            num_warmup=20,
+            sweeps_per_sample=3,
             merge_split_enabled=True,
         )
 
     @pytest.fixture(scope="class")
     def wasm_result(self):
-        return wasm_fit(WINS, TIES, {
-            "num_nodes": N,
-            "seed": SEED,
-            "num_warmup": 20,
-            "num_samples": 10,
-            "sweeps_per_sample": 3,
-            "assortative": True,
-            "variation_in": -1,     # inferred: general_ASBM
-            "variation_out": -1,
-            "merge_split_enabled": True,
-        })
+        return wasm_fit(
+            WINS,
+            TIES,
+            {
+                "num_nodes": N,
+                "seed": SEED,
+                "num_warmup": 20,
+                "num_samples": 10,
+                "sweeps_per_sample": 3,
+                "assortative": True,
+                "variation_in": -1,  # inferred: general_ASBM
+                "variation_out": -1,
+                "merge_split_enabled": True,
+            },
+        )
 
 
 # ===========================================================================
@@ -447,42 +490,52 @@ class TestIndependentCoupling:
     @pytest.fixture(scope="class")
     def python_result(self):
         import community_hierarchy as ch
+
         G = _build_nx_graph()
         return ch.fit(
-            ch.Config(groups_model="general_ASBM", interaction="independent"), G,
-            num_samples=10, seed=SEED,
-            num_warmup=50, sweeps_per_sample=1,
+            ch.Config(groups_model="general_ASBM", interaction="independent"),
+            G,
+            num_samples=10,
+            seed=SEED,
+            num_warmup=50,
+            sweeps_per_sample=1,
             merge_split_enabled=True,
         )
 
     @pytest.fixture(scope="class")
     def wasm_result(self):
-        return wasm_fit(WINS, TIES, {
-            "num_nodes": N,
-            "seed": SEED,
-            "num_warmup": 50,
-            "num_samples": 10,
-            "sweeps_per_sample": 1,
-            "assortative": True,
-            "variation_in": -1,     # inferred: general_ASBM
-            "variation_out": -1,
-            "merge_split_enabled": True,
-            "independent_coupling": 1,
-        })
+        return wasm_fit(
+            WINS,
+            TIES,
+            {
+                "num_nodes": N,
+                "seed": SEED,
+                "num_warmup": 50,
+                "num_samples": 10,
+                "sweeps_per_sample": 1,
+                "assortative": True,
+                "variation_in": -1,  # inferred: general_ASBM
+                "variation_out": -1,
+                "merge_split_enabled": True,
+                "independent_coupling": 1,
+            },
+        )
 
     def test_python_group_depth_is_zero(self, python_result):
         df = python_result.to_frame()
         assert "group_depth" in df.columns, "samples_df() must expose group_depth"
         for i, gd in enumerate(df["group_depth"]):
-            assert gd == pytest.approx(0.0, abs=1e-12), \
+            assert gd == pytest.approx(0.0, abs=1e-12), (
                 f"Python sample {i}: group_depth={gd}, expected 0.0"
+            )
 
     def test_wasm_group_depth_is_zero(self, wasm_result):
         for i, s in enumerate(wasm_result["samples"]):
             gd = s.get("groupDepth", None)
             assert gd is not None, f"sample {i} missing groupDepth field"
-            assert gd == pytest.approx(0.0, abs=1e-12), \
+            assert gd == pytest.approx(0.0, abs=1e-12), (
                 f"WASM sample {i}: groupDepth={gd}, expected 0.0"
+            )
 
     def test_wasm_mdl_matches_python_exactly(self, python_result, wasm_result):
         """WASM independent-mode MDL must equal Python's to numerical precision."""
@@ -490,8 +543,7 @@ class TestIndependentCoupling:
         wasm_mdl = wasm_result["mdlValue"]
         assert math.isfinite(wasm_mdl), f"WASM MDL is not finite: {wasm_mdl}"
         assert wasm_mdl == pytest.approx(py_mdl, rel=0, abs=1e-9), (
-            f"WASM={wasm_mdl!r} != Python={py_mdl!r} "
-            f"(diff={wasm_mdl - py_mdl:.3e})"
+            f"WASM={wasm_mdl!r} != Python={py_mdl!r} (diff={wasm_mdl - py_mdl:.3e})"
         )
 
     def test_wasm_consensus_matches_python(self, python_result, wasm_result):
@@ -499,12 +551,14 @@ class TestIndependentCoupling:
         raw = wasm_result["consensusPartition"]
         wasm = [int(raw[str(i)] if isinstance(raw, dict) else raw[i]) for i in range(len(py))]
         assert len(wasm) == len(py)
+
         def canon(p):
             m, out = {}, []
             for x in p:
                 m.setdefault(x, len(m))
                 out.append(m[x])
             return out
+
         assert canon(wasm) == canon(py), (
             f"consensus differs.\n  python: {canon(py)}\n  wasm  : {canon(wasm)}"
         )
@@ -540,25 +594,43 @@ def _build_nx_graph():
 # turns assortativity off); the wasm binding takes the same fixed values
 # (variation_in / variation_out, negative = inferred). Same seed, same MDL.
 PRESETS = {
-    "simple_ASBM":       dict(assortative=True,  variation_in=0.5, variation_out=0.5),
-    "hybrid_ASBM":       dict(assortative=True,  variation_in=0.5, variation_out=0.0),
-    "planted_partition": dict(assortative=True,  variation_in=0.0, variation_out=0.0),
-    "traditional_SBM":   dict(assortative=False, variation_in=0.5, variation_out=0.5),
+    "simple_ASBM": dict(assortative=True, variation_in=0.5, variation_out=0.5),
+    "hybrid_ASBM": dict(assortative=True, variation_in=0.5, variation_out=0.0),
+    "planted_partition": dict(assortative=True, variation_in=0.0, variation_out=0.0),
+    "traditional_SBM": dict(assortative=False, variation_in=0.5, variation_out=0.5),
 }
 
 
 @pytest.mark.parametrize("model", sorted(PRESETS))
 def test_wasm_preset_mdl_matches_python(model):
     import community_hierarchy as ch
-    py = ch.fit(ch.Config(groups_model=model), _build_nx_graph(), num_samples=10, seed=SEED,
-                num_warmup=50, sweeps_per_sample=1, merge_split_enabled=True)
-    wasm = wasm_fit(WINS, TIES, {
-        "num_nodes": N, "seed": SEED, "num_warmup": 50, "num_samples": 10,
-        "sweeps_per_sample": 1, "merge_split_enabled": True, **PRESETS[model],
-    })
+
+    py = ch.fit(
+        ch.Config(groups_model=model),
+        _build_nx_graph(),
+        num_samples=10,
+        seed=SEED,
+        num_warmup=50,
+        sweeps_per_sample=1,
+        merge_split_enabled=True,
+    )
+    wasm = wasm_fit(
+        WINS,
+        TIES,
+        {
+            "num_nodes": N,
+            "seed": SEED,
+            "num_warmup": 50,
+            "num_samples": 10,
+            "sweeps_per_sample": 1,
+            "merge_split_enabled": True,
+            **PRESETS[model],
+        },
+    )
     assert math.isfinite(wasm["mdlValue"])
     assert wasm["mdlValue"] == pytest.approx(py.mdl_value, rel=0, abs=1e-9), (
-        f"{model}: WASM={wasm['mdlValue']!r} != Python={py.mdl_value!r}")
+        f"{model}: WASM={wasm['mdlValue']!r} != Python={py.mdl_value!r}"
+    )
     for s in wasm["samples"]:
         assert s["variationIn"] == pytest.approx(PRESETS[model]["variation_in"], abs=1e-12)
         assert s["variationOut"] == pytest.approx(PRESETS[model]["variation_out"], abs=1e-12)

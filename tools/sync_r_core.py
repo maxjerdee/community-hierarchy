@@ -6,6 +6,7 @@ be committed there as well.  Run this after any change to src/:
     python tools/sync_r_core.py           # copy
     python tools/sync_r_core.py --check   # exit 1 if the copy is out of date (CI, tests)
 """
+
 from __future__ import annotations
 
 import sys
@@ -24,8 +25,11 @@ def core_files() -> list[Path]:
 def main() -> int:
     check = "--check" in sys.argv[1:]
     want = {p.name: p.read_bytes() for p in core_files()}
-    have = {p.name: p.read_bytes() for p in DEST.iterdir()
-            if p.suffix in (".cpp", ".h") and p.name not in OWN}
+    have = {
+        p.name: p.read_bytes()
+        for p in DEST.iterdir()
+        if p.suffix in (".cpp", ".h") and p.name not in OWN
+    }
     stale = sorted(n for n in want if have.get(n) != want[n])
     extra = sorted(set(have) - set(want))
     if check:

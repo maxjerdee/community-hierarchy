@@ -14,10 +14,10 @@
 
 struct ModelChoice {
     std::string groups_model = "traditional_SBM";
-    std::string hierarchy_model;    // "" = unset: chosen from the graph
+    std::string hierarchy_model;  // "" = unset: chosen from the graph
     std::string interaction = "coupled";
-    std::string mixing_variation;   // "" = unset: from groups_model
-    int assortative = -1;           // -1 = unset (from groups_model), 0 or 1
+    std::string mixing_variation;  // "" = unset: from groups_model
+    int assortative = -1;          // -1 = unset (from groups_model), 0 or 1
     bool degree_correction = true;
     // Explicit settings of variation_in, variation_out, individual_depth,
     // group_depth, ties_parameter and num_groups.  A missing key is unset (the

@@ -68,13 +68,15 @@ def _edge_weight(u: Any, v: Any, data: dict, *, integer: bool, graph: str = "G")
         raise TypeError(f"Edge ({u!r}, {v!r}) of {graph} has non-numeric weight {w!r}.")
     w = float(w)
     if not math.isfinite(w) or w <= 0.0:
-        raise ValueError(f"Edge ({u!r}, {v!r}) of {graph} has weight {w!r}; weights must be "
-                         "finite and positive.")
+        raise ValueError(
+            f"Edge ({u!r}, {v!r}) of {graph} has weight {w!r}; weights must be finite and positive."
+        )
     if integer and w != round(w):
         raise ValueError(
             f"Edge ({u!r}, {v!r}) of {graph} has weight {w!r}; without weighted_SBM a weight "
             "is a number of interactions and must be a positive integer. Use "
-            "Config(weighted_SBM=True) for real-valued weights.")
+            "Config(weighted_SBM=True) for real-valued weights."
+        )
     return w
 
 
@@ -91,17 +93,22 @@ def _edges(G: nx.Graph, index: dict, *, integer_weights: bool) -> tuple[list, li
             raise ValueError(
                 f"G has a self-loop at node {u!r}; self-loops are not supported (an "
                 "interaction needs two nodes). Remove them, e.g. with "
-                "G.remove_edges_from(nx.selfloop_edges(G)).")
+                "G.remove_edges_from(nx.selfloop_edges(G))."
+            )
         if "type" in data:
             typed = True
             if data["type"] not in ("dominant", "neutral"):
-                raise ValueError(f"Edge ({u!r}, {v!r}) has invalid type {data['type']!r}. "
-                                 "Must be 'dominant' or 'neutral'.")
+                raise ValueError(
+                    f"Edge ({u!r}, {v!r}) has invalid type {data['type']!r}. "
+                    "Must be 'dominant' or 'neutral'."
+                )
         else:
             untyped = True
         if typed and untyped:
-            raise ValueError("Some edges have a 'type' and some do not; if any edge has a type "
-                             "('dominant' or 'neutral'), every edge must.")
+            raise ValueError(
+                "Some edges have a 'type' and some do not; if any edge has a type "
+                "('dominant' or 'neutral'), every edge must."
+            )
         source.append(index[u])
         target.append(index[v])
         draw.append(data.get("type") == "neutral")
@@ -229,8 +236,10 @@ def _group_graph_edges(G: nx.Graph, group_graph: nx.Graph, index: dict) -> tuple
     a, b, w = [], [], []
     for u, v, data in group_graph.edges(data=True):
         if u == v:
-            raise ValueError(f"group_graph has a self-loop at node {u!r}; self-loops are not "
-                             "supported in two-layer mode.")
+            raise ValueError(
+                f"group_graph has a self-loop at node {u!r}; self-loops are not "
+                "supported in two-layer mode."
+            )
         a.append(index[u])
         b.append(index[v])
         w.append(_edge_weight(u, v, data, integer=False, graph="group_graph"))
@@ -272,10 +281,12 @@ def _get_node_data(
     # If any one does, they must all have that data and it should be of the correct format.
     group_data_found = False
     score_data_found = False
-    node_group_list = [0] * G.number_of_nodes()  # Default group assignment if no group data is found
+    node_group_list = [
+        0
+    ] * G.number_of_nodes()  # Default group assignment if no group data is found
     node_group_name_list = []
     node_score_list = [0.0] * G.number_of_nodes()  # Default scores if no score data is found
-    
+
     for i, data in G.nodes(data=True):
         if group_attribute is not None and group_attribute in data:
             group_data_found = True
@@ -301,15 +312,11 @@ def _get_node_data(
             raise ValueError(
                 f"Node {i} is missing '{group_attribute}' attribute while other nodes have it."
             )
-        if (
-            hierarchy_attribute is not None
-            and score_data_found
-            and hierarchy_attribute not in data
-        ):
+        if hierarchy_attribute is not None and score_data_found and hierarchy_attribute not in data:
             raise ValueError(
                 f"Node {i} is missing '{hierarchy_attribute}' attribute while other nodes have it."
             )
-    
+
     # If an attribute name was explicitly provided but not found on any nodes, raise an error
     if group_attribute is not None and not group_data_found:
         raise ValueError(
@@ -326,7 +333,6 @@ def _get_node_data(
         node_score_list = None
 
     return node_group_list, node_score_list
-
 
 
 def write_gml_with_inferences(
@@ -393,7 +399,6 @@ def write_gml_with_inferences(
 
     _sanitize_graph_attributes_for_gml(G_copy)
     nx.write_gml(G_copy, output_filename)
-    
 
 
 def plot_node_properties(
@@ -477,7 +482,9 @@ def plot_node_properties(
     elif isinstance(result, pd.DataFrame):
         node_df = result
     else:
-        raise TypeError("result must be a community_hierarchy.Result or a node_properties_df() table.")
+        raise TypeError(
+            "result must be a community_hierarchy.Result or a node_properties_df() table."
+        )
     if labels not in ("ticks", "ladder", "none"):
         raise ValueError(f"labels must be 'ticks', 'ladder' or 'none', got {labels!r}")
     df = node_df[["node", "score_mean", "score_std", "group"]].copy()
@@ -487,7 +494,7 @@ def plot_node_properties(
     grp_order = df.groupby("group")["score_mean"].mean().sort_values().index.tolist()
     K = len(grp_order)
 
-    if palette is None:   # tab10, or tab20 for more than 10 communities
+    if palette is None:  # tab10, or tab20 for more than 10 communities
         cmap_tab, n_col = (plt.get_cmap("tab10"), 10) if K <= 10 else (plt.get_cmap("tab20"), 20)
         color_of = {g: cmap_tab(i % n_col) for i, g in enumerate(grp_order)}
     elif isinstance(palette, dict):
@@ -519,20 +526,47 @@ def plot_node_properties(
         xs = pos + np.arange(n_g)
         c = color_of[g]
         alpha, lw = max(0.25, 0.6 - 0.005 * n_g), max(0.3, 0.6 - 0.004 * n_g)
-        ax.errorbar(xs, grp["score_mean"], yerr=grp["score_std"], fmt="none",
-                    color=c, elinewidth=lw, capsize=0, alpha=alpha, zorder=2)
+        ax.errorbar(
+            xs,
+            grp["score_mean"],
+            yerr=grp["score_std"],
+            fmt="none",
+            color=c,
+            elinewidth=lw,
+            capsize=0,
+            alpha=alpha,
+            zorder=2,
+        )
         full = np.array([filled is None or nd in filled for nd in grp["node"]])
         for sel, face in ((full, c), (~full, "none")):
-            ax.scatter(xs[sel], grp["score_mean"].values[sel], s=10, facecolors=face,
-                       edgecolors=c, linewidths=0.6, alpha=min(alpha + 0.3, 1.0), zorder=3)
-        ax.hlines(grp["score_mean"].mean(), xs[0] - 0.4, xs[-1] + 0.4,
-                  colors=c, linewidth=1.6, zorder=4)
+            ax.scatter(
+                xs[sel],
+                grp["score_mean"].values[sel],
+                s=10,
+                facecolors=face,
+                edgecolors=c,
+                linewidths=0.6,
+                alpha=min(alpha + 0.3, 1.0),
+                zorder=3,
+            )
+        ax.hlines(
+            grp["score_mean"].mean(), xs[0] - 0.4, xs[-1] + 0.4, colors=c, linewidth=1.6, zorder=4
+        )
         for x, (_, row) in zip(xs, grp.iterrows()):
             if row["node"] in annotate:
-                ax.annotate(str(annotate[row["node"]]), xy=(x, row["score_mean"] + row["score_std"]),
-                            xytext=(0, 2), textcoords="offset points", ha="center", va="bottom",
-                            rotation=90, fontsize=annotation_fontsize, color="#222222", zorder=5,
-                            path_effects=[pe.withStroke(linewidth=1.0, foreground="white")])
+                ax.annotate(
+                    str(annotate[row["node"]]),
+                    xy=(x, row["score_mean"] + row["score_std"]),
+                    xytext=(0, 2),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    rotation=90,
+                    fontsize=annotation_fontsize,
+                    color="#222222",
+                    zorder=5,
+                    path_effects=[pe.withStroke(linewidth=1.0, foreground="white")],
+                )
         centres[g] = float(xs.mean())
         floor = min(floor, float((grp["score_mean"] - grp["score_std"]).min()))
         pos += n_g - 1 + group_gap
@@ -555,8 +589,17 @@ def plot_node_properties(
         y0 = floor - step
         for i, g in enumerate(grp_order):
             if label_of[g]:
-                ax.text(centres[g], y0 + i * step, label_of[g], ha="center", va="top",
-                        fontsize=7, fontweight="bold", color=color_of[g], clip_on=False)
+                ax.text(
+                    centres[g],
+                    y0 + i * step,
+                    label_of[g],
+                    ha="center",
+                    va="top",
+                    fontsize=7,
+                    fontweight="bold",
+                    color=color_of[g],
+                    clip_on=False,
+                )
         ax.set_ylim(min(ylo, y0 - 2 * step), yhi)
         ax.set_xticks([])
         ax.spines["bottom"].set_visible(False)
@@ -640,9 +683,7 @@ def plot_adjacency_matrix(
     K = len(grp_order)
 
     sorted_df = (
-        node_df.assign(_grp_rank=node_df["group"].map(
-            {g: i for i, g in enumerate(grp_order)}
-        ))
+        node_df.assign(_grp_rank=node_df["group"].map({g: i for i, g in enumerate(grp_order)}))
         .sort_values(["_grp_rank", "score_mean"])
         .reset_index(drop=True)
     )
@@ -681,8 +722,9 @@ def plot_adjacency_matrix(
         fig = ax.get_figure()
 
     vmax = float(np.percentile(A[A > 0], vmax_percentile)) if (A > 0).any() else 1.0
-    ax.imshow(A, aspect="equal", cmap=cmap, vmin=0, vmax=vmax,
-              interpolation="nearest", origin="upper")
+    ax.imshow(
+        A, aspect="equal", cmap=cmap, vmin=0, vmax=vmax, interpolation="nearest", origin="upper"
+    )
 
     # Community grid lines
     for b in boundaries[1:-1]:
@@ -716,9 +758,15 @@ def plot_adjacency_matrix(
     ax_left.axis("off")
 
     if title:
-        ax_top.text(0.5, 1.1, title, transform=ax_top.transAxes,
-                    fontsize=plt.rcParams.get("font.size", 9) - 1,
-                    va="bottom", ha="center")
+        ax_top.text(
+            0.5,
+            1.1,
+            title,
+            transform=ax_top.transAxes,
+            fontsize=plt.rcParams.get("font.size", 9) - 1,
+            va="bottom",
+            ha="center",
+        )
 
     if output_filename is not None:
         fig.savefig(output_filename, bbox_inches="tight")
@@ -766,8 +814,12 @@ def plot_MCMC_entropy(
     chains = samples_df["chain_id"].unique() if len(samples_df) else []
     for c in chains:
         sel = (samples_df["chain_id"] == c).to_numpy()
-        ax.plot(np.arange(sel.sum()), dl[sel].to_numpy(),
-                lw=1.0, label=f"chain {c}" if len(chains) > 1 else None)
+        ax.plot(
+            np.arange(sel.sum()),
+            dl[sel].to_numpy(),
+            lw=1.0,
+            label=f"chain {c}" if len(chains) > 1 else None,
+        )
     if len(chains) > 1:
         ax.legend(frameon=False)
     ax.set_xlabel("Sample index within chain")

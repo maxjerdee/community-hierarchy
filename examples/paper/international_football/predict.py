@@ -28,6 +28,7 @@ writes results/knockouts_<model>.csv and results/loo_<model>.csv;
     python predict.py [--quick]
 prints the comparison.
 """
+
 import sys
 import warnings
 from pathlib import Path
@@ -38,43 +39,43 @@ import pandas as pd
 
 KNOCKOUTS = [
     # Round of 32
-    ("Canada",        "South Africa",           "Round of 32",    0.7286),
-    ("Brazil",        "Japan",                  "Round of 32",    0.7498),
-    ("Paraguay",      "Germany",                "Round of 32",    0.1132),
-    ("Morocco",       "Netherlands",            "Round of 32",    0.4268),
-    ("Norway",        "Ivory Coast",            "Round of 32",    0.6336),
-    ("France",        "Sweden",                 "Round of 32",    0.8943),
-    ("Mexico",        "Ecuador",                "Round of 32",    0.6471),
-    ("England",       "DR Congo",               "Round of 32",    0.9145),
-    ("Belgium",       "Senegal",                "Round of 32",    0.6827),
-    ("United States", "Bosnia and Herzegovina", "Round of 32",    0.8679),
-    ("Spain",         "Austria",                "Round of 32",    0.8861),
-    ("Portugal",      "Croatia",                "Round of 32",    0.7703),
-    ("Switzerland",   "Algeria",                "Round of 32",    0.6923),
-    ("Egypt",         "Australia",              "Round of 32",    0.5902),
-    ("Argentina",     "Cape Verde",             "Round of 32",    0.9524),
-    ("Colombia",      "Ghana",                  "Round of 32",    0.8612),
+    ("Canada", "South Africa", "Round of 32", 0.7286),
+    ("Brazil", "Japan", "Round of 32", 0.7498),
+    ("Paraguay", "Germany", "Round of 32", 0.1132),
+    ("Morocco", "Netherlands", "Round of 32", 0.4268),
+    ("Norway", "Ivory Coast", "Round of 32", 0.6336),
+    ("France", "Sweden", "Round of 32", 0.8943),
+    ("Mexico", "Ecuador", "Round of 32", 0.6471),
+    ("England", "DR Congo", "Round of 32", 0.9145),
+    ("Belgium", "Senegal", "Round of 32", 0.6827),
+    ("United States", "Bosnia and Herzegovina", "Round of 32", 0.8679),
+    ("Spain", "Austria", "Round of 32", 0.8861),
+    ("Portugal", "Croatia", "Round of 32", 0.7703),
+    ("Switzerland", "Algeria", "Round of 32", 0.6923),
+    ("Egypt", "Australia", "Round of 32", 0.5902),
+    ("Argentina", "Cape Verde", "Round of 32", 0.9524),
+    ("Colombia", "Ghana", "Round of 32", 0.8612),
     # Round of 16
-    ("France",        "Paraguay",               "Round of 16",    0.9375),
-    ("Morocco",       "Canada",                 "Round of 16",    0.7337),
-    ("Norway",        "Brazil",                 "Round of 16",    0.2674),
-    ("England",       "Mexico",                 "Round of 16",    0.5390),
-    ("Spain",         "Portugal",               "Round of 16",    0.6667),
-    ("Belgium",       "United States",          "Round of 16",    0.4669),
-    ("Argentina",     "Egypt",                  "Round of 16",    0.9002),
-    ("Switzerland",   "Colombia",               "Round of 16",    0.4000),   # on penalties
+    ("France", "Paraguay", "Round of 16", 0.9375),
+    ("Morocco", "Canada", "Round of 16", 0.7337),
+    ("Norway", "Brazil", "Round of 16", 0.2674),
+    ("England", "Mexico", "Round of 16", 0.5390),
+    ("Spain", "Portugal", "Round of 16", 0.6667),
+    ("Belgium", "United States", "Round of 16", 0.4669),
+    ("Argentina", "Egypt", "Round of 16", 0.9002),
+    ("Switzerland", "Colombia", "Round of 16", 0.4000),  # on penalties
     # Quarter-finals
-    ("France",        "Morocco",                "Quarter-finals", 0.8043),
-    ("Spain",         "Belgium",                "Quarter-finals", 0.7756),
-    ("England",       "Norway",                 "Quarter-finals", 0.7059),
-    ("Argentina",     "Switzerland",            "Quarter-finals", 0.7751),
+    ("France", "Morocco", "Quarter-finals", 0.8043),
+    ("Spain", "Belgium", "Quarter-finals", 0.7756),
+    ("England", "Norway", "Quarter-finals", 0.7059),
+    ("Argentina", "Switzerland", "Quarter-finals", 0.7751),
     # Semi-finals
-    ("Spain",         "France",                 "Semi-finals",    0.4590),
-    ("Argentina",     "England",                "Semi-finals",    0.4750),
+    ("Spain", "France", "Semi-finals", 0.4590),
+    ("Argentina", "England", "Semi-finals", 0.4750),
     # Third place
-    ("England",       "France",                 "Third place",    0.3214),
+    ("England", "France", "Third place", 0.3214),
     # Final
-    ("Spain",         "Argentina",              "Final",          0.6160),
+    ("Spain", "Argentina", "Final", 0.6160),
 ]
 
 
@@ -82,9 +83,12 @@ def knockout_probabilities(result):
     """One row per knockout: winner, loser, round, p_market and p, the model's
     probability that the winner beats the loser."""
     df = pd.DataFrame(KNOCKOUTS, columns=["winner", "loser", "round", "p_market"])
-    df["p"] = [result.direction_probabilities(w.replace(" ", "_"), l.replace(" ", "_"),
-                                              ties_allowed=False)["a_to_b"]
-               for w, l in zip(df.winner, df.loser)]
+    df["p"] = [
+        result.direction_probabilities(
+            w.replace(" ", "_"), l.replace(" ", "_"), ties_allowed=False
+        )["a_to_b"]
+        for w, l in zip(df.winner, df.loser)
+    ]
     return df
 
 
@@ -103,20 +107,28 @@ def loo(result, G):
     sa, sb = s[[f"{n}_score" for n in a]].to_numpy(), s[[f"{n}_score" for n in b]].to_numpy()
     log_nu = np.log(s["ties_parameter"].to_numpy())[:, None]
     log_z = np.logaddexp(np.logaddexp(sa, sb), log_nu + (sa + sb) / 2)
-    ll = np.where(draw, log_nu + (sa + sb) / 2, sa) - log_z            # (samples, matches)
+    ll = np.where(draw, log_nu + (sa + sb) / 2, sa) - log_z  # (samples, matches)
     chains = s["chain_id"].to_numpy()
-    n = min((chains == c).sum() for c in np.unique(chains))           # equal-length chains
-    ll = np.stack([ll[chains == c][:n] for c in np.unique(chains)])   # (chains, draws, matches)
+    n = min((chains == c).sum() for c in np.unique(chains))  # equal-length chains
+    ll = np.stack([ll[chains == c][:n] for c in np.unique(chains)])  # (chains, draws, matches)
     idata = az.from_dict(log_likelihood={"y": ll}, posterior={"mu": np.zeros(ll.shape[:2])})
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         L = az.loo(idata, pointwise=True)
     # leave-one-out P(winner beats loser | decided): PSIS-weighted posterior average
-    log_w, _ = az.psislw(-ll.reshape(-1, ll.shape[2]).T)              # (matches, samples)
+    log_w, _ = az.psislw(-ll.reshape(-1, ll.shape[2]).T)  # (matches, samples)
     d = (sa - sb)[np.concatenate([np.flatnonzero(chains == c)[:n] for c in np.unique(chains)])]
     p_win = (np.exp(log_w) / (1 + np.exp(-d.T))).sum(1)
-    return pd.DataFrame(dict(winner=a, loser=b, draw=draw, elpd=L.loo_i.values,
-                             pareto_k=L.pareto_k.values, p_win=np.where(draw, np.nan, p_win)))
+    return pd.DataFrame(
+        dict(
+            winner=a,
+            loser=b,
+            draw=draw,
+            elpd=L.loo_i.values,
+            pareto_k=L.pareto_k.values,
+            p_win=np.where(draw, np.nan, p_win),
+        )
+    )
 
 
 if __name__ == "__main__":
@@ -128,20 +140,30 @@ if __name__ == "__main__":
         df[model] = pd.read_csv(RESULTS / f"knockouts_{model}{SUFFIX}.csv")["p"].values
 
     print(f"{len(df)} knockout matches of the 2026 World Cup: probability given to the winner")
-    print(df[["round", "winner", "loser", "coupled", "independent", "market"]].round(3).to_string(index=False))
+    print(
+        df[["round", "winner", "loser", "coupled", "independent", "market"]]
+        .round(3)
+        .to_string(index=False)
+    )
     print(f"\n{'':12s} {'correct':>8s} {'log-likelihood':>15s} {'mean per match':>15s}")
     for model in ("coupled", "independent", "market"):
         p = df[model]
-        print(f"{model:12s} {int((p > 0.5).sum()):5d}/{len(p)} {np.log(p).sum():15.2f} {np.log(p).mean():15.3f}")
+        print(
+            f"{model:12s} {int((p > 0.5).sum()):5d}/{len(p)} {np.log(p).sum():15.2f} {np.log(p).mean():15.3f}"
+        )
 
     print("\nLeave-one-match-out cross-validation of the group-stage results (PSIS-LOO)")
     loo = {m: pd.read_csv(RESULTS / f"loo_{m}{SUFFIX}.csv") for m in ("coupled", "independent")}
     for m, d in loo.items():
         dec = d[~d.draw]
-        print(f"{m:12s} elpd {d.elpd.sum():9.1f}   decisive matches ({len(dec)}): called correctly "
-              f"{(dec.p_win > 0.5).mean():.1%}, mean log P(winner | decided) {np.log(dec.p_win).mean():.3f}"
-              f"   Pareto k > 0.7: {(d.pareto_k > 0.7).sum()}")
+        print(
+            f"{m:12s} elpd {d.elpd.sum():9.1f}   decisive matches ({len(dec)}): called correctly "
+            f"{(dec.p_win > 0.5).mean():.1%}, mean log P(winner | decided) {np.log(dec.p_win).mean():.3f}"
+            f"   Pareto k > 0.7: {(d.pareto_k > 0.7).sum()}"
+        )
     diff = loo["coupled"].elpd - loo["independent"].elpd
     for label, d in (("all matches", diff), ("decisive only", diff[~loo["coupled"].draw])):
         se = np.sqrt(len(d)) * d.std()
-        print(f"coupled - independent, {label:13s}: {d.sum():+6.1f} (se {se:.1f}, z {d.sum() / se:+.2f}) over {len(d)} matches")
+        print(
+            f"coupled - independent, {label:13s}: {d.sum():+6.1f} (se {se:.1f}, z {d.sum() / se:+.2f}) over {len(d)} matches"
+        )

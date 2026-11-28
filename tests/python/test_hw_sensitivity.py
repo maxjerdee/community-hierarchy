@@ -3,6 +3,7 @@ Test that H_W actually varies when the partition changes on a weighted graph.
 Checks the Mathematica fixture directly (multigraph case: M_01=3, H_W=4.8926),
 then verifies that H_W changes when a node is moved between groups.
 """
+
 import math
 import community_hierarchy.MCMC_core as native
 
@@ -15,9 +16,12 @@ def make_mcmc_from_fixture(partition, w01, w02, w12):
     """
     n = 3
     group_adj = [{} for _ in range(n)]
-    group_adj[0][1] = w01; group_adj[1][0] = w01
-    group_adj[0][2] = w02; group_adj[2][0] = w02
-    group_adj[1][2] = w12; group_adj[2][1] = w12
+    group_adj[0][1] = w01
+    group_adj[1][0] = w01
+    group_adj[0][2] = w02
+    group_adj[2][0] = w02
+    group_adj[1][2] = w12
+    group_adj[2][1] = w12
 
     mcmc = native.MCMC(
         wins=[{} for _ in range(n)],
@@ -61,8 +65,9 @@ def test_HW_fixture_two_layer_mode():
     cpp_HW = mcmc.H_W
 
     # Binary Peixoto (M_01=2, group_adj provides binary edge count)
-    K = 3; w = w_total
-    expected_binary = (K-1)*math.log(w) - math.lgamma(K) + math.log(w02+w12)
+    K = 3
+    w = w_total
+    expected_binary = (K - 1) * math.log(w) - math.lgamma(K) + math.log(w02 + w12)
     # Multigraph Peixoto (M_01=3, as in Mathematica fixture)
     expected_fixture = 4.8926
 
@@ -76,7 +81,9 @@ def test_HW_fixture_two_layer_mode():
     elif abs(cpp_HW - expected_fixture) < 0.01:
         print("→ C++ matches MATHEMATICA FIXTURE (M_01=3)")
     else:
-        print(f"→ C++ matches NEITHER (diff from binary: {cpp_HW-expected_binary:.4f}, diff from fixture: {cpp_HW-expected_fixture:.4f})")
+        print(
+            f"→ C++ matches NEITHER (diff from binary: {cpp_HW - expected_binary:.4f}, diff from fixture: {cpp_HW - expected_fixture:.4f})"
+        )
 
 
 def test_HW_changes_with_partition():
@@ -92,9 +99,9 @@ def test_HW_changes_with_partition():
     # Analytical Peixoto for [0,1,1]: group 0 = {0}, group 1 = {1,2}
     # μ_00=0, μ_01 = w01+w02, μ_11 = w12; M_00=0, M_01=2 (binary), M_11=2
     # [0,0,1]: M_00=1 (0 contrib), M_01=2 → log(w02+w12), M_11=0
-    peix_a = math.log(w02+w12)
+    peix_a = math.log(w02 + w12)
     # [0,1,1]: M_00=0, M_01=2 → log(w01+w02), M_11=1 (0 contrib)
-    peix_b = math.log(w01+w02)
+    peix_b = math.log(w01 + w02)
 
     print(f"\nPartition [0,0,1]: C++ H_W = {HW_a:.4f}, Peixoto = {peix_a:.4f}")
     print(f"Partition [0,1,1]: C++ H_W = {HW_b:.4f}, Peixoto = {peix_b:.4f}")
@@ -102,7 +109,8 @@ def test_HW_changes_with_partition():
     print(f"Peixoto ΔH_W = {peix_b - peix_a:.4f}")
 
     assert abs(HW_a - HW_b) > 0.01, (
-        f"H_W should change with partition! Got H_W_a={HW_a:.4f}, H_W_b={HW_b:.4f}")
+        f"H_W should change with partition! Got H_W_a={HW_a:.4f}, H_W_b={HW_b:.4f}"
+    )
 
 
 def test_HW_matches_peixoto_formula():
@@ -121,4 +129,5 @@ def test_HW_matches_peixoto_formula():
     expected = HW_partial + H_mu
     assert abs(mcmc.H_W - expected) < 1e-4, (
         f"H_W={mcmc.H_W:.6f} but expected full formula={expected:.6f} "
-        f"(H(W|A,μ,b)={HW_partial:.4f}, H(μ)={H_mu:.4f})")
+        f"(H(W|A,μ,b)={HW_partial:.4f}, H(μ)={H_mu:.4f})"
+    )

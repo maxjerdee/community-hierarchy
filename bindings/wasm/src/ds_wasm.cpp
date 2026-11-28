@@ -87,30 +87,30 @@ void double_array(std::ostringstream& s, const std::vector<double>& v) {
 
 SampleState capture_sample(const MCMC& c) {
     SampleState ss;
-    ss.chain_id          = 0;
-    ss.beta              = 1.0;
-    ss.partition         = c.partition;
-    ss.scores            = c.scores;
-    ss.num_groups        = c.num_groups;
-    ss.density_in        = c.density_in;
-    ss.density_out       = c.density_out;
-    ss.variation_in      = c.variation_in;
-    ss.variation_out     = c.variation_out;
+    ss.chain_id = 0;
+    ss.beta = 1.0;
+    ss.partition = c.partition;
+    ss.scores = c.scores;
+    ss.num_groups = c.num_groups;
+    ss.density_in = c.density_in;
+    ss.density_out = c.density_out;
+    ss.variation_in = c.variation_in;
+    ss.variation_out = c.variation_out;
     ss.degree_correction = c.degree_correction;
-    ss.individual_depth  = c.individual_depth;
-    ss.group_depth       = c.group_depth;
-    ss.ties_parameter    = c.ties_parameter;
-    ss.H_A_b             = c.H_A_b;
-    ss.H_b               = c.H_b;
-    ss.H_M               = c.H_M;
-    ss.H_k               = c.H_k;
-    ss.H_A_G_k_M_b       = c.H_A_G_k_M_b;
-    ss.H_A_G_b           = c.H_A_G_b;
-    ss.H_Adir_G_A_s_nu   = c.H_Adir_G_A_s_nu;
-    ss.H_s_G_b_depths    = c.H_s_G_b_depths;
-    ss.two_layer_mode    = c.two_layer_mode;
-    ss.weighted_SBM      = c.weighted_SBM;
-    ss.H_W               = c.H_W;
+    ss.individual_depth = c.individual_depth;
+    ss.group_depth = c.group_depth;
+    ss.ties_parameter = c.ties_parameter;
+    ss.H_A_b = c.H_A_b;
+    ss.H_b = c.H_b;
+    ss.H_M = c.H_M;
+    ss.H_k = c.H_k;
+    ss.H_A_G_k_M_b = c.H_A_G_k_M_b;
+    ss.H_A_G_b = c.H_A_G_b;
+    ss.H_Adir_G_A_s_nu = c.H_Adir_G_A_s_nu;
+    ss.H_s_G_b_depths = c.H_s_G_b_depths;
+    ss.two_layer_mode = c.two_layer_mode;
+    ss.weighted_SBM = c.weighted_SBM;
+    ss.H_W = c.H_W;
     return ss;
 }
 
@@ -135,10 +135,9 @@ std::string current_json(const MCMC& c) {
 
 std::string progress_json(const DsSession& sess) {
     std::ostringstream s;
-    s << "{\"burn_done\":" << sess.burn_done
-      << ",\"burn_total\":" << sess.burn_total
-      << ",\"samples_done\":" << sess.samples_done
-      << ",\"samples_total\":" << sess.samples_total << '}';
+    s << "{\"burn_done\":" << sess.burn_done << ",\"burn_total\":" << sess.burn_total
+      << ",\"samples_done\":" << sess.samples_done << ",\"samples_total\":" << sess.samples_total
+      << '}';
     return s.str();
 }
 
@@ -146,10 +145,8 @@ std::string result_json(const FitResult& r, bool cancelled) {
     std::ostringstream s;
     // Compute score_means once; used both for output and to sort group labels.
     auto smeans = r.score_means();
-    s << "{\"num_nodes\":" << r.num_nodes()
-      << ",\"cancelled\":" << (cancelled ? "true" : "false")
-      << ",\"num_samples\":" << r.num_samples()
-      << ",\"mdl_value\":" << num(r.mdl_value())
+    s << "{\"num_nodes\":" << r.num_nodes() << ",\"cancelled\":" << (cancelled ? "true" : "false")
+      << ",\"num_samples\":" << r.num_samples() << ",\"mdl_value\":" << num(r.mdl_value())
       << ",\"mdl_partition\":";
     int_array(s, FitResult::sort_groups_by_score(r.mdl_partition(), smeans));
     s << ",\"consensus_partition\":";
@@ -162,8 +159,7 @@ std::string result_json(const FitResult& r, bool cancelled) {
     for (std::size_t i = 0; i < r.samples().size(); ++i) {
         const SampleState& x = r.samples()[i];
         double dl = description_length(x);
-        s << (i ? "," : "") << "{\"chain\":" << x.chain_id
-          << ",\"num_groups\":" << x.num_groups
+        s << (i ? "," : "") << "{\"chain\":" << x.chain_id << ",\"num_groups\":" << x.num_groups
           << ",\"description_length\":" << num(dl)
           << ",\"H_Adir_G_A_s_nu\":" << num(x.H_Adir_G_A_s_nu)
           << ",\"H_s_G_b_depths\":" << num(x.H_s_G_b_depths)
@@ -180,7 +176,9 @@ std::string result_json(const FitResult& r, bool cancelled) {
 
 }  // namespace
 
-DS_EXPORT const char* ds_last_error() { return last_error.c_str(); }
+DS_EXPORT const char* ds_last_error() {
+    return last_error.c_str();
+}
 
 // Returns a handle > 0, or 0 on error (see ds_last_error).
 // Node ids are 0-based, in [0, num_nodes); an edge wins_from[e] -> wins_to[e]
@@ -190,27 +188,19 @@ DS_EXPORT const char* ds_last_error() { return last_error.c_str(); }
 // must have length num_nodes, and the partition must use every label 0..K-1.
 // num_groups <= 0 or not fixed: K comes from the initial partition (the greedy
 // modularity start of initial_state.h when none is given).
-DS_EXPORT int ds_session_create(
-    int num_nodes,
-    const int* wins_from, const int* wins_to, const double* wins_weight, int num_wins,
-    const int* ties_from, const int* ties_to, const double* ties_weight, int num_ties,
-    int assortative,
-    int num_groups, int num_groups_fixed,
-    int merge_split_enabled,
-    int burn_sweeps, int samples, int sweeps_per_sample,
-    int seed,
-    const int* initial_partition, int initial_partition_length,
-    const double* initial_scores, int initial_scores_length,
-    int degree_correction_mode,
-    int weighted_sbm,
-    int independent_coupling,
-    double variation_in_fixed_value,
-    double variation_out_fixed_value)
-{
+DS_EXPORT int ds_session_create(int num_nodes, const int* wins_from, const int* wins_to,
+                                const double* wins_weight, int num_wins, const int* ties_from,
+                                const int* ties_to, const double* ties_weight, int num_ties,
+                                int assortative, int num_groups, int num_groups_fixed,
+                                int merge_split_enabled, int burn_sweeps, int samples,
+                                int sweeps_per_sample, int seed, const int* initial_partition,
+                                int initial_partition_length, const double* initial_scores,
+                                int initial_scores_length, int degree_correction_mode,
+                                int weighted_sbm, int independent_coupling,
+                                double variation_in_fixed_value, double variation_out_fixed_value) {
     last_error.clear();
     try {
-        if (num_nodes < 1)
-            throw std::invalid_argument("num_nodes must be at least 1");
+        if (num_nodes < 1) throw std::invalid_argument("num_nodes must be at least 1");
         auto check_edges = [&](const char* name, const int* from, const int* to,
                                const double* weight, int count) {
             if (count < 0) throw std::invalid_argument(std::string(name) + ": negative edge count");
@@ -221,15 +211,15 @@ DS_EXPORT int ds_session_create(
                     throw std::invalid_argument(
                         std::string(name) + " edge " + std::to_string(e) + " (" +
                         std::to_string(from[e]) + ", " + std::to_string(to[e]) +
-                        "): node ids must be in [0, num_nodes = " + std::to_string(num_nodes) + ")");
+                        "): node ids must be in [0, num_nodes = " + std::to_string(num_nodes) +
+                        ")");
                 if (from[e] == to[e])
-                    throw std::invalid_argument(
-                        std::string(name) + " edge " + std::to_string(e) +
-                        ": self-loop at node " + std::to_string(from[e]) + " (not supported)");
+                    throw std::invalid_argument(std::string(name) + " edge " + std::to_string(e) +
+                                                ": self-loop at node " + std::to_string(from[e]) +
+                                                " (not supported)");
                 if (weight && !(std::isfinite(weight[e]) && weight[e] > 0.0))
-                    throw std::invalid_argument(
-                        std::string(name) + " edge " + std::to_string(e) +
-                        ": weights must be finite and positive");
+                    throw std::invalid_argument(std::string(name) + " edge " + std::to_string(e) +
+                                                ": weights must be finite and positive");
             }
         };
         check_edges("wins", wins_from, wins_to, wins_weight, num_wins);
@@ -244,7 +234,8 @@ DS_EXPORT int ds_session_create(
             for (int i = 0; i < num_nodes; ++i) {
                 const int g = initial_partition[i];
                 if (g < 0 || g >= num_nodes)
-                    throw std::invalid_argument("initial_partition labels must be in [0, num_nodes)");
+                    throw std::invalid_argument(
+                        "initial_partition labels must be in [0, num_nodes)");
                 used[static_cast<std::size_t>(g)] = 1;
                 max_label = std::max(max_label, g);
             }
@@ -264,13 +255,11 @@ DS_EXPORT int ds_session_create(
                     throw std::invalid_argument("initial_scores must be finite");
 
         // Build adjacency maps
-        std::vector<std::unordered_map<int, double>> wins_adj(
-            static_cast<std::size_t>(num_nodes));
+        std::vector<std::unordered_map<int, double>> wins_adj(static_cast<std::size_t>(num_nodes));
         for (int e = 0; e < num_wins; ++e)
             wins_adj[wins_from[e]][wins_to[e]] += wins_weight ? wins_weight[e] : 1.0;
 
-        std::vector<std::unordered_map<int, double>> ties_adj(
-            static_cast<std::size_t>(num_nodes));
+        std::vector<std::unordered_map<int, double>> ties_adj(static_cast<std::size_t>(num_nodes));
         for (int e = 0; e < num_ties; ++e) {
             double w = ties_weight ? ties_weight[e] : 1.0;
             ties_adj[ties_from[e]][ties_to[e]] += w;
@@ -349,7 +338,8 @@ DS_EXPORT int ds_session_create(
         const bool vo_fixed = variation_out_fixed_value >= 0.0;
         if (vi_fixed) vi = variation_in_fixed_value;
         if (vo_fixed) vo = variation_out_fixed_value;
-        (void)next_uniform(init_rng);  // mirrors fit.cpp: degree_correction.value_or(next_uniform(...)) is eager
+        (void)next_uniform(
+            init_rng);  // mirrors fit.cpp: degree_correction.value_or(next_uniform(...)) is eager
         // degree_correction_mode: 0 = fixed at 0 (no DC), 1 = fixed at 0.5 (default)
         const double dc = (degree_correction_mode == 0) ? 0.0 : 0.5;
         double id = (id_init > 0.0) ? id_init : next_uniform(init_rng);
@@ -362,7 +352,7 @@ DS_EXPORT int ds_session_create(
         // Coupled mode (no explicit group_depth) consumes draw5 → gd, draw6 → tp.
         const bool gd_fixed = independent_coupling != 0;
         double gd = gd_fixed ? 0.0 : next_uniform(init_rng);
-        double tp = next_uniform(init_rng);   // drawn regardless, as fit.cpp's value_or does
+        double tp = next_uniform(init_rng);  // drawn regardless, as fit.cpp's value_or does
         // No neutral edges: ties are not an outcome the data could record, so the
         // model is plain Bradley-Terry with ties_parameter fixed at 0 -- what the
         // Python front end resolves an omitted hierarchy_model to (core.fit). It
@@ -375,30 +365,25 @@ DS_EXPORT int ds_session_create(
         const int handle = next_handle++;
         DsSession& sess = sessions()[handle];
         sess.mcmc = std::make_unique<MCMC>(
-            wins_adj, ties_adj, group_adj,
-            partition, /*partition_fixed=*/false,
-            scores,    /*scores_fixed=*/false,
-            ng,        /*num_groups_fixed=*/num_groups_fixed != 0,
-            /*assortative=*/assortative != 0,
-            vi, /*variation_in_fixed=*/vi_fixed,
-            vo, /*variation_out_fixed=*/vo_fixed,
-            dc, /*degree_correction_fixed=*/true,
-            id, /*individual_depth_fixed=*/false,
-            gd, /*group_depth_fixed=*/gd_fixed,
-            tp, /*ties_parameter_fixed=*/ties_fixed,
-            /*seed=*/-1,          // rng already seeded above
+            wins_adj, ties_adj, group_adj, partition, /*partition_fixed=*/false, scores,
+            /*scores_fixed=*/false, ng, /*num_groups_fixed=*/num_groups_fixed != 0,
+            /*assortative=*/assortative != 0, vi, /*variation_in_fixed=*/vi_fixed, vo,
+            /*variation_out_fixed=*/vo_fixed, dc, /*degree_correction_fixed=*/true, id,
+            /*individual_depth_fixed=*/false, gd, /*group_depth_fixed=*/gd_fixed, tp,
+            /*ties_parameter_fixed=*/ties_fixed,
+            /*seed=*/-1,  // rng already seeded above
             /*density_in_initial=*/-1.0,
             /*density_out_initial=*/-1.0,
             /*weighted_SBM=*/weighted_sbm != 0);
 
-        sess.mcmc->retune_collective_weight();   // from the initial partition
-        sess.mcmc->adapting     = burn_sweeps > 0;   // step sizes adapt in burn-in only, as in fit()
-        sess.phase              = Phase::BURN;
-        sess.burn_done          = 0;
-        sess.burn_total         = burn_sweeps;
-        sess.samples_done       = 0;
-        sess.samples_total      = samples;
-        sess.sweeps_per_sample  = sweeps_per_sample >= 0 ? sweeps_per_sample : 1;
+        sess.mcmc->retune_collective_weight();  // from the initial partition
+        sess.mcmc->adapting = burn_sweeps > 0;  // step sizes adapt in burn-in only, as in fit()
+        sess.phase = Phase::BURN;
+        sess.burn_done = 0;
+        sess.burn_total = burn_sweeps;
+        sess.samples_done = 0;
+        sess.samples_total = samples;
+        sess.sweeps_per_sample = sweeps_per_sample >= 0 ? sweeps_per_sample : 1;
         sess.merge_split_enabled = merge_split_enabled != 0;
         return handle;
     } catch (const std::exception& e) {
@@ -428,12 +413,11 @@ DS_EXPORT int ds_session_step(int handle, int max_sweeps) {
                     sess->mcmc->retune_collective_weight();
                 }
                 if (sess->burn_done >= sess->burn_total) {
-                    sess->mcmc->adapting = false;   // freeze the adapted steps, as fit() does
+                    sess->mcmc->adapting = false;  // freeze the adapted steps, as fit() does
                     sess->phase = Phase::SAMPLE;
                 }
             } else if (sess->phase == Phase::SAMPLE) {
-                sess->mcmc->MCMC_sweep(1.0, sess->sweeps_per_sample,
-                                       sess->merge_split_enabled);
+                sess->mcmc->MCMC_sweep(1.0, sess->sweeps_per_sample, sess->merge_split_enabled);
                 sess->samples_collected.push_back(capture_sample(*sess->mcmc));
                 sess->samples_done++;
                 if (sess->samples_done >= sess->samples_total) {
@@ -468,7 +452,8 @@ DS_EXPORT const char* ds_session_current(int handle) {
     try {
         if (sess->phase == Phase::BURN && sess->burn_done == 0) {
             // Nothing recorded yet: return empty arrays
-            sess->text = "{\"partition\":[],\"scores\":[],\"num_groups\":0,\"description_length\":null}";
+            sess->text =
+                "{\"partition\":[],\"scores\":[],\"num_groups\":0,\"description_length\":null}";
         } else {
             sess->text = current_json(*sess->mcmc);
         }
@@ -488,13 +473,17 @@ DS_EXPORT const char* ds_session_best(int handle) {
     if (!sess) return nullptr;
     try {
         if (sess->samples_collected.empty()) {
-            sess->text = "{\"partition\":[],\"scores\":[],\"num_groups\":0,\"description_length\":null}";
+            sess->text =
+                "{\"partition\":[],\"scores\":[],\"num_groups\":0,\"description_length\":null}";
         } else {
             int best = 0;
             double best_dl = description_length(sess->samples_collected[0]);
             for (std::size_t i = 1; i < sess->samples_collected.size(); ++i) {
                 double dl = description_length(sess->samples_collected[i]);
-                if (dl < best_dl) { best_dl = dl; best = static_cast<int>(i); }
+                if (dl < best_dl) {
+                    best_dl = dl;
+                    best = static_cast<int>(i);
+                }
             }
             const SampleState& s = sess->samples_collected[best];
             std::ostringstream os;
@@ -502,8 +491,8 @@ DS_EXPORT const char* ds_session_best(int handle) {
             int_array(os, s.partition);
             os << ",\"scores\":";
             double_array(os, s.scores);
-            os << ",\"num_groups\":" << s.num_groups
-               << ",\"description_length\":" << num(best_dl) << '}';
+            os << ",\"num_groups\":" << s.num_groups << ",\"description_length\":" << num(best_dl)
+               << '}';
             sess->text = os.str();
         }
         return sess->text.c_str();
@@ -559,4 +548,6 @@ DS_EXPORT int ds_session_coincidence(int handle, double* out) {
     return -1;
 }
 
-DS_EXPORT void ds_session_free(int handle) { sessions().erase(handle); }
+DS_EXPORT void ds_session_free(int handle) {
+    sessions().erase(handle);
+}

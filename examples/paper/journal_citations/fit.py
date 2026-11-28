@@ -20,6 +20,7 @@ To regenerate the committed results/ and the paper figure, comment out QUICK and
 uncomment REPRODUCE (fixed seed; about 35 minutes on a 16-core desktop, the
 four chains running in parallel).
 """
+
 from pathlib import Path
 
 import networkx as nx
@@ -29,9 +30,16 @@ import community_hierarchy as ch
 HERE = Path(__file__).parent
 
 # Quick check (about a minute): 4 temperatures.
-SUFFIX = "_quick"                  # writes results/*_quick.csv
-SETTINGS = dict(num_chains=4, num_samples=200, sweeps_per_sample=10,
-                num_warmup=50, num_tempering_chains=4, seed=1, timeout=180)
+SUFFIX = "_quick"  # writes results/*_quick.csv
+SETTINGS = dict(
+    num_chains=4,
+    num_samples=200,
+    sweeps_per_sample=10,
+    num_warmup=50,
+    num_tempering_chains=4,
+    seed=1,
+    timeout=180,
+)
 
 # Figure reproduction: the run behind results/ and the paper figure.
 # SUFFIX = ""                     # writes results/*.csv (committed)
@@ -48,7 +56,7 @@ G = nx.read_gml(HERE / "data" / "journal_citations.gml", label="label")
 result = ch.fit(
     ch.Config(groups_model="traditional_SBM", weighted_SBM=True),
     G,
-    source_high_rank=False,     # an edge u -> v is a citation of v by u: v wins
+    source_high_rank=False,  # an edge u -> v is a citation of v by u: v wins
     **SETTINGS,
 )
 scores = result.node_properties_df()

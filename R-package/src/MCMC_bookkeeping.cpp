@@ -11,7 +11,6 @@
 #include <unordered_map>
 #include <vector>
 
-
 /**
  * check_state_bookkeeping: Validate and recompute all bookkeeping variables
  * 
@@ -38,16 +37,16 @@
  *                     false, repair silently
  */
 void MCMC::check_state_bookkeeping(bool throw_error) {
-
     // === Validate num_groups ===
     int num_groups_actual = *std::max_element(partition.begin(), partition.end()) + 1;
-    num_groups = value_check(num_groups_actual, num_groups, NUMERICAL_CHECK_EPSILON, throw_error, "num_groups");
+    num_groups = value_check(num_groups_actual, num_groups, NUMERICAL_CHECK_EPSILON, throw_error,
+                             "num_groups");
 
     // === Recompute node_counts, group_members, node_indices_in_groups from partition ===
     std::vector<int> node_counts_actual(num_groups, 0);
     std::vector<std::vector<int>> group_members_actual(num_groups);
     std::vector<std::unordered_map<int, size_t>> node_indices_in_groups_actual(num_groups);
-    
+
     // Populate from partition
     for (int i = 0; i < n; i++) {
         int group = partition[i];
@@ -56,31 +55,43 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
         // Store index position for O(1) removal later
         node_indices_in_groups_actual[group][i] = group_members_actual[group].size() - 1;
     }
-    
+
     // === Validate or update node_counts ===
     for (std::size_t r = 0; r < static_cast<std::size_t>(num_groups); r++) {
         if (r < node_counts.size()) {
             if (node_counts_actual[r] != node_counts[r] && throw_error) {
-                throw std::runtime_error("node_counts[" + std::to_string(r) + "] mismatch: cached=" + std::to_string(node_counts[r]) + ", actual=" + std::to_string(node_counts_actual[r]));
+                throw std::runtime_error("node_counts[" + std::to_string(r) +
+                                         "] mismatch: cached=" + std::to_string(node_counts[r]) +
+                                         ", actual=" + std::to_string(node_counts_actual[r]));
             }
             node_counts[r] = node_counts_actual[r];
         } else {
             if (throw_error) {
-                throw std::runtime_error("node_counts is too short: size=" + std::to_string(node_counts.size()) + ", needed index " + std::to_string(r));
+                throw std::runtime_error(
+                    "node_counts is too short: size=" + std::to_string(node_counts.size()) +
+                    ", needed index " + std::to_string(r));
             }
             node_counts.push_back(node_counts_actual[r]);
         }
-        
+
         // === Validate or update group_members ===
         if (r < group_members_actual.size()) {
             for (int i_actual : group_members_actual[r]) {
-                if (throw_error && std::find(group_members[r].begin(), group_members[r].end(), i_actual) == group_members[r].end()) {
-                    throw std::runtime_error("node " + std::to_string(i_actual) + " from actual group " + std::to_string(r) + " not found in cached group_members[" + std::to_string(r) + "]");
+                if (throw_error && std::find(group_members[r].begin(), group_members[r].end(),
+                                             i_actual) == group_members[r].end()) {
+                    throw std::runtime_error("node " + std::to_string(i_actual) +
+                                             " from actual group " + std::to_string(r) +
+                                             " not found in cached group_members[" +
+                                             std::to_string(r) + "]");
                 }
             }
             for (int i : group_members[r]) {
-                if (throw_error && std::find(group_members_actual[r].begin(), group_members_actual[r].end(), i) == group_members_actual[r].end()) {
-                    throw std::runtime_error("node " + std::to_string(i) + " from cached group " + std::to_string(r) + " not found in actual group_members[" + std::to_string(r) + "]");
+                if (throw_error &&
+                    std::find(group_members_actual[r].begin(), group_members_actual[r].end(), i) ==
+                        group_members_actual[r].end()) {
+                    throw std::runtime_error(
+                        "node " + std::to_string(i) + " from cached group " + std::to_string(r) +
+                        " not found in actual group_members[" + std::to_string(r) + "]");
                 }
             }
             // Update cached bookkeeping with actual values
@@ -88,7 +99,9 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
             node_indices_in_groups[r] = node_indices_in_groups_actual[r];
         } else {
             if (throw_error) {
-                throw std::runtime_error("group_members is too short: size=" + std::to_string(group_members.size()) + ", needed index " + std::to_string(r));
+                throw std::runtime_error(
+                    "group_members is too short: size=" + std::to_string(group_members.size()) +
+                    ", needed index " + std::to_string(r));
             }
             group_members.push_back(group_members_actual[r]);
             node_indices_in_groups.push_back(node_indices_in_groups_actual[r]);
@@ -101,7 +114,8 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     // weighted_SBM additionally fills weight_counts with real-valued weight sums.
     std::vector<std::vector<int>> edge_counts_actual(num_groups, std::vector<int>(num_groups, 0));
     std::vector<int> edge_counts_sum_actual(num_groups, 0);
-    std::vector<std::vector<double>> weight_counts_actual(num_groups, std::vector<double>(num_groups, 0.0));
+    std::vector<std::vector<double>> weight_counts_actual(num_groups,
+                                                          std::vector<double>(num_groups, 0.0));
     std::vector<double> weight_counts_sum_actual(num_groups, 0.0);
     for (int i = 0; i < n; i++) {
         int group_i = partition[i];
@@ -127,27 +141,39 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     for (std::size_t r = 0; r < static_cast<std::size_t>(num_groups); r++) {
         for (std::size_t s = 0; s < static_cast<std::size_t>(num_groups); s++) {
             if (r < edge_counts.size() && s < edge_counts[r].size()) {
-                edge_counts[r][s] = value_check(edge_counts_actual[r][s], edge_counts[r][s], NUMERICAL_CHECK_EPSILON, throw_error, "edge_counts[" + std::to_string(r) + "][" + std::to_string(s) + "]");
+                edge_counts[r][s] = value_check(
+                    edge_counts_actual[r][s], edge_counts[r][s], NUMERICAL_CHECK_EPSILON,
+                    throw_error,
+                    "edge_counts[" + std::to_string(r) + "][" + std::to_string(s) + "]");
             } else {
                 if (throw_error) {
-                    throw std::runtime_error("edge_counts[" + std::to_string(r) + "] too short for column " + std::to_string(s));
+                    throw std::runtime_error("edge_counts[" + std::to_string(r) +
+                                             "] too short for column " + std::to_string(s));
                 }
                 edge_counts[r].push_back(edge_counts_actual[r][s]);
             }
         }
         if (r < edge_counts_sum.size()) {
-            edge_counts_sum[r] = value_check(edge_counts_sum_actual[r], edge_counts_sum[r], NUMERICAL_CHECK_EPSILON, throw_error, "edge_counts_sum[" + std::to_string(r) + "]");
+            edge_counts_sum[r] =
+                value_check(edge_counts_sum_actual[r], edge_counts_sum[r], NUMERICAL_CHECK_EPSILON,
+                            throw_error, "edge_counts_sum[" + std::to_string(r) + "]");
         } else {
             if (throw_error) {
-                throw std::runtime_error("edge_counts_sum is too short: size=" + std::to_string(edge_counts_sum.size()) + ", needed index " + std::to_string(r));
+                throw std::runtime_error(
+                    "edge_counts_sum is too short: size=" + std::to_string(edge_counts_sum.size()) +
+                    ", needed index " + std::to_string(r));
             }
             edge_counts_sum.push_back(edge_counts_sum_actual[r]);
         }
     }
     // === Validate edge_counts dimensions ===
-    if (edge_counts.size() != static_cast<std::size_t>(num_groups) || edge_counts[0].size() != static_cast<std::size_t>(num_groups)) {
+    if (edge_counts.size() != static_cast<std::size_t>(num_groups) ||
+        edge_counts[0].size() != static_cast<std::size_t>(num_groups)) {
         if (throw_error) {
-            throw std::runtime_error("edge_counts dimensions " + std::to_string(edge_counts.size()) + "x" + std::to_string(edge_counts.empty() ? 0 : edge_counts[0].size()) + " do not match num_groups=" + std::to_string(num_groups));
+            throw std::runtime_error(
+                "edge_counts dimensions " + std::to_string(edge_counts.size()) + "x" +
+                std::to_string(edge_counts.empty() ? 0 : edge_counts[0].size()) +
+                " do not match num_groups=" + std::to_string(num_groups));
         } else {
             // Repair: resize to match num_groups
             edge_counts.resize(num_groups);
@@ -173,18 +199,22 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
             const double wtol = NUMERICAL_CHECK_EPSILON + NUMERICAL_CHECK_REL_TOL * 2.0 * w_total;
             if (weight_counts.size() != static_cast<std::size_t>(num_groups) ||
                 weight_counts_sum.size() != static_cast<std::size_t>(num_groups))
-                throw std::runtime_error("weight_counts dimensions do not match num_groups=" + std::to_string(num_groups));
+                throw std::runtime_error("weight_counts dimensions do not match num_groups=" +
+                                         std::to_string(num_groups));
             for (int r = 0; r < num_groups; r++) {
                 if (weight_counts[r].size() != static_cast<std::size_t>(num_groups))
-                    throw std::runtime_error("weight_counts[" + std::to_string(r) + "] has the wrong length");
+                    throw std::runtime_error("weight_counts[" + std::to_string(r) +
+                                             "] has the wrong length");
                 for (int s = 0; s < num_groups; s++)
-                    value_check(weight_counts_actual[r][s], weight_counts[r][s], wtol, true,
-                                "weight_counts[" + std::to_string(r) + "][" + std::to_string(s) + "]");
+                    value_check(
+                        weight_counts_actual[r][s], weight_counts[r][s], wtol, true,
+                        "weight_counts[" + std::to_string(r) + "][" + std::to_string(s) + "]");
                 value_check(weight_counts_sum_actual[r], weight_counts_sum[r], wtol, true,
                             "weight_counts_sum[" + std::to_string(r) + "]");
             }
             if (nonzero_pairs != nonzero_pairs_actual)
-                throw std::runtime_error("Bookkeeping mismatch for nonzero_pairs: cached=" + std::to_string(nonzero_pairs) +
+                throw std::runtime_error("Bookkeeping mismatch for nonzero_pairs: cached=" +
+                                         std::to_string(nonzero_pairs) +
                                          ", actual=" + std::to_string(nonzero_pairs_actual));
         }
         weight_counts = weight_counts_actual;
@@ -196,45 +226,58 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     // On first call, density_in < 0 indicates uninitialized state
     if (density_in < 0.0) {
         // Initialize to overall graph density
-        density_in = static_cast<double>(m) / (static_cast<double>(n) * static_cast<double>(n) / 2.0);
+        density_in =
+            static_cast<double>(m) / (static_cast<double>(n) * static_cast<double>(n) / 2.0);
         density_out = density_in;
     }
-    
+
     // If not assortative, check density_out = density_in
     if (!assortative) {
-        if(num_groups > 1){
-            density_out = value_check(density_in, density_out, NUMERICAL_CHECK_EPSILON, throw_error, "density_out");
+        if (num_groups > 1) {
+            density_out = value_check(density_in, density_out, NUMERICAL_CHECK_EPSILON, throw_error,
+                                      "density_out");
         }
     }
-
 
     // === Validate concentration parameters ===
     // Convert variation parameters to concentration (for negative binomial)
     double concentration_in_actual = variation_to_concentration(variation_in);
     double concentration_out_actual = variation_to_concentration(variation_out);
     double degree_correction_concentration_actual = variation_to_concentration(degree_correction);
-    
-    concentration_in = value_check(concentration_in_actual, concentration_in, NUMERICAL_CHECK_EPSILON, throw_error, "concentration_in");
-    concentration_out = value_check(concentration_out_actual, concentration_out, NUMERICAL_CHECK_EPSILON, throw_error, "concentration_out");
-    degree_correction_concentration = value_check(degree_correction_concentration_actual, degree_correction_concentration, NUMERICAL_CHECK_EPSILON, throw_error, "degree_correction_concentration");
-    
+
+    concentration_in = value_check(concentration_in_actual, concentration_in,
+                                   NUMERICAL_CHECK_EPSILON, throw_error, "concentration_in");
+    concentration_out = value_check(concentration_out_actual, concentration_out,
+                                    NUMERICAL_CHECK_EPSILON, throw_error, "concentration_out");
+    degree_correction_concentration =
+        value_check(degree_correction_concentration_actual, degree_correction_concentration,
+                    NUMERICAL_CHECK_EPSILON, throw_error, "degree_correction_concentration");
+
     // === Validate group_score_sums ===
     std::vector<double> group_score_sums_actual(num_groups, 0.0);
     for (int i = 0; i < n; i++) group_score_sums_actual[partition[i]] += scores[i];
     for (std::size_t r = 0; r < static_cast<std::size_t>(num_groups); r++) {
         if (r < group_score_sums.size()) {
-            if(throw_error && (std::isnan(group_score_sums_actual[r]) ||  std::isnan(group_score_sums[r]) || std::abs(group_score_sums_actual[r] - group_score_sums[r]) > NUMERICAL_CHECK_EPSILON * std::max(1.0, std::abs(group_score_sums_actual[r])))){
-                throw std::runtime_error("group_score_sums[" + std::to_string(r) + "] mismatch: cached=" + std::to_string(group_score_sums[r]) + ", actual=" + std::to_string(group_score_sums_actual[r]));
+            if (throw_error &&
+                (std::isnan(group_score_sums_actual[r]) || std::isnan(group_score_sums[r]) ||
+                 std::abs(group_score_sums_actual[r] - group_score_sums[r]) >
+                     NUMERICAL_CHECK_EPSILON *
+                         std::max(1.0, std::abs(group_score_sums_actual[r])))) {
+                throw std::runtime_error(
+                    "group_score_sums[" + std::to_string(r) +
+                    "] mismatch: cached=" + std::to_string(group_score_sums[r]) +
+                    ", actual=" + std::to_string(group_score_sums_actual[r]));
             }
             group_score_sums[r] = group_score_sums_actual[r];
         } else {
             if (throw_error) {
-                throw std::runtime_error("group_score_sums is too short: size=" + std::to_string(group_score_sums.size()) + ", needed index " + std::to_string(r));
+                throw std::runtime_error("group_score_sums is too short: size=" +
+                                         std::to_string(group_score_sums.size()) +
+                                         ", needed index " + std::to_string(r));
             }
             group_score_sums.push_back(group_score_sums_actual[r]);
         }
     }
-
 
     // === Compute H_b: Partition entropy ===
     // H_b = -log P(b) with Peixoto's nonparametric partition prior (Peixoto 2017,
@@ -245,7 +288,7 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     //   log(n!) - sum_r log(n_r!)      P(b | n_r): uniform over labellings with those sizes
     double H_b_actual = std::log(n);
     H_b_actual += log_binom(n - 1, num_groups - 1);  // H(nb|q): Number of partitions
-    H_b_actual += log_factorial(n);  // H(b|nb): Group assignment entropy
+    H_b_actual += log_factorial(n);                  // H(b|nb): Group assignment entropy
     for (int r = 0; r < num_groups; r++) {
         H_b_actual -= log_factorial(node_counts[r]);  // Normalize by group size permutations
     }
@@ -253,7 +296,8 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     // log-factorial-sized terms, up to ~log((2m)!) + log(n!), and the round-off
     // scales with those terms, not with the total (H_M can be ~10 while its terms
     // are ~1e5).  So the relative part is taken of that term scale.
-    const double sbm_tol = NUMERICAL_CHECK_EPSILON +
+    const double sbm_tol =
+        NUMERICAL_CHECK_EPSILON +
         NUMERICAL_CHECK_REL_TOL * (std::lgamma(2.0 * m + 1.0) + std::lgamma(n + 1.0));
     H_b = value_check(H_b_actual, H_b, sbm_tol, throw_error, "H_b");
 
@@ -290,17 +334,19 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     // === Compute hierarchy entropies ===
     // Entropy of the directed edges given the undirected edges and scores, Bradley-Terry
     double H_Adir_G_A_s_nu_actual = calculate_H_Adir_G_A_s_nu();
-    H_Adir_G_A_s_nu = value_check(H_Adir_G_A_s_nu_actual, H_Adir_G_A_s_nu, NUMERICAL_CHECK_EPSILON, throw_error, "H_Adir_G_A_s_nu");
+    H_Adir_G_A_s_nu = value_check(H_Adir_G_A_s_nu_actual, H_Adir_G_A_s_nu, NUMERICAL_CHECK_EPSILON,
+                                  throw_error, "H_Adir_G_A_s_nu");
     // Entropy of the scores given the partition and depth parameters
     double H_s_G_b_depths_actual = calculate_H_s_G_b_depths();
     // H_s is a difference of sums of s_hat^2-sized terms; far in the depth priors'
     // tails (e.g. sigma_G ~ 1e5 on an edgeless graph, s_hat^2 ~ 1e10) rounding
     // alone exceeds an absolute 1e-6, so scale the tolerance with those terms.
     double s_hat_sq = 0.0;
-    for (int i = 0; i < n; i++) s_hat_sq += scores[i] * scores[i] / (individual_depth * individual_depth);
+    for (int i = 0; i < n; i++)
+        s_hat_sq += scores[i] * scores[i] / (individual_depth * individual_depth);
     H_s_G_b_depths = value_check(H_s_G_b_depths_actual, H_s_G_b_depths,
-                                 std::max(NUMERICAL_CHECK_EPSILON, 1e-12 * s_hat_sq), throw_error, "H_s_G_b_depths");
-    
+                                 std::max(NUMERICAL_CHECK_EPSILON, 1e-12 * s_hat_sq), throw_error,
+                                 "H_s_G_b_depths");
 }
 
 /**
@@ -323,29 +369,30 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
 double MCMC::calculate_H_k() {
     double H_k_actual = 0.0;
 
-    if(degree_correction_concentration < MAX_CONCENTRATION){
+    if (degree_correction_concentration < MAX_CONCENTRATION) {
         // For each group: multinomial coefficient for degree distribution
-        for(int r = 0; r < num_groups; r++) {
-            H_k_actual += log_binom(edge_counts_sum[r] + node_counts[r]*degree_correction_concentration - 1, 
-                                node_counts[r]*degree_correction_concentration - 1);
+        for (int r = 0; r < num_groups; r++) {
+            H_k_actual +=
+                log_binom(edge_counts_sum[r] + node_counts[r] * degree_correction_concentration - 1,
+                          node_counts[r] * degree_correction_concentration - 1);
         }
-        
+
         // Subtract normalization for each node's degree
-        for(int i = 0; i < n; i++) {
-            H_k_actual -= log_binom(node_degrees[i] + degree_correction_concentration - 1, 
-                                degree_correction_concentration - 1);
-        } 
-    }else{
-        // For very large concentration, approximate with multinomial
-        for(int r = 0; r < num_groups; r++) {
-            H_k_actual -= log_factorial(edge_counts_sum[r]);
-            H_k_actual += edge_counts_sum[r]*std::log(node_counts[r]);
+        for (int i = 0; i < n; i++) {
+            H_k_actual -= log_binom(node_degrees[i] + degree_correction_concentration - 1,
+                                    degree_correction_concentration - 1);
         }
-        for(int i = 0; i < n; i++) {
+    } else {
+        // For very large concentration, approximate with multinomial
+        for (int r = 0; r < num_groups; r++) {
+            H_k_actual -= log_factorial(edge_counts_sum[r]);
+            H_k_actual += edge_counts_sum[r] * std::log(node_counts[r]);
+        }
+        for (int i = 0; i < n; i++) {
             H_k_actual += log_factorial(node_degrees[i]);
         }
     }
-    
+
     return H_k_actual;
 }
 
@@ -366,22 +413,21 @@ double MCMC::calculate_H_k() {
  * @return H_M entropy value
  */
 double MCMC::calculate_H_M() {
-    
-    double H_M_actual = 0.0; 
-    
+    double H_M_actual = 0.0;
+
     // Sum over unique group pairs (r <= s to avoid double counting)
-    for(int r = 0; r < num_groups; r++){
-        for(int s = r; s < num_groups; s++){
-            if(r == s){
+    for (int r = 0; r < num_groups; r++) {
+        for (int s = r; s < num_groups; s++) {
+            if (r == s) {
                 // Within-group edges (undirected, so divide by 2)
-                H_M_actual -= log_neg_binom(edge_counts[r][r]/2.0,
-                                           density_in*node_counts[r]*node_counts[r]/2.0,
-                                           concentration_in);
-            }else{
+                H_M_actual -= log_neg_binom(edge_counts[r][r] / 2.0,
+                                            density_in * node_counts[r] * node_counts[r] / 2.0,
+                                            concentration_in);
+            } else {
                 // Between-group edges
-                H_M_actual -= log_neg_binom(edge_counts[r][s],
-                                           density_out*node_counts[r]*node_counts[s],
-                                           concentration_out);
+                H_M_actual -=
+                    log_neg_binom(edge_counts[r][s], density_out * node_counts[r] * node_counts[s],
+                                  concentration_out);
             }
         }
     }
@@ -415,29 +461,29 @@ double MCMC::calculate_H_M() {
  */
 double MCMC::calculate_H_A_G_k_M_b() {
     double H_A_G_k_M_b_actual = 0.0;
-    
+
     // sum_{i<j} log A_ij!: multigraph mode only.
     if (!weighted_SBM && !two_layer_mode) {
-        for(int i = 0; i < n; i++){
-            for(const auto& edge : neighbors_com[i]){
+        for (int i = 0; i < n; i++) {
+            for (const auto& edge : neighbors_com[i]) {
                 const int j = edge.first;
                 const int A_ij = static_cast<int>(std::llround(edge.second));
                 if (i < j) H_A_G_k_M_b_actual += log_factorial(A_ij);
             }
         }
     }
-    for(int i = 0; i < n; i++){
+    for (int i = 0; i < n; i++) {
         // Normalize by degree factorial
         H_A_G_k_M_b_actual -= log_factorial(node_degrees[i]);
     }
-    
+
     // Subtract group-level edge count factorials (unique pairs only)
-    for(int r = 0; r < num_groups; r++){
-        for(int s = r; s < num_groups; s++){
-            if(r == s){
+    for (int r = 0; r < num_groups; r++) {
+        for (int s = r; s < num_groups; s++) {
+            if (r == s) {
                 // Within-group: double factorial for undirected edges
                 H_A_G_k_M_b_actual -= log_factorial2(edge_counts[r][r]);
-            }else{
+            } else {
                 // Between-group: regular factorial
                 H_A_G_k_M_b_actual -= log_factorial(edge_counts[r][s]);
             }
@@ -508,18 +554,21 @@ double MCMC::calculate_H_Adir_G_A_s_nu() {
     double H_Adir_G_A_s_nu_actual = 0.0;
     const double log_nu = std::log(ties_parameter);
     // Iterate over all undirected edges
-    for(int i = 0; i < n; i++){
-        for(const auto& edge : wins[i]){
+    for (int i = 0; i < n; i++) {
+        for (const auto& edge : wins[i]) {
             int j = edge.first;
             double Awins_ij = edge.second;
-            double log_p_win_ij = scores[i] - davidson_log_z(scores[i], scores[j], log_nu); // P(i -> j|i - j)
+            double log_p_win_ij =
+                scores[i] - davidson_log_z(scores[i], scores[j], log_nu);  // P(i -> j|i - j)
             H_Adir_G_A_s_nu_actual -= Awins_ij * log_p_win_ij;
         }
-        for(const auto& edge : ties[i]){
+        for (const auto& edge : ties[i]) {
             int j = edge.first;
             double Aties_ij = edge.second;
-            if(i < j){
-                double log_p_tie_ij = davidson_log_tie(scores[i], scores[j], log_nu) - davidson_log_z(scores[i], scores[j], log_nu); // P(i <-> j|i - j)
+            if (i < j) {
+                double log_p_tie_ij =
+                    davidson_log_tie(scores[i], scores[j], log_nu) -
+                    davidson_log_z(scores[i], scores[j], log_nu);  // P(i <-> j|i - j)
                 H_Adir_G_A_s_nu_actual -= Aties_ij * log_p_tie_ij;
             }
         }
@@ -555,4 +604,3 @@ double MCMC::score_prior_group_term(int r) const {
     const double S = group_score_sums[r];
     return -(0.5 * std::log(f2) + f2 * rho * S * S / (individual_depth * individual_depth));
 }
-   

@@ -8,11 +8,12 @@ import community_hierarchy as ch
 # International football, 2023-2026: one edge per competitive match, from the
 # winner to the loser (type="dominant"), or a draw (type="neutral").
 here = Path(__file__).resolve().parents[1]
-G = nx.read_gml(here / "paper" / "international_football" / "data" / "football_group_stage.gml",
-                label="label")
+G = nx.read_gml(
+    here / "paper" / "international_football" / "data" / "football_group_stage.gml", label="label"
+)
 
 result = ch.fit(
-    ch.Config(),          # draws are modelled because G has neutral edges
+    ch.Config(),  # draws are modelled because G has neutral edges
     G,
     num_chains=2,
     num_samples=300,

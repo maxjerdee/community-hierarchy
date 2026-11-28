@@ -3,12 +3,12 @@
 #include "helpers.h"
 
 #include <algorithm>
-#include <set>
-#include <cmath>
-#include <random>
-#include <string>
 #include <chrono>
+#include <cmath>
 #include <limits>
+#include <random>
+#include <set>
+#include <string>
 
 /**
  * propose_move: Select and execute one random MCMC proposal.
@@ -24,7 +24,6 @@
  * shift per group.
  */
 void MCMC::propose_move() {
-
     double p = uniform_random(rng);
     double cumulative_weight = 0.0;
     double total_weight = 0.0;
@@ -91,8 +90,8 @@ double MCMC::block_move_prob(int node, int g) const {
     double p = 0.0;
     for (int t = 0; t < num_groups; ++t)
         if (kt[static_cast<std::size_t>(t)] > 0.0)
-            p += kt[static_cast<std::size_t>(t)] / k
-                 * (proposal_block_edges(t, g) + c) / (proposal_block_degree(t) + c * num_groups);
+            p += kt[static_cast<std::size_t>(t)] / k * (proposal_block_edges(t, g) + c) /
+                 (proposal_block_degree(t) + c * num_groups);
     return p;
 }
 
@@ -115,7 +114,10 @@ int MCMC::sample_block_move(int node) {
     } else {
         int idx = next_int(rng, 0, static_cast<int>(k) - 1);
         for (const auto& e : nb) {
-            if (idx == 0) { t = partition[e.first]; break; }
+            if (idx == 0) {
+                t = partition[e.first];
+                break;
+            }
             --idx;
         }
     }
@@ -123,7 +125,10 @@ int MCMC::sample_block_move(int node) {
     const double tot = proposal_block_degree(t) + c * num_groups;
     const double u = uniform_random(rng) * tot;
     double cum = 0.0;
-    for (int g = 0; g < num_groups; ++g) { cum += proposal_block_edges(t, g) + c; if (u < cum) return g; }
+    for (int g = 0; g < num_groups; ++g) {
+        cum += proposal_block_edges(t, g) + c;
+        if (u < cum) return g;
+    }
     return num_groups - 1;
 }
 
@@ -137,16 +142,20 @@ double MCMC::partner_logprob(int r, int s) const {
 
 // Draw s ~ P(s | r, b): a uniform member i of r, then P_e(.|i,b) conditioned on s != r.
 int MCMC::sample_partner(int r) {
-    const int i = group_members[static_cast<std::size_t>(r)]
-                               [static_cast<std::size_t>(next_int(rng, 0, node_counts[static_cast<std::size_t>(r)] - 1))];
-    for (;;) { const int s = sample_block_move(i); if (s != r) return s; }
+    const int i = group_members[static_cast<std::size_t>(r)][static_cast<std::size_t>(
+        next_int(rng, 0, node_counts[static_cast<std::size_t>(r)] - 1))];
+    for (;;) {
+        const int s = sample_block_move(i);
+        if (s != r) return s;
+    }
 }
 
 // Probability of choosing the unordered pair {r, s} for a merge: r uniform, then
 // s ~ P(s|r,b), or the other way round.
 double MCMC::pair_logprob(int r, int s) const {
     const double a = partner_logprob(r, s), b = partner_logprob(s, r), mx = std::max(a, b);
-    return mx + std::log(std::exp(a - mx) + std::exp(b - mx)) - std::log(static_cast<double>(num_groups));
+    return mx + std::log(std::exp(a - mx) + std::exp(b - mx)) -
+           std::log(static_cast<double>(num_groups));
 }
 
 /**
@@ -177,7 +186,7 @@ void MCMC::propose_single_site_move() {
     int s;
     double log_fwd;
     if (to_new) {
-        if (singleton || num_groups_fixed) return;     // same partition / not allowed
+        if (singleton || num_groups_fixed) return;  // same partition / not allowed
         s = K;
         log_fwd = std::log(BLOCK_NEW_GROUP_PROB);
     } else {
@@ -190,20 +199,22 @@ void MCMC::propose_single_site_move() {
     if (singleton) ++vacate_proposals;
 
     const double H_b_old = H_b, H_A_G_b_old = H_A_G_b, H_s_old = H_s_G_b_depths;
-    flip_nodes({node}, s);                            // vacating r compacts the labels
+    flip_nodes({node}, s);  // vacating r compacts the labels
     double log_rev, label = 0.0;
     if (singleton) {
         log_rev = std::log(BLOCK_NEW_GROUP_PROB);
-        label = merge_label_factor(K);                // K -> K-1
+        label = merge_label_factor(K);  // K -> K-1
     } else {
         log_rev = std::log(1.0 - BLOCK_NEW_GROUP_PROB) + std::log(block_move_prob(node, r));
-        if (to_new) label = split_label_factor(K);    // K -> K+1
+        if (to_new) label = split_label_factor(K);  // K -> K+1
     }
-    const double delta_H = (H_b - H_b_old) + beta * (H_A_G_b - H_A_G_b_old) + (H_s_G_b_depths - H_s_old)
-                         + log_fwd - log_rev - label;
+    const double delta_H = (H_b - H_b_old) + beta * (H_A_G_b - H_A_G_b_old) +
+                           (H_s_G_b_depths - H_s_old) + log_fwd - log_rev - label;
     if (uniform_random(rng) >= std::exp(-delta_H)) {
-        if (singleton) flip_nodes({node}, num_groups); // recreate the singleton
-        else flip_nodes({node}, r);
+        if (singleton)
+            flip_nodes({node}, num_groups);  // recreate the singleton
+        else
+            flip_nodes({node}, r);
     } else {
         accepted_single_site_proposals++;
         if (to_new) ++accepted_new_group_proposals;
@@ -231,14 +242,14 @@ void MCMC::propose_parameter_move() {
     if (free_parameters.empty()) {
         return;  // No free parameters to update
     }
-    
+
     // Randomly select a free parameter
     // next_int, not uniform_int_distribution: portable across standard libraries (rng.h)
-    const auto& parameter = free_parameters[
-        static_cast<std::size_t>(next_int(rng, 0, static_cast<int>(free_parameters.size()) - 1))];
+    const auto& parameter = free_parameters[static_cast<std::size_t>(
+        next_int(rng, 0, static_cast<int>(free_parameters.size()) - 1))];
 
     double new_value = 0.0;
-    
+
     // Generate proposal based on parameter type
     if (parameter == "variation_in") {
         new_value = uniform_proposal(variation_in, step_variation_in);
@@ -252,7 +263,8 @@ void MCMC::propose_parameter_move() {
         new_value = exponential_proposal(density_out, 1.0, step_density_out);
     } else if (parameter == "individual_depth") {
         // scores_fixed: the centred move only (the others rescale the scores).
-        if (scores_fixed || uniform_random(rng) < INDIVIDUAL_DEPTH_CENTRED_PROB) {   // state-independent coin
+        if (scores_fixed ||
+            uniform_random(rng) < INDIVIDUAL_DEPTH_CENTRED_PROB) {  // state-independent coin
             propose_individual_depth_centred();
             return;
         }
@@ -260,7 +272,8 @@ void MCMC::propose_parameter_move() {
             propose_individual_depth_residual();
             return;
         }
-        new_value = half_cauchy_proposal(individual_depth, DEPTH_PRIOR_WIDTH, step_individual_depth);
+        new_value =
+            half_cauchy_proposal(individual_depth, DEPTH_PRIOR_WIDTH, step_individual_depth);
     } else if (parameter == "group_depth") {
         // State-independent coin first, so each of the two sigma_G kernels draws
         // from, and adapts, its own step size: the plain move touches only the
@@ -268,14 +281,17 @@ void MCMC::propose_parameter_move() {
         // which the data constrain.  scores_fixed: the plain move only (the
         // rescale move moves the group means, i.e. the scores).
         if (!scores_fixed && uniform_random(rng) < GROUP_DEPTH_RESCALE_PROB) {
-            const double v = half_cauchy_proposal(group_depth, DEPTH_PRIOR_WIDTH, step_group_depth_rescale);
+            const double v =
+                half_cauchy_proposal(group_depth, DEPTH_PRIOR_WIDTH, step_group_depth_rescale);
             propose_group_depth_rescale(v);
-            adapt_step(step_group_depth_rescale, adapt_t_group_depth_rescale, group_depth == v, ADAPT_MAX_STEP_CDF);
+            adapt_step(step_group_depth_rescale, adapt_t_group_depth_rescale, group_depth == v,
+                       ADAPT_MAX_STEP_CDF);
             return;
         }
         new_value = half_cauchy_proposal(group_depth, DEPTH_PRIOR_WIDTH, step_group_depth);
     } else if (parameter == "ties_parameter") {
-        new_value = half_cauchy_proposal(ties_parameter, DEPTH_PRIOR_WIDTH, step_ties);  // Must remain positive
+        new_value = half_cauchy_proposal(ties_parameter, DEPTH_PRIOR_WIDTH,
+                                         step_ties);  // Must remain positive
     } else {
         return;  // Unknown parameter
     }
@@ -285,21 +301,28 @@ void MCMC::propose_parameter_move() {
     change_parameter(parameter, new_value);
 
     if (parameter == "individual_depth")
-        adapt_step(step_individual_depth, adapt_t_individual_depth, individual_depth == new_value, ADAPT_MAX_STEP_CDF);
+        adapt_step(step_individual_depth, adapt_t_individual_depth, individual_depth == new_value,
+                   ADAPT_MAX_STEP_CDF);
     else if (parameter == "group_depth")
-        adapt_step(step_group_depth, adapt_t_group_depth, group_depth == new_value, ADAPT_MAX_STEP_CDF);
+        adapt_step(step_group_depth, adapt_t_group_depth, group_depth == new_value,
+                   ADAPT_MAX_STEP_CDF);
     else if (parameter == "ties_parameter")
         adapt_step(step_ties, adapt_t_ties, ties_parameter == new_value, ADAPT_MAX_STEP_CDF);
     else if (parameter == "density_in")
-        adapt_step(step_density_in, adapt_t_density_in, density_in == new_value, ADAPT_MAX_STEP_CDF);
+        adapt_step(step_density_in, adapt_t_density_in, density_in == new_value,
+                   ADAPT_MAX_STEP_CDF);
     else if (parameter == "density_out")
-        adapt_step(step_density_out, adapt_t_density_out, density_out == new_value, ADAPT_MAX_STEP_CDF);
+        adapt_step(step_density_out, adapt_t_density_out, density_out == new_value,
+                   ADAPT_MAX_STEP_CDF);
     else if (parameter == "variation_in")
-        adapt_step(step_variation_in, adapt_t_variation_in, variation_in == new_value, ADAPT_MAX_STEP_CDF);
+        adapt_step(step_variation_in, adapt_t_variation_in, variation_in == new_value,
+                   ADAPT_MAX_STEP_CDF);
     else if (parameter == "variation_out")
-        adapt_step(step_variation_out, adapt_t_variation_out, variation_out == new_value, ADAPT_MAX_STEP_CDF);
+        adapt_step(step_variation_out, adapt_t_variation_out, variation_out == new_value,
+                   ADAPT_MAX_STEP_CDF);
     else if (parameter == "degree_correction")
-        adapt_step(step_degree_correction, adapt_t_degree_correction, degree_correction == new_value, ADAPT_MAX_STEP_CDF);
+        adapt_step(step_degree_correction, adapt_t_degree_correction,
+                   degree_correction == new_value, ADAPT_MAX_STEP_CDF);
 }
 
 /**
@@ -319,19 +342,22 @@ void MCMC::propose_group_depth_rescale(double new_value) {
         const int r = partition[i];
         scores[i] += (lam - 1.0) * S_old[r] / node_counts[r];
     }
-    std::fill(group_score_sums.begin(), group_score_sums.end(), 0.0);   // exact, no drift
+    std::fill(group_score_sums.begin(), group_score_sums.end(), 0.0);  // exact, no drift
     for (int i = 0; i < n; i++) group_score_sums[partition[i]] += scores[i];
     group_depth = new_value;
     H_s_G_b_depths = calculate_H_s_G_b_depths();
     H_Adir_G_A_s_nu = calculate_H_Adir_G_A_s_nu();
     // Only the direction likelihood is tempered (MCMC_core.h).
-    const double log_acc = -((H_s_G_b_depths - H_s_old) + beta * (H_Adir_G_A_s_nu - H_A_old))
-                           + num_groups * std::log(lam);
+    const double log_acc = -((H_s_G_b_depths - H_s_old) + beta * (H_Adir_G_A_s_nu - H_A_old)) +
+                           num_groups * std::log(lam);
     if (std::log(uniform_random(rng)) < log_acc) {
         accepted_group_depth_proposals++;
     } else {
-        scores = sc_old; group_score_sums = S_old;
-        group_depth = gd_old; H_s_G_b_depths = H_s_old; H_Adir_G_A_s_nu = H_A_old;
+        scores = sc_old;
+        group_score_sums = S_old;
+        group_depth = gd_old;
+        H_s_G_b_depths = H_s_old;
+        H_Adir_G_A_s_nu = H_A_old;
     }
 }
 
@@ -345,7 +371,8 @@ void MCMC::propose_group_depth_rescale(double new_value) {
 void MCMC::propose_individual_depth_centred() {
     individual_depth_proposals++;
     const double id_old = individual_depth;
-    const double id_new = half_cauchy_proposal(individual_depth, DEPTH_PRIOR_WIDTH, step_individual_depth_centred);
+    const double id_new =
+        half_cauchy_proposal(individual_depth, DEPTH_PRIOR_WIDTH, step_individual_depth_centred);
     const double H_s_old = H_s_G_b_depths;
     individual_depth = id_new;
     H_s_G_b_depths = calculate_H_s_G_b_depths();
@@ -353,9 +380,11 @@ void MCMC::propose_individual_depth_centred() {
     if (accepted) {
         accepted_individual_depth_proposals++;
     } else {
-        individual_depth = id_old; H_s_G_b_depths = H_s_old;
+        individual_depth = id_old;
+        H_s_G_b_depths = H_s_old;
     }
-    adapt_step(step_individual_depth_centred, adapt_t_individual_depth_centred, accepted, ADAPT_MAX_STEP_CDF);
+    adapt_step(step_individual_depth_centred, adapt_t_individual_depth_centred, accepted,
+               ADAPT_MAX_STEP_CDF);
 }
 
 /**
@@ -370,7 +399,8 @@ void MCMC::propose_individual_depth_centred() {
 void MCMC::propose_individual_depth_residual() {
     individual_depth_proposals++;
     const double id_old = individual_depth;
-    const double id_new = half_cauchy_proposal(individual_depth, DEPTH_PRIOR_WIDTH, step_individual_depth_residual);
+    const double id_new =
+        half_cauchy_proposal(individual_depth, DEPTH_PRIOR_WIDTH, step_individual_depth_residual);
     const double lam = id_new / id_old;
     const double H_s_old = H_s_G_b_depths, H_A_old = H_Adir_G_A_s_nu;
     const std::vector<double> sc_old = scores;
@@ -383,23 +413,27 @@ void MCMC::propose_individual_depth_residual() {
     H_s_G_b_depths = calculate_H_s_G_b_depths();
     H_Adir_G_A_s_nu = calculate_H_Adir_G_A_s_nu();
     // Only the direction likelihood is tempered (MCMC_core.h).
-    const double log_acc = -((H_s_G_b_depths - H_s_old) + beta * (H_Adir_G_A_s_nu - H_A_old))
-                           + (n - num_groups) * std::log(lam);
+    const double log_acc = -((H_s_G_b_depths - H_s_old) + beta * (H_Adir_G_A_s_nu - H_A_old)) +
+                           (n - num_groups) * std::log(lam);
     const bool accepted = std::log(uniform_random(rng)) < log_acc;
     if (accepted) {
         accepted_individual_depth_proposals++;
     } else {
-        individual_depth = id_old; scores = sc_old;
-        H_s_G_b_depths = H_s_old; H_Adir_G_A_s_nu = H_A_old;
+        individual_depth = id_old;
+        scores = sc_old;
+        H_s_G_b_depths = H_s_old;
+        H_Adir_G_A_s_nu = H_A_old;
     }
-    adapt_step(step_individual_depth_residual, adapt_t_individual_depth_residual, accepted, ADAPT_MAX_STEP_CDF);
+    adapt_step(step_individual_depth_residual, adapt_t_individual_depth_residual, accepted,
+               ADAPT_MAX_STEP_CDF);
 }
 
 // Robbins-Monro step adaptation (burn-in only): log s += gamma_t (accepted - target).
 void MCMC::adapt_step(double& step, long& t, bool accepted, double max_step) {
     if (!adapting) return;
     ++t;
-    const double gamma = ADAPT_GAIN / std::pow(1.0 + static_cast<double>(t) / ADAPT_T0, ADAPT_KAPPA);
+    const double gamma =
+        ADAPT_GAIN / std::pow(1.0 + static_cast<double>(t) / ADAPT_T0, ADAPT_KAPPA);
     step *= std::exp(gamma * ((accepted ? 1.0 : 0.0) - ADAPT_TARGET));
     step = std::min(std::max(step, ADAPT_MIN_STEP), max_step);
 }
@@ -424,40 +458,45 @@ void MCMC::propose_score_move() {
     const double old_score = scores[node];
     // Propose new score according to the Gaussian distribution
     // Mean and standard deviation of the s_i dependence of P(s|b,depths):
-    double f_normalization = 1/std::sqrt(1 + node_counts[partition[node]]*group_depth*group_depth/(individual_depth*individual_depth));
-    double f_combination = f_normalization*f_normalization*group_depth*group_depth/(individual_depth*individual_depth);
-    double proposal_mean = (group_score_sums[partition[node]] - old_score)*f_combination/(1 - f_combination);
-    double proposal_variance = 0.5*individual_depth*individual_depth/(1 - f_combination);
+    double f_normalization =
+        1 / std::sqrt(1 + node_counts[partition[node]] * group_depth * group_depth /
+                              (individual_depth * individual_depth));
+    double f_combination = f_normalization * f_normalization * group_depth * group_depth /
+                           (individual_depth * individual_depth);
+    double proposal_mean =
+        (group_score_sums[partition[node]] - old_score) * f_combination / (1 - f_combination);
+    double proposal_variance = 0.5 * individual_depth * individual_depth / (1 - f_combination);
 
-
-    const double new_score = gaussian_proposal(old_score, proposal_mean, std::sqrt(proposal_variance), step_score);
-
+    const double new_score =
+        gaussian_proposal(old_score, proposal_mean, std::sqrt(proposal_variance), step_score);
 
     // Store old entropy values for acceptance calculation
     double H_s_G_b_depths_old = H_s_G_b_depths;
     double H_Adir_G_A_s_nu_old = H_Adir_G_A_s_nu;
-    
+
     // H_s_G_b_depths, subtract terms
-    H_s_G_b_depths -= scores[node]*scores[node]/(individual_depth*individual_depth) + score_prior_group_term(partition[node]);
-    
+    H_s_G_b_depths -= scores[node] * scores[node] / (individual_depth * individual_depth) +
+                      score_prior_group_term(partition[node]);
+
     // H_Adir_G_A_s_nu, subtract terms
     const double log_nu = std::log(ties_parameter);
-    for(const auto& edge : wins[node]){
+    for (const auto& edge : wins[node]) {
         int j = edge.first;
         double Adir_ij = edge.second;
         double log_p_win_ij = scores[node] - davidson_log_z(scores[node], scores[j], log_nu);
         H_Adir_G_A_s_nu -= 0.0 - Adir_ij * log_p_win_ij;
     }
-    for(const auto& edge : losses[node]){
+    for (const auto& edge : losses[node]) {
         int j = edge.first;
         double Adir_ji = edge.second;
         double log_p_win_ji = scores[j] - davidson_log_z(scores[j], scores[node], log_nu);
         H_Adir_G_A_s_nu -= 0.0 - Adir_ji * log_p_win_ji;
     }
-    for(const auto& edge : ties[node]){
+    for (const auto& edge : ties[node]) {
         int j = edge.first;
         double Aties_ij = edge.second;
-        double log_p_tie_ij = davidson_log_tie(scores[node], scores[j], log_nu) - davidson_log_z(scores[node], scores[j], log_nu);
+        double log_p_tie_ij = davidson_log_tie(scores[node], scores[j], log_nu) -
+                              davidson_log_z(scores[node], scores[j], log_nu);
         H_Adir_G_A_s_nu -= 0.0 - Aties_ij * log_p_tie_ij;
     }
 
@@ -466,25 +505,27 @@ void MCMC::propose_score_move() {
     group_score_sums[partition[node]] += (new_score - old_score);
 
     // H_s_G_b_depths, add terms
-    H_s_G_b_depths += scores[node]*scores[node]/(individual_depth*individual_depth) + score_prior_group_term(partition[node]);
-    
+    H_s_G_b_depths += scores[node] * scores[node] / (individual_depth * individual_depth) +
+                      score_prior_group_term(partition[node]);
+
     // H_Adir_G_A_s_nu, add terms
-    for(const auto& edge : wins[node]){
+    for (const auto& edge : wins[node]) {
         int j = edge.first;
         double Adir_ij = edge.second;
         double log_p_win_ij = scores[node] - davidson_log_z(scores[node], scores[j], log_nu);
         H_Adir_G_A_s_nu += 0.0 - Adir_ij * log_p_win_ij;
     }
-    for(const auto& edge : losses[node]){
+    for (const auto& edge : losses[node]) {
         int j = edge.first;
         double Adir_ji = edge.second;
         double log_p_win_ji = scores[j] - davidson_log_z(scores[j], scores[node], log_nu);
         H_Adir_G_A_s_nu += 0.0 - Adir_ji * log_p_win_ji;
     }
-    for(const auto& edge : ties[node]){
+    for (const auto& edge : ties[node]) {
         int j = edge.first;
         double Aties_ij = edge.second;
-        double log_p_tie_ij = davidson_log_tie(scores[node], scores[j], log_nu) - davidson_log_z(scores[node], scores[j], log_nu);
+        double log_p_tie_ij = davidson_log_tie(scores[node], scores[j], log_nu) -
+                              davidson_log_z(scores[node], scores[j], log_nu);
         H_Adir_G_A_s_nu += 0.0 - Aties_ij * log_p_tie_ij;
     }
 
@@ -530,15 +571,17 @@ void MCMC::propose_group_score_move(int r) {
     if (num_groups <= 1) return;  // no between-group structure to move
     if (r < 0) r = next_int(rng, 0, num_groups - 1);
     if (group_members[r].empty()) return;
-    const double delta = individual_depth * next_normal(rng, step_group_score);   // symmetric; sigma_I is not moved here
+    const double delta =
+        individual_depth *
+        next_normal(rng, step_group_score);  // symmetric; sigma_I is not moved here
     if (delta == 0.0 || !std::isfinite(delta)) return;
 
     const double nr = static_cast<double>(node_counts[r]);
     const double rho = group_depth * group_depth / (individual_depth * individual_depth);
     const double S0 = group_score_sums[r], S1 = S0 + nr * delta;
     const double f2 = 1.0 / (1.0 + nr * rho);
-    const double dHs = ((2.0 * delta * S0 + nr * delta * delta) - f2 * rho * (S1 * S1 - S0 * S0))
-                       / (individual_depth * individual_depth);
+    const double dHs = ((2.0 * delta * S0 + nr * delta * delta) - f2 * rho * (S1 * S1 - S0 * S0)) /
+                       (individual_depth * individual_depth);
     const double dA = group_cross_dA(r, delta);
 
     // Only the likelihood is tempered; the score prior enters at full weight.
@@ -626,19 +669,18 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         new_group = num_groups - 1;
     }
 
-
     // Remove nodes that are already in the target group
     std::vector<int> filtered_nodes;
-    for(int node: nodes){
-        if(partition[node] != new_group){
+    for (int node : nodes) {
+        if (partition[node] != new_group) {
             filtered_nodes.push_back(node);
         }
     }
 
-    if(filtered_nodes.empty()){
+    if (filtered_nodes.empty()) {
         return;  // No nodes to move
     }
-    
+
     // Check if this move will empty the old group
     bool empty_old_group = (node_counts[old_group] == static_cast<int>(filtered_nodes.size()));
 
@@ -650,14 +692,14 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     // which eventually flips a Metropolis decision (see rng.h).
     std::set<int> initial_impacted_groups;
     std::set<int> final_impacted_groups;
-    
+
     initial_impacted_groups.insert(old_group);
-    if(new_group != num_groups){  // If not creating a new group
+    if (new_group != num_groups) {  // If not creating a new group
         initial_impacted_groups.insert(new_group);
     }
     final_impacted_groups.insert(old_group);
     final_impacted_groups.insert(new_group);
-    
+
     // Relabel: empty_old_group with new_group == num_groups (whole group moves
     // to a BRAND-NEW group).  The freshly created group is immediately compacted
     // back into old_group's slot, so this is a pure relabelling no-op: num_groups
@@ -669,17 +711,17 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     // Unreachable from propose_single_site_move (its singleton branch only merges
     // into existing groups; its split branch only fires for non-singletons), which
     // is why it has never shown up -- but merge/split needs the batch path.
-    if(new_group == num_groups && empty_old_group){
+    if (new_group == num_groups && empty_old_group) {
         final_impacted_groups.erase(new_group);
     }
 
     // If emptying old_group, the last group will be moved to fill the gap
-    if(new_group != num_groups && empty_old_group){
+    if (new_group != num_groups && empty_old_group) {
         initial_impacted_groups.insert(num_groups - 1);  // Last group moves
-        if(old_group == num_groups - 1){
+        if (old_group == num_groups - 1) {
             final_impacted_groups.erase(old_group);
         }
-        if(new_group == num_groups - 1){
+        if (new_group == num_groups - 1) {
             final_impacted_groups.erase(new_group);
         }
     }
@@ -691,63 +733,64 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     double H_A_G_k_M_b_old = H_A_G_k_M_b;
     double H_W_old = H_W;
 
-
     /* === PHASE 1: Remove entropy terms from initial configuration === */
-    
+
     // H(nb|q): Partition count prior
     H_b -= log_binom(n - 1, num_groups - 1);
-    
+
     // H(b|nb): Group size distribution
-    for(int r: initial_impacted_groups){
+    for (int r : initial_impacted_groups) {
         H_b += log_factorial(node_counts[r]);  // Will be subtracted back after update
     }
-    
+
     // H(k): Degree sequence entropy
-    for(int r: initial_impacted_groups){
-        if(degree_correction_concentration < MAX_CONCENTRATION){
-            H_k -= log_binom(edge_counts_sum[r] + node_counts[r]*degree_correction_concentration - 1, 
-                        node_counts[r]*degree_correction_concentration - 1);
-        }else{
+    for (int r : initial_impacted_groups) {
+        if (degree_correction_concentration < MAX_CONCENTRATION) {
+            H_k -=
+                log_binom(edge_counts_sum[r] + node_counts[r] * degree_correction_concentration - 1,
+                          node_counts[r] * degree_correction_concentration - 1);
+        } else {
             // Multinomial approximation for large concentration
             H_k += log_factorial(edge_counts_sum[r]);
-            H_k -= edge_counts_sum[r]*std::log(node_counts[r]);
+            H_k -= edge_counts_sum[r] * std::log(node_counts[r]);
         }
     }
 
     // H(M): Edge count distribution entropy
-    for(int r: initial_impacted_groups){
-        for(int s = 0; s < num_groups; s++){
-            if(r == s){
+    for (int r : initial_impacted_groups) {
+        for (int s = 0; s < num_groups; s++) {
+            if (r == s) {
                 // Within-group edges (undirected, so divide by 2)
-                H_M += log_neg_binom(edge_counts[r][r]/2.0,
-                                    density_in*node_counts[r]*node_counts[r]/2.0,
-                                    concentration_in);
-            }else{
+                H_M += log_neg_binom(edge_counts[r][r] / 2.0,
+                                     density_in * node_counts[r] * node_counts[r] / 2.0,
+                                     concentration_in);
+            } else {
                 // Between-group edges
                 // Use symmetry_factor to avoid double-counting when both r and s are impacted
                 double symmetry_factor = 1;
-                if(initial_impacted_groups.find(s) != initial_impacted_groups.end()){
+                if (initial_impacted_groups.find(s) != initial_impacted_groups.end()) {
                     symmetry_factor = 0.5;
                 }
-                H_M += symmetry_factor*log_neg_binom(edge_counts[r][s],
-                                                     density_out*node_counts[r]*node_counts[s],
-                                                     concentration_out);
+                H_M +=
+                    symmetry_factor * log_neg_binom(edge_counts[r][s],
+                                                    density_out * node_counts[r] * node_counts[s],
+                                                    concentration_out);
             }
         }
     }
-    
+
     // H(A|k,M,b): Adjacency matrix entropy given edge counts
-    for(int r: initial_impacted_groups){
-        for(int s = 0; s < num_groups; s++){
-            if(r == s){
+    for (int r : initial_impacted_groups) {
+        for (int s = 0; s < num_groups; s++) {
+            if (r == s) {
                 H_A_G_k_M_b += log_factorial2(edge_counts[r][r]);
-            }else{
+            } else {
                 // If s is also in initial_impacted_groups, only add half the term to avoid double counting
                 double symmetry_factor = 1;
-                if(initial_impacted_groups.find(s) != initial_impacted_groups.end()){
+                if (initial_impacted_groups.find(s) != initial_impacted_groups.end()) {
                     symmetry_factor = 0.5;
                 }
-                H_A_G_k_M_b += symmetry_factor*log_factorial(edge_counts[r][s]);
+                H_A_G_k_M_b += symmetry_factor * log_factorial(edge_counts[r][s]);
             }
         }
         H_A_G_k_M_b -= log_factorial(edge_counts_sum[r]);
@@ -762,7 +805,9 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
             if (edge_counts[r][r] > 0) nonzero_removed += 1.0;
             for (int s = 0; s < num_groups; s++) {
                 if (s == r) continue;
-                double sym = initial_impacted_groups.count(s) ? 0.5 : 1.0;  // pairs of two impacted groups are visited twice
+                double sym = initial_impacted_groups.count(s)
+                                 ? 0.5
+                                 : 1.0;  // pairs of two impacted groups are visited twice
                 H_W -= sym * H_W_pair(r, s);
                 if (edge_counts[r][s] > 0) nonzero_removed += sym;
             }
@@ -770,13 +815,12 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     }
 
     // H(s|b,depths): hierarchy-community entropy
-    for(int r: initial_impacted_groups){
+    for (int r : initial_impacted_groups) {
         H_s_G_b_depths -= score_prior_group_term(r);
     }
 
-
     /* === PHASE 2: Update partition and bookkeeping === */
-    for(int node: filtered_nodes){
+    for (int node : filtered_nodes) {
         // Remove node from old_group using swap-and-pop (O(1) removal)
         size_t node_index = node_indices_in_groups[old_group][node];
         int last_node = group_members[old_group].back();
@@ -788,7 +832,7 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
 
         // Update edge counts: subtract edges from old_group (both directions: the
         // constructor rejects self-loops, so j != node).
-        for(const auto& [j, A_ij] : neighbors_com[node]){
+        for (const auto& [j, A_ij] : neighbors_com[node]) {
             int neighbor_group = partition[j];
             int count_delta = (weighted_SBM || two_layer_mode) ? 1 : static_cast<int>(A_ij);
             edge_counts[old_group][neighbor_group] -= count_delta;
@@ -808,19 +852,19 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         group_score_sums[old_group] -= scores[node];
 
         // If creating a new group, resize all data structures
-        if(new_group == num_groups){
+        if (new_group == num_groups) {
             group_members.push_back(std::vector<int>());
             node_indices_in_groups.push_back(std::unordered_map<int, size_t>());
             node_counts.push_back(0);
             edge_counts_sum.push_back(0);
             edge_counts.push_back(std::vector<int>(num_groups, 0));
-            for(auto& row: edge_counts){
+            for (auto& row : edge_counts) {
                 row.push_back(0);
             }
             if (weighted_SBM) {
                 weight_counts_sum.push_back(0.0);
                 weight_counts.push_back(std::vector<double>(num_groups, 0.0));
-                for(auto& row: weight_counts){
+                for (auto& row : weight_counts) {
                     row.push_back(0.0);
                 }
             }
@@ -834,7 +878,7 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         node_counts[new_group]++;
 
         // Update edge counts: add edges to new_group.
-        for(const auto& [j, A_ij] : neighbors_com[node]){
+        for (const auto& [j, A_ij] : neighbors_com[node]) {
             int neighbor_group = partition[j];
             int count_delta = (weighted_SBM || two_layer_mode) ? 1 : static_cast<int>(A_ij);
             edge_counts[new_group][neighbor_group] += count_delta;
@@ -851,26 +895,26 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
 
         group_score_sums[new_group] += scores[node];
     }
-    
+
     // If old_group is now empty, compact by moving last group to fill the gap
-    if(empty_old_group){
+    if (empty_old_group) {
         int last_group = num_groups - 1;
-        if(old_group != last_group){
+        if (old_group != last_group) {
             swap_groups(old_group, last_group);
         }
-        
+
         // Remove last group's data structures
         group_members.pop_back();
         node_indices_in_groups.pop_back();
         node_counts.pop_back();
         edge_counts_sum.pop_back();
         edge_counts.pop_back();  // Remove last row
-        for(auto& row: edge_counts){
+        for (auto& row : edge_counts) {
             row.pop_back();  // Remove last column from all rows
         }
         if (weighted_SBM) {
             weight_counts.pop_back();
-            for(auto& row: weight_counts){
+            for (auto& row : weight_counts) {
                 row.pop_back();
             }
             weight_counts_sum.pop_back();
@@ -879,66 +923,67 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         num_groups -= 1;
     }
 
-
     /* === PHASE 3: Add entropy terms from final configuration === */
 
     // Enforce the non-assortative constraint
-    if(!assortative){
+    if (!assortative) {
         density_out = density_in;
     }
 
     // H(nb|q): Partition count with new num_groups
     H_b += log_binom(n - 1, num_groups - 1);
-    
+
     // H(b|nb): Group size distribution with new partition
-    for(int r: final_impacted_groups){
+    for (int r : final_impacted_groups) {
         H_b -= log_factorial(node_counts[r]);
     }
-    
+
     // H(k): Degree sequence entropy with new configuration
-    for(int r: final_impacted_groups){
-        if(degree_correction_concentration < MAX_CONCENTRATION){
-            H_k += log_binom(edge_counts_sum[r] + node_counts[r]*degree_correction_concentration - 1, 
-                node_counts[r]*degree_correction_concentration - 1);
-        }else{
+    for (int r : final_impacted_groups) {
+        if (degree_correction_concentration < MAX_CONCENTRATION) {
+            H_k +=
+                log_binom(edge_counts_sum[r] + node_counts[r] * degree_correction_concentration - 1,
+                          node_counts[r] * degree_correction_concentration - 1);
+        } else {
             // Multinomial approximation for large concentration
             H_k -= log_factorial(edge_counts_sum[r]);
-            H_k += edge_counts_sum[r]*std::log(node_counts[r]);
+            H_k += edge_counts_sum[r] * std::log(node_counts[r]);
         }
     }
-    
+
     // H(M): Edge count distribution with new configuration
-    for(int r: final_impacted_groups){
-        for(int s = 0; s < num_groups; s++){
-            if(r == s){
-                H_M -= log_neg_binom(edge_counts[r][r]/2.0,
-                                    density_in*node_counts[r]*node_counts[r]/2.0,
-                                    concentration_in);
-            }else{
+    for (int r : final_impacted_groups) {
+        for (int s = 0; s < num_groups; s++) {
+            if (r == s) {
+                H_M -= log_neg_binom(edge_counts[r][r] / 2.0,
+                                     density_in * node_counts[r] * node_counts[r] / 2.0,
+                                     concentration_in);
+            } else {
                 // Use symmetry_factor to avoid double-counting
                 double symmetry_factor = 1;
-                if(final_impacted_groups.find(s) != final_impacted_groups.end()){
+                if (final_impacted_groups.find(s) != final_impacted_groups.end()) {
                     symmetry_factor = 0.5;
                 }
-                H_M -= symmetry_factor*log_neg_binom(edge_counts[r][s],
-                                                     density_out*node_counts[r]*node_counts[s],
-                                                     concentration_out);
+                H_M -=
+                    symmetry_factor * log_neg_binom(edge_counts[r][s],
+                                                    density_out * node_counts[r] * node_counts[s],
+                                                    concentration_out);
             }
         }
     }
-    
+
     // H(A|k,M,b): Adjacency matrix entropy with new configuration
-    for(int r: final_impacted_groups){
-        for(int s = 0; s < num_groups; s++){
-            if(r == s){
+    for (int r : final_impacted_groups) {
+        for (int s = 0; s < num_groups; s++) {
+            if (r == s) {
                 H_A_G_k_M_b -= log_factorial2(edge_counts[r][r]);
-            }else{
+            } else {
                 // If s is also in initial_impacted_groups, only add half the term to avoid double counting
                 double symmetry_factor = 1;
-                if(final_impacted_groups.find(s) != final_impacted_groups.end()){
+                if (final_impacted_groups.find(s) != final_impacted_groups.end()) {
                     symmetry_factor = 0.5;
                 }
-                H_A_G_k_M_b -= symmetry_factor*log_factorial(edge_counts[r][s]);
+                H_A_G_k_M_b -= symmetry_factor * log_factorial(edge_counts[r][s]);
             }
         }
         H_A_G_k_M_b += log_factorial(edge_counts_sum[r]);
@@ -962,18 +1007,16 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     }
 
     // H(s|b,depths): hierarchy-community entropy with new configuration
-    for(int r: final_impacted_groups){
+    for (int r : final_impacted_groups) {
         H_s_G_b_depths += score_prior_group_term(r);
     }
-    
 
     // Update total entropies: add delta from component changes.
     // H_W = -log P (description-length contribution, negative when model fits well), so add its delta.
-    H_A_G_b += (H_k - H_k_old) + (H_M - H_M_old) + (H_A_G_k_M_b - H_A_G_k_M_b_old) + (H_W - H_W_old);
-    H_A_b += (H_b - H_b_old) + (H_k - H_k_old) + (H_M - H_M_old) + (H_A_G_k_M_b - H_A_G_k_M_b_old) + (H_W - H_W_old);
-
-
-
+    H_A_G_b +=
+        (H_k - H_k_old) + (H_M - H_M_old) + (H_A_G_k_M_b - H_A_G_k_M_b_old) + (H_W - H_W_old);
+    H_A_b += (H_b - H_b_old) + (H_k - H_k_old) + (H_M - H_M_old) + (H_A_G_k_M_b - H_A_G_k_M_b_old) +
+             (H_W - H_W_old);
 }
 
 // Exchange the labels of groups group1 and group2: members, counts, the rows
@@ -986,20 +1029,20 @@ void MCMC::swap_groups(int group1, int group2) {
     std::swap(node_counts[group1], node_counts[group2]);
 
     // Swap edge_counts matrix rows and columns
-    for(int s = 0; s < num_groups; s++){
+    for (int s = 0; s < num_groups; s++) {
         std::swap(edge_counts[group1][s], edge_counts[group2][s]);
     }
-    for(int r = 0; r < num_groups; r++){
+    for (int r = 0; r < num_groups; r++) {
         std::swap(edge_counts[r][group1], edge_counts[r][group2]);
     }
     std::swap(edge_counts_sum[group1], edge_counts_sum[group2]);
 
     // Swap weight_counts matrix rows and columns (weighted mode only)
     if (weighted_SBM) {
-        for(int s = 0; s < num_groups; s++){
+        for (int s = 0; s < num_groups; s++) {
             std::swap(weight_counts[group1][s], weight_counts[group2][s]);
         }
-        for(int r = 0; r < num_groups; r++){
+        for (int r = 0; r < num_groups; r++) {
             std::swap(weight_counts[r][group1], weight_counts[r][group2]);
         }
         std::swap(weight_counts_sum[group1], weight_counts_sum[group2]);
@@ -1009,10 +1052,10 @@ void MCMC::swap_groups(int group1, int group2) {
     std::swap(group_score_sums[group1], group_score_sums[group2]);
 
     // Update partition references for moved nodes
-    for(int node: group_members[group1]){
+    for (int node : group_members[group1]) {
         partition[node] = group1;
     }
-    for(int node: group_members[group2]){
+    for (int node : group_members[group2]) {
         partition[node] = group2;
     }
 }

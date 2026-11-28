@@ -27,8 +27,7 @@ using AdjacencyList = std::vector<std::unordered_map<int, double>>;
 //
 // Labels 0..K-1 number the communities by size, largest first (ties: the community
 // with the smaller first node); merged satellites keep their target's label.
-std::vector<int> greedy_modularity_partition(const AdjacencyList& wins,
-                                             const AdjacencyList& ties,
+std::vector<int> greedy_modularity_partition(const AdjacencyList& wins, const AdjacencyList& ties,
                                              const AdjacencyList& group_adj,
                                              std::optional<int> num_groups);
 

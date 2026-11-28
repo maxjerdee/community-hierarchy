@@ -1,4 +1,5 @@
 """Leave-one-out cross-validation of the edge directions (src/loo.h)."""
+
 import pickle
 import random
 import warnings
@@ -18,14 +19,17 @@ def _graph(seed=3, n=12, m=40):
     G.add_nodes_from(nodes)
     for _ in range(m):
         u, v = rng.sample(nodes, 2)
-        G.add_edge(u, v, type="neutral" if rng.random() < 0.2 else "dominant",
-                   weight=rng.choice([1, 1, 2]))
+        G.add_edge(
+            u, v, type="neutral" if rng.random() < 0.2 else "dominant", weight=rng.choice([1, 1, 2])
+        )
     return G
 
 
 def _fit(G, **kw):
-    kw = dict(num_chains=2, num_samples=200, num_warmup=20, seed=5,
-              show_progress=False, timeout=600) | kw
+    kw = (
+        dict(num_chains=2, num_samples=200, num_warmup=20, seed=5, show_progress=False, timeout=600)
+        | kw
+    )
     return ch.fit(ch.Config(), G, **kw)
 
 
@@ -36,8 +40,15 @@ def test_fixed_scores_give_the_plain_log_likelihood():
     s = {node: 0.3 * i - 1.5 for i, node in enumerate(G.nodes())}
     nx.set_node_attributes(G, s, "s")
     nu = 0.7
-    res = ch.fit(ch.Config(hierarchy_attribute="s", ties_parameter=nu), G, num_chains=1,
-                 num_samples=30, num_warmup=2, seed=1, show_progress=False)
+    res = ch.fit(
+        ch.Config(hierarchy_attribute="s", ties_parameter=nu),
+        G,
+        num_chains=1,
+        num_samples=30,
+        num_warmup=2,
+        seed=1,
+        show_progress=False,
+    )
     d = res.direction_loo_df()
     assert len(d) == G.number_of_edges()
     for row, (u, v, e) in zip(d.itertuples(), G.edges(data=True)):
@@ -45,7 +56,9 @@ def test_fixed_scores_give_the_plain_log_likelihood():
         z = np.exp(sa) + np.exp(sb) + nu * np.exp((sa + sb) / 2)
         p = (nu * np.exp((sa + sb) / 2) if row.draw else np.exp(sa)) / z
         assert row.elpd == pytest.approx(e["weight"] * np.log(p), rel=1e-12)
-        assert (row.winner, row.loser) == ((u, v) if row.draw or e["type"] == "dominant" else (v, u))
+        assert (row.winner, row.loser) == (
+            (u, v) if row.draw or e["type"] == "dominant" else (v, u)
+        )
         if row.draw:
             assert np.isnan(row.p_win)
         else:
@@ -76,7 +89,9 @@ def test_psis_matches_arviz():
                 lw_a, k_a = az.psislw(lr.copy(), reff=r_eff)
             lw_c, k_c = MCMC_core.psis(list(lr), r_eff)
             np.testing.assert_allclose(lw_c, lw_a, rtol=0, atol=1e-10)
-            assert k_c == pytest.approx(float(k_a), abs=1e-10) if np.isfinite(k_a) else np.isinf(k_c)
+            assert (
+                k_c == pytest.approx(float(k_a), abs=1e-10) if np.isfinite(k_a) else np.isinf(k_c)
+            )
 
 
 def test_direction_loo_matches_arviz_loo():
@@ -90,7 +105,7 @@ def test_direction_loo_matches_arviz_loo():
     log_nu = np.log(s["ties_parameter"].to_numpy())[:, None]
     log_z = np.logaddexp(np.logaddexp(sa, sb), log_nu + (sa + sb) / 2)
     ll = d.weight.to_numpy() * (np.where(d.draw, log_nu + (sa + sb) / 2, sa) - log_z)
-    ll = ll.reshape(2, -1, ll.shape[1])                       # (chains, draws, edges)
+    ll = ll.reshape(2, -1, ll.shape[1])  # (chains, draws, edges)
     idata = az.from_dict(log_likelihood={"y": ll}, posterior={"mu": np.zeros(ll.shape[:2])})
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")

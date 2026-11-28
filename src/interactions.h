@@ -29,7 +29,7 @@ Interactions build_interactions(int num_nodes, const std::vector<int>& from,
                                 const std::vector<double>& weight, bool source_high_rank);
 
 // The undirected group layer of two-layer mode: symmetric, parallel edges added up.
-AdjacencyList build_group_layer(int num_nodes, const std::vector<int>& a,
-                                const std::vector<int>& b, const std::vector<double>& weight);
+AdjacencyList build_group_layer(int num_nodes, const std::vector<int>& a, const std::vector<int>& b,
+                                const std::vector<double>& weight);
 
 #endif  // INTERACTIONS_H

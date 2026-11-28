@@ -32,14 +32,15 @@ double log_sum_exp(const std::vector<double>& xs);
 //     log P(a beats b) = s_a - davidson_log_z(...),
 //     log P(draw)      = davidson_log_tie(...) - davidson_log_z(...).
 inline double davidson_log_tie(double s_a, double s_b, double log_nu) {
-  return log_nu + s_a / 2.0 + s_b / 2.0;
+    return log_nu + s_a / 2.0 + s_b / 2.0;
 }
 double davidson_log_z(double s_a, double s_b, double log_nu);
 
 // Value consistency check: with throw_error, throw if
 // |actual - bookkeeping| > tolerance + NUMERICAL_CHECK_REL_TOL * |actual| (or NaN);
 // returns actual
-double value_check(double actual, double bookkeeping, double tolerance, bool throw_error, const std::string& name);
+double value_check(double actual, double bookkeeping, double tolerance, bool throw_error,
+                   const std::string& name);
 
 // Convert between variation and concentration parameters.  The "variation" of a
 // concentration (shape) c is the Gini coefficient of a Gamma(c) variable,
@@ -75,4 +76,4 @@ double gaussian_proposal(double a, double mu, double sigma, double move_sigma);
 
 /* Printing functions */
 
-#endif // HELPERS_H
+#endif  // HELPERS_H

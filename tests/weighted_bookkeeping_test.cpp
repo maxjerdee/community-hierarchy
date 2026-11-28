@@ -37,9 +37,20 @@ int count_nonzero(const MCMC& m) {
 void random_graph(std::mt19937& g, int N, int n_wins, int n_ties, Adj& W, Adj& T) {
     std::uniform_real_distribution<double> U(0.05, 3.0);
     std::uniform_int_distribution<int> pick(0, N - 1);
-    W.assign(N, {}); T.assign(N, {});
-    for (int e = 0; e < n_wins; e++) { int a = pick(g), b = pick(g); if (a != b && !W[b].count(a)) W[a][b] += U(g); }
-    for (int e = 0; e < n_ties; e++) { int a = pick(g), b = pick(g); if (a != b) { double w = U(g); T[a][b] += w; T[b][a] += w; } }
+    W.assign(N, {});
+    T.assign(N, {});
+    for (int e = 0; e < n_wins; e++) {
+        int a = pick(g), b = pick(g);
+        if (a != b && !W[b].count(a)) W[a][b] += U(g);
+    }
+    for (int e = 0; e < n_ties; e++) {
+        int a = pick(g), b = pick(g);
+        if (a != b) {
+            double w = U(g);
+            T[a][b] += w;
+            T[b][a] += w;
+        }
+    }
 }
 
 std::vector<int> random_partition(std::mt19937& g, int N, int q) {
@@ -67,28 +78,43 @@ void test_weighted() {
             const auto mem = m.group_members[src];
             std::vector<int> sub;
             const int mode = k % 4;
-            if (mode == 0) sub = {mem[0]};
-            else if (mode == 1) sub = mem;                     // whole group
-            else { for (int x : mem) if (g() % 2) sub.push_back(x); if (sub.empty()) sub = {mem[0]}; }
+            if (mode == 0)
+                sub = {mem[0]};
+            else if (mode == 1)
+                sub = mem;  // whole group
+            else {
+                for (int x : mem)
+                    if (g() % 2) sub.push_back(x);
+                if (sub.empty()) sub = {mem[0]};
+            }
             const int tgt = (g() % 3 == 0) ? m.num_groups : static_cast<int>(g() % m.num_groups);
             m.flip_nodes(sub, tgt);
             ++flips;
             const double hw_true = m.calculate_H_W();
             if (m.nonzero_pairs != count_nonzero(m) ||
                 std::fabs(m.H_W - hw_true) > 1e-8 * std::max(1.0, std::fabs(hw_true))) {
-                if (failures < 5) std::printf("    mismatch rep %d k %d: nonzero %d vs %d, H_W %.12g vs %.12g\n",
-                                              rep, k, m.nonzero_pairs, count_nonzero(m), m.H_W, hw_true);
+                if (failures < 5)
+                    std::printf("    mismatch rep %d k %d: nonzero %d vs %d, H_W %.12g vs %.12g\n",
+                                rep, k, m.nonzero_pairs, count_nonzero(m), m.H_W, hw_true);
                 ++failures;
             }
-            try { m.check_state_bookkeeping(true); } catch (const std::exception& e) {
-                if (failures < 5) std::printf("    bookkeeping rep %d k %d: %s\n", rep, k, e.what());
+            try {
+                m.check_state_bookkeeping(true);
+            } catch (const std::exception& e) {
+                if (failures < 5)
+                    std::printf("    bookkeeping rep %d k %d: %s\n", rep, k, e.what());
                 ++failures;
             }
         }
-        try { for (int s = 0; s < 20; s++, ++sweeps) m.MCMC_sweep(1.0, 1, true); }
-        catch (const std::exception& e) { ++failures; std::printf("    sweep rep %d: %s\n", rep, e.what()); }
+        try {
+            for (int s = 0; s < 20; s++, ++sweeps) m.MCMC_sweep(1.0, 1, true);
+        } catch (const std::exception& e) {
+            ++failures;
+            std::printf("    sweep rep %d: %s\n", rep, e.what());
+        }
     }
-    std::printf("1. weighted SBM: %d flips and %d sweeps checked  %s\n", flips, sweeps, failures ? "FAIL" : "PASS");
+    std::printf("1. weighted SBM: %d flips and %d sweeps checked  %s\n", flips, sweeps,
+                failures ? "FAIL" : "PASS");
 }
 
 void test_two_layer() {
@@ -101,23 +127,37 @@ void test_two_layer() {
         Adj W, T, Gw;
         random_graph(g, N, 25, 5, W, T);
         // integer-valued wins/ties (multiplicities for the direction model)
-        for (auto& row : W) for (auto& e : row) e.second = std::ceil(e.second);
-        for (int i = 0; i < N; ++i) for (auto& e : T[i]) if (i < e.first) { e.second = std::ceil(e.second); T[e.first][i] = e.second; }
+        for (auto& row : W)
+            for (auto& e : row) e.second = std::ceil(e.second);
+        for (int i = 0; i < N; ++i)
+            for (auto& e : T[i])
+                if (i < e.first) {
+                    e.second = std::ceil(e.second);
+                    T[e.first][i] = e.second;
+                }
         Adj G(N);
         for (int e = 0; e < 30; e++) {
             const int a = pick(g), b = pick(g);
-            if (a != b) { const double w = 0.5 + (g() % 4); G[a][b] = w; G[b][a] = w; }
+            if (a != b) {
+                const double w = 0.5 + (g() % 4);
+                G[a][b] = w;
+                G[b][a] = w;
+            }
         }
         const int q = 1 + rep % 4;
         const std::vector<int> part = random_partition(g, N, q);
         const std::vector<double> sc(N, 0.0);
         MCMC m(W, T, G, part, false, sc, false, q, false, true, 0.5, false, 0.5, false, 0.5, false,
                1.0, false, 1.0, false, 0.5, false, 100 + rep, -1, -1, rep % 2 == 1);
-        try { for (int s = 0; s < 40; s++, ++sweeps) m.MCMC_sweep(1.0, 1, true); }
-        catch (const std::exception& e) { ++failures; std::printf("    two-layer rep %d: %s\n", rep, e.what()); }
+        try {
+            for (int s = 0; s < 40; s++, ++sweeps) m.MCMC_sweep(1.0, 1, true);
+        } catch (const std::exception& e) {
+            ++failures;
+            std::printf("    two-layer rep %d: %s\n", rep, e.what());
+        }
     }
-    std::printf("2. two-layer (unweighted and weighted_SBM): %d sweeps checked  %s\n",
-                sweeps, failures == before ? "PASS" : "FAIL");
+    std::printf("2. two-layer (unweighted and weighted_SBM): %d sweeps checked  %s\n", sweeps,
+                failures == before ? "PASS" : "FAIL");
 }
 }  // namespace
 

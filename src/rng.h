@@ -14,8 +14,8 @@
 #ifndef COMMUNITY_HIERARCHY_RNG_H
 #define COMMUNITY_HIERARCHY_RNG_H
 
-#include <cstdint>
 #include <cmath>
+#include <cstdint>
 #include <iterator>
 #include <random>
 
@@ -23,13 +23,13 @@
 // is the Mersenne Twister reference implementation's genrand_res53 (two draws);
 // for the 64-bit one it is the top 53 bits of a single draw.  fit() uses both.
 inline double next_uniform(std::mt19937& g) {
-    const std::uint32_t a = static_cast<std::uint32_t>(g()) >> 5;   // 27 bits
-    const std::uint32_t b = static_cast<std::uint32_t>(g()) >> 6;   // 26 bits
-    return (a * 67108864.0 + b) * (1.0 / 9007199254740992.0);       // / 2^53
+    const std::uint32_t a = static_cast<std::uint32_t>(g()) >> 5;  // 27 bits
+    const std::uint32_t b = static_cast<std::uint32_t>(g()) >> 6;  // 26 bits
+    return (a * 67108864.0 + b) * (1.0 / 9007199254740992.0);      // / 2^53
 }
 
 inline double next_uniform(std::mt19937_64& g) {
-    return static_cast<double>(g() >> 11) * (1.0 / 9007199254740992.0);   // / 2^53
+    return static_cast<double>(g() >> 11) * (1.0 / 9007199254740992.0);  // / 2^53
 }
 
 // Uniform on [0, n), unbiased.  Lemire's multiply-shift with rejection: one
@@ -41,7 +41,7 @@ inline std::uint32_t next_below(Gen& g, std::uint32_t n) {
     std::uint64_t m = static_cast<std::uint64_t>(static_cast<std::uint32_t>(g())) * n;
     std::uint32_t low = static_cast<std::uint32_t>(m);
     if (low < n) {
-        const std::uint32_t threshold = (0u - n) % n;               // 2^32 mod n
+        const std::uint32_t threshold = (0u - n) % n;  // 2^32 mod n
         while (low < threshold) {
             m = static_cast<std::uint64_t>(static_cast<std::uint32_t>(g())) * n;
             low = static_cast<std::uint32_t>(m);
@@ -76,7 +76,7 @@ void shuffle_portable(RandomIt first, RandomIt last, Gen& g) {
 template <class Gen>
 inline double next_normal(Gen& g, double sigma) {
     double u1 = next_uniform(g);
-    if (u1 < 1e-300) u1 = 1e-300;                       // log(0) guard
+    if (u1 < 1e-300) u1 = 1e-300;  // log(0) guard
     const double u2 = next_uniform(g);
     return sigma * std::sqrt(-2.0 * std::log(u1)) * std::cos(6.283185307179586476925286766559 * u2);
 }
@@ -84,7 +84,9 @@ inline double next_normal(Gen& g, double sigma) {
 // Call-compatible with the old `uniform_random(rng)` distribution object.
 struct UniformRandom {
     template <class Gen>
-    double operator()(Gen& g) const { return next_uniform(g); }
+    double operator()(Gen& g) const {
+        return next_uniform(g);
+    }
 };
 
 #endif  // COMMUNITY_HIERARCHY_RNG_H

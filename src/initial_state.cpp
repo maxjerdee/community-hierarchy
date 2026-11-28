@@ -16,7 +16,8 @@ std::vector<double> win_fraction_scores(const AdjacencyList& wins, const Adjacen
     std::vector<double> s(static_cast<std::size_t>(n));
     for (int i = 0; i < n; ++i) {
         const double wi = w[static_cast<std::size_t>(i)], li = l[static_cast<std::size_t>(i)];
-        s[static_cast<std::size_t>(i)] = (wi - li) / (wi + li + t[static_cast<std::size_t>(i)] + 1e-6);
+        s[static_cast<std::size_t>(i)] =
+            (wi - li) / (wi + li + t[static_cast<std::size_t>(i)] + 1e-6);
     }
     return s;
 }

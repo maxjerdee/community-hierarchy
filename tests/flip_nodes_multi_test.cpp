@@ -38,14 +38,16 @@ void expect_close(double a, double b, const std::string& what, double tol = 1e-8
     if (std::isnan(a) && std::isnan(b)) return;
     const double scale = std::max(1.0, std::max(std::fabs(a), std::fabs(b)));
     if (std::fabs(a - b) > tol * scale) {
-        std::printf("    FAIL %-24s %.12g vs %.12g  (diff %.3g)\n",
-                    what.c_str(), a, b, a - b);
+        std::printf("    FAIL %-24s %.12g vs %.12g  (diff %.3g)\n", what.c_str(), a, b, a - b);
         ++failures;
     }
 }
 void expect_eq(int a, int b, const std::string& what) {
     ++checks;
-    if (a != b) { std::printf("    FAIL %-24s %d vs %d\n", what.c_str(), a, b); ++failures; }
+    if (a != b) {
+        std::printf("    FAIL %-24s %d vs %d\n", what.c_str(), a, b);
+        ++failures;
+    }
 }
 
 const int N = 14;
@@ -53,7 +55,9 @@ std::vector<std::unordered_map<int, double>> WINS, TIES, GADJ;
 
 // A deterministic tournament: ring of wins plus random extra wins and ties.
 void make_graph(unsigned seed) {
-    WINS.assign(N, {}); TIES.assign(N, {}); GADJ.clear();
+    WINS.assign(N, {});
+    TIES.assign(N, {});
+    GADJ.clear();
     std::mt19937 rng(seed);
     std::uniform_int_distribution<int> pick(0, N - 1);
     for (int i = 0; i < N; ++i) WINS[i][(i + 1) % N] += 1.0;
@@ -63,7 +67,10 @@ void make_graph(unsigned seed) {
     }
     for (int e = 0; e < N; ++e) {
         int a = pick(rng), b = pick(rng);
-        if (a != b) { TIES[a][b] += 1.0; TIES[b][a] += 1.0; }
+        if (a != b) {
+            TIES[a][b] += 1.0;
+            TIES[b][a] += 1.0;
+        }
     }
 }
 
@@ -73,26 +80,25 @@ MCMC build(const std::vector<int>& partition, int q, int seed) {
     // distinct scores so the score-dependent terms are actually exercised.
     std::vector<double> scores(N);
     for (int i = 0; i < N; ++i) scores[i] = (i - N / 2) / static_cast<double>(N);
-    return MCMC(WINS, TIES, GADJ, partition, /*partition_fixed=*/false,
-                scores, /*scores_fixed=*/true,
-                q, /*num_groups_fixed=*/false, /*assortative=*/false,
-                0.5, true,     // variation_in fixed
-                0.5, true,     // variation_out fixed
-                0.0, true,     // degree_correction fixed
-                0.5, true,     // individual_depth fixed
-                0.5, true,     // group_depth fixed
-                0.5, true,     // ties_parameter fixed
+    return MCMC(WINS, TIES, GADJ, partition, /*partition_fixed=*/false, scores,
+                /*scores_fixed=*/true, q, /*num_groups_fixed=*/false, /*assortative=*/false, 0.5,
+                true,       // variation_in fixed
+                0.5, true,  // variation_out fixed
+                0.0, true,  // degree_correction fixed
+                0.5, true,  // individual_depth fixed
+                0.5, true,  // group_depth fixed
+                0.5, true,  // ties_parameter fixed
                 seed, 0.4, 0.4, /*weighted_SBM=*/false);
 }
 
 void compare(MCMC& got, MCMC& want, const std::string& tag) {
     expect_eq(got.num_groups, want.num_groups, tag + " num_groups");
-    expect_close(got.H_b,             want.H_b,             tag + " H_b");
-    expect_close(got.H_M,             want.H_M,             tag + " H_M");
-    expect_close(got.H_k,             want.H_k,             tag + " H_k");
-    expect_close(got.H_A_G_k_M_b,     want.H_A_G_k_M_b,     tag + " H_A_G_k_M_b");
-    expect_close(got.H_A_G_b,         want.H_A_G_b,         tag + " H_A_G_b");
-    expect_close(got.H_s_G_b_depths,  want.H_s_G_b_depths,  tag + " H_s_G_b_depths");
+    expect_close(got.H_b, want.H_b, tag + " H_b");
+    expect_close(got.H_M, want.H_M, tag + " H_M");
+    expect_close(got.H_k, want.H_k, tag + " H_k");
+    expect_close(got.H_A_G_k_M_b, want.H_A_G_k_M_b, tag + " H_A_G_k_M_b");
+    expect_close(got.H_A_G_b, want.H_A_G_b, tag + " H_A_G_b");
+    expect_close(got.H_s_G_b_depths, want.H_s_G_b_depths, tag + " H_s_G_b_depths");
 }
 
 }  // namespace
@@ -131,10 +137,10 @@ int main() {
 
         int target;
         if (std::uniform_int_distribution<int>(0, 1)(rng) || batch.num_groups < 2) {
-            target = batch.num_groups;                 // brand-new group
+            target = batch.num_groups;  // brand-new group
         } else {
             target = std::uniform_int_distribution<int>(0, batch.num_groups - 2)(rng);
-            if (target >= src) ++target;               // existing, != src
+            if (target >= src) ++target;  // existing, != src
         }
 
         const int q_before = batch.num_groups;

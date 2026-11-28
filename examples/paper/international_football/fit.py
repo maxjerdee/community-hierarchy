@@ -14,6 +14,7 @@ regenerate the committed results/ and the paper figures, comment out QUICK
 and uncomment REPRODUCE (fixed seed; about 5 minutes per model on a 16-core
 desktop, the four chains running in parallel).
 """
+
 from pathlib import Path
 
 import networkx as nx
@@ -25,9 +26,10 @@ from predict import knockout_probabilities, loo
 HERE = Path(__file__).parent
 
 # Quick check (under a minute for both models).
-SUFFIX = "_quick"                  # writes results/*_quick.csv
-SETTINGS = dict(num_chains=4, num_samples=300, sweeps_per_sample=10,
-                num_warmup=100, seed=1, timeout=120)
+SUFFIX = "_quick"  # writes results/*_quick.csv
+SETTINGS = dict(
+    num_chains=4, num_samples=300, sweeps_per_sample=10, num_warmup=100, seed=1, timeout=120
+)
 
 # Figure reproduction: the run behind results/, the paper figures and the MCMC table
 # (4 chains x 1,000 burn-in + 5,000 recorded samples, 10 sweeps per sample).
@@ -48,7 +50,9 @@ for interaction in ("coupled", "independent"):
         **SETTINGS,
     )
     result.node_properties_df().to_csv(OUT / f"scores_{interaction}{SUFFIX}.csv", index=False)
-    result.network_properties_df().to_csv(OUT / f"parameters_{interaction}{SUFFIX}.csv", index=False)
+    result.network_properties_df().to_csv(
+        OUT / f"parameters_{interaction}{SUFFIX}.csv", index=False
+    )
     knockout_probabilities(result).to_csv(OUT / f"knockouts_{interaction}{SUFFIX}.csv", index=False)
     loo(result, G).to_csv(OUT / f"loo_{interaction}{SUFFIX}.csv", index=False)
     print(result.network_properties_df().round(3).to_string(index=False))

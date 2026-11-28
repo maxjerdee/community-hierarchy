@@ -40,8 +40,7 @@ std::vector<std::vector<int>> simple_undirected(const AdjacencyList& wins,
 
 }  // namespace
 
-std::vector<int> greedy_modularity_partition(const AdjacencyList& wins,
-                                             const AdjacencyList& ties,
+std::vector<int> greedy_modularity_partition(const AdjacencyList& wins, const AdjacencyList& ties,
                                              const AdjacencyList& group_adj,
                                              std::optional<int> num_groups) {
     const int n = static_cast<int>(wins.size());
@@ -60,13 +59,15 @@ std::vector<int> greedy_modularity_partition(const AdjacencyList& wins,
     std::vector<std::map<int, std::int64_t>> E(static_cast<std::size_t>(n));
     std::iota(comm.begin(), comm.end(), 0);
     for (int i = 0; i < n; ++i) {
-        deg[static_cast<std::size_t>(i)] = static_cast<std::int64_t>(G[static_cast<std::size_t>(i)].size());
+        deg[static_cast<std::size_t>(i)] =
+            static_cast<std::int64_t>(G[static_cast<std::size_t>(i)].size());
         for (int j : G[static_cast<std::size_t>(i)]) E[static_cast<std::size_t>(i)][j] = 1;
     }
     // Candidate merges, best first: (-gain, c, d) with c < d.
     std::set<std::tuple<std::int64_t, int, int>> queue;
     auto gain = [&](int c, int d) {
-        return two_m * E[static_cast<std::size_t>(c)].at(d) - deg[static_cast<std::size_t>(c)] * deg[static_cast<std::size_t>(d)];
+        return two_m * E[static_cast<std::size_t>(c)].at(d) -
+               deg[static_cast<std::size_t>(c)] * deg[static_cast<std::size_t>(d)];
     };
     auto key = [&](int c, int d) {
         return std::make_tuple(-gain(c, d), std::min(c, d), std::max(c, d));
@@ -143,7 +144,7 @@ std::vector<int> greedy_modularity_partition(const AdjacencyList& wins,
             for (std::size_t k = 0; k < order.size(); ++k) {
                 const int c = order[k];
                 if (gone[k] || size[static_cast<std::size_t>(c)] >= min_size) continue;
-                std::map<int, int> links;      // position of the other community -> edges
+                std::map<int, int> links;  // position of the other community -> edges
                 for (int v : members[static_cast<std::size_t>(c)])
                     for (int u : G[static_cast<std::size_t>(v)]) {
                         const int other = comm[static_cast<std::size_t>(u)];
@@ -152,9 +153,13 @@ std::vector<int> greedy_modularity_partition(const AdjacencyList& wins,
                 if (links.empty()) continue;
                 int best_pos = links.begin()->first, best_count = links.begin()->second;
                 for (const auto& kv : links)
-                    if (kv.second > best_count) { best_pos = kv.first; best_count = kv.second; }
+                    if (kv.second > best_count) {
+                        best_pos = kv.first;
+                        best_count = kv.second;
+                    }
                 const int target_c = order[static_cast<std::size_t>(best_pos)];
-                for (int v : members[static_cast<std::size_t>(c)]) comm[static_cast<std::size_t>(v)] = target_c;
+                for (int v : members[static_cast<std::size_t>(c)])
+                    comm[static_cast<std::size_t>(v)] = target_c;
                 auto& mt = members[static_cast<std::size_t>(target_c)];
                 mt.insert(mt.end(), members[static_cast<std::size_t>(c)].begin(),
                           members[static_cast<std::size_t>(c)].end());
@@ -176,6 +181,7 @@ std::vector<int> greedy_modularity_partition(const AdjacencyList& wins,
         label[static_cast<std::size_t>(order[static_cast<std::size_t>(k)])] = k;
     std::vector<int> partition(static_cast<std::size_t>(n));
     for (int i = 0; i < n; ++i)
-        partition[static_cast<std::size_t>(i)] = label[static_cast<std::size_t>(comm[static_cast<std::size_t>(i)])];
+        partition[static_cast<std::size_t>(i)] =
+            label[static_cast<std::size_t>(comm[static_cast<std::size_t>(i)])];
     return partition;
 }

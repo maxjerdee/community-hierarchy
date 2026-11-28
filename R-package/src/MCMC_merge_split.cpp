@@ -104,10 +104,10 @@ double MCMC::merge_split_log_pi() const {
 //  Returned as a LOG, to be subtracted from delta (since acceptance = exp(-delta)).
 // -----------------------------------------------------------------------------
 double MCMC::split_label_factor(int K) {
-    return std::log(static_cast<double>(K + 1));   // split: K -> K+1
+    return std::log(static_cast<double>(K + 1));  // split: K -> K+1
 }
 double MCMC::merge_label_factor(int K) {
-    return -std::log(static_cast<double>(K));      // merge: K -> K-1
+    return -std::log(static_cast<double>(K));  // merge: K -> K-1
 }
 
 // -----------------------------------------------------------------------------
@@ -125,15 +125,13 @@ double MCMC::merge_label_factor(int K) {
 //  The state is always left with both sides non-empty, so the caller can always
 //  restore it with set_split_assignment().
 // -----------------------------------------------------------------------------
-double MCMC::split_gibbs_sweep(const std::vector<int>& nodes, int ga, int gb,
-                               bool accumulate,
-                               const std::vector<char>* target,
-                               std::vector<char>* out_assignment) {
+double MCMC::split_gibbs_sweep(const std::vector<int>& nodes, int ga, int gb, bool accumulate,
+                               const std::vector<char>* target, std::vector<char>* out_assignment) {
     double log_p = 0.0;
 
     for (std::size_t i = 0; i < nodes.size(); ++i) {
-        const int node  = nodes[i];
-        const int cur   = partition[node];
+        const int node = nodes[i];
+        const int cur = partition[node];
         const int other = (cur == ga) ? gb : ga;
 
         const double logw_stay = merge_split_log_pi();
@@ -146,7 +144,7 @@ double MCMC::split_gibbs_sweep(const std::vector<int>& nodes, int ga, int gb,
         if (can_move) {
             flip_nodes({node}, other);
             logw_move = merge_split_log_pi();
-            flip_nodes({node}, cur);   // `other` had >=1 member, so this cannot empty it
+            flip_nodes({node}, cur);  // `other` had >=1 member, so this cannot empty it
         }
 
         double p_stay = 1.0;
@@ -161,7 +159,7 @@ double MCMC::split_gibbs_sweep(const std::vector<int>& nodes, int ga, int gb,
         if (target != nullptr) {
             const int want = ((*target)[i] == 0) ? ga : gb;
             stay = (want == cur);
-            if (!stay && !can_move) return NEG_INF;   // unreachable assignment
+            if (!stay && !can_move) return NEG_INF;  // unreachable assignment
         } else {
             stay = (uniform_random(rng) < p_stay);
         }
@@ -197,7 +195,7 @@ void MCMC::set_split_assignment(const std::vector<int>& nodes, int ga, int gb,
         progress = false;
         for (std::size_t i = 0; i < nodes.size(); ++i) {
             const int want = (assignment[i] == 0) ? ga : gb;
-            const int cur  = partition[nodes[i]];
+            const int cur = partition[nodes[i]];
             if (cur == want) continue;
             if (node_counts[cur] > 1) {
                 flip_nodes({nodes[i]}, want);
@@ -227,11 +225,10 @@ void MCMC::set_split_assignment(const std::vector<int>& nodes, int ga, int gb,
 int MCMC::prestage_random(const std::vector<int>& nodes, int /*ga*/) {
     const int k = static_cast<int>(nodes.size());
     std::vector<int> shuffled(nodes);
-    for (int i = k - 1; i > 0; --i)
-        std::swap(shuffled[i], shuffled[next_int(rng, 0, i)]);
+    for (int i = k - 1; i > 0; --i) std::swap(shuffled[i], shuffled[next_int(rng, 0, i)]);
     const int m = next_int(rng, 1, k - 1);
     std::vector<int> subset(shuffled.begin(), shuffled.begin() + m);
-    flip_nodes(subset, num_groups);           // proper subset, so ga cannot empty
+    flip_nodes(subset, num_groups);  // proper subset, so ga cannot empty
     return partition[subset[0]];
 }
 
@@ -252,8 +249,7 @@ int MCMC::prestage_random(const std::vector<int>& nodes, int /*ga*/) {
 int MCMC::prestage_sequential(const std::vector<int>& nodes, int ga, bool coalescence) {
     const int k = static_cast<int>(nodes.size());
     std::vector<int> order(nodes);
-    for (int i = k - 1; i > 0; --i)
-        std::swap(order[i], order[next_int(rng, 0, i)]);
+    for (int i = k - 1; i > 0; --i) std::swap(order[i], order[next_int(rng, 0, i)]);
 
     const int seed_a = order[0];
     const int seed_b = order[1];
@@ -262,19 +258,19 @@ int MCMC::prestage_sequential(const std::vector<int>& nodes, int ga, bool coales
         // every node except seed_a into its own fresh group
         for (int i = 1; i < k; ++i) flip_nodes({order[i]}, num_groups);
     } else {
-        flip_nodes({seed_b}, num_groups);     // just split off the second seed
+        flip_nodes({seed_b}, num_groups);  // just split off the second seed
     }
-    (void)ga;                                  // ga is tracked via seed_a from here
+    (void)ga;  // ga is tracked via seed_a from here
 
     for (int i = 2; i < k; ++i) {
         const int node = order[i];
         int A = partition[seed_a];
-        flip_nodes({node}, A);                 // may compact (coalescence case)
+        flip_nodes({node}, A);  // may compact (coalescence case)
         A = partition[seed_a];
         int B = partition[seed_b];
         const double logw_a = merge_split_log_pi();
 
-        flip_nodes({node}, B);                 // A keeps seed_a, so cannot empty
+        flip_nodes({node}, B);  // A keeps seed_a, so cannot empty
         const double logw_b = merge_split_log_pi();
 
         const double m = std::max(logw_a, logw_b);
@@ -292,19 +288,24 @@ int MCMC::prestage_sequential(const std::vector<int>& nodes, int ga, bool coales
 //  AUXILIARY: no probability is computed or returned (P1).
 // -----------------------------------------------------------------------------
 int MCMC::stage_split(const std::vector<int>& nodes, int ga, int sweeps) {
-    const int which = (MERGE_SPLIT_PRESTAGE_MODE == 0)
-                    ? next_int(rng, 0, 2)
-                    : MERGE_SPLIT_PRESTAGE_MODE - 1;
+    const int which =
+        (MERGE_SPLIT_PRESTAGE_MODE == 0) ? next_int(rng, 0, 2) : MERGE_SPLIT_PRESTAGE_MODE - 1;
     int gb;
-    if (which == 0)      gb = prestage_random(nodes, ga);
-    else                 gb = prestage_sequential(nodes, ga, /*coalescence=*/(which == 2));
+    if (which == 0)
+        gb = prestage_random(nodes, ga);
+    else
+        gb = prestage_sequential(nodes, ga, /*coalescence=*/(which == 2));
 
     const int ga_now = partition[nodes[0]] == gb ? -1 : partition[nodes[0]];
     // ga may have been renumbered by compaction during a coalescence prestage;
     // recover it as "the side that is not gb".
     int ga_eff = ga_now;
     if (ga_eff < 0) {
-        for (int nd : nodes) if (partition[nd] != gb) { ga_eff = partition[nd]; break; }
+        for (int nd : nodes)
+            if (partition[nd] != gb) {
+                ga_eff = partition[nd];
+                break;
+            }
     }
 
     for (int s = 0; s < sweeps; ++s) {
@@ -352,41 +353,40 @@ void MCMC::propose_split_move() {
     const double H_b_old = H_b;
     const int r = next_int(rng, 0, K - 1);
     std::vector<int> nodes = group_members[r];
-    if (nodes.size() < 2) return;                     // singleton: nothing to split
-    std::sort(nodes.begin(), nodes.end());            // canonical order (P4)
+    if (nodes.size() < 2) return;           // singleton: nothing to split
+    std::sort(nodes.begin(), nodes.end());  // canonical order (P4)
 
     const int gb = stage_split(nodes, r, MERGE_SPLIT_GIBBS_SWEEPS);
     const int ga = r;
 
     std::vector<char> staged(nodes.size());
-    for (std::size_t i = 0; i < nodes.size(); ++i)
-        staged[i] = (partition[nodes[i]] == ga) ? 0 : 1;
+    for (std::size_t i = 0; i < nodes.size(); ++i) staged[i] = (partition[nodes[i]] == ga) ? 0 : 1;
 
     // final sweep: this one IS scored
     std::vector<char> assignment(nodes.size());
     split_gibbs_sweep(nodes, ga, gb, /*accumulate=*/false, nullptr, &assignment);
 
     const double log_sweep = split_partition_logprob(nodes, ga, gb, staged, assignment);
-    set_split_assignment(nodes, ga, gb, assignment);   // land on the proposal
+    set_split_assignment(nodes, ga, gb, assignment);  // land on the proposal
 
     if (log_sweep == NEG_INF) {
-        const std::vector<int> side_b = group_members[gb];   // copy: flip_nodes mutates it
+        const std::vector<int> side_b = group_members[gb];  // copy: flip_nodes mutates it
         flip_nodes(side_b, ga);
         return;
     }
 
     const double log_fwd = -std::log(static_cast<double>(K)) + log_sweep;  // Eq. 32
-    const double log_rev = pair_logprob(ga, gb);   // reverse is a merge of {ga, gb}, Eq. 19, in the K+1-group state
+    const double log_rev =
+        pair_logprob(ga, gb);  // reverse is a merge of {ga, gb}, Eq. 19, in the K+1-group state
 
-    const double delta = (H_b - H_b_old)
-                       + beta * (H_A_G_b - H_A_G_b_old)
-                       + (H_s_G_b_depths - H_s_G_b_depths_old)   // score prior: untempered (merge_split_log_pi)
-                       + log_fwd - log_rev
-                       - split_label_factor(K);      // x (K+1); H_b untouched
+    const double delta =
+        (H_b - H_b_old) + beta * (H_A_G_b - H_A_G_b_old) +
+        (H_s_G_b_depths - H_s_G_b_depths_old)  // score prior: untempered (merge_split_log_pi)
+        + log_fwd - log_rev - split_label_factor(K);  // x (K+1); H_b untouched
 
     if (uniform_random(rng) >= std::exp(-delta)) {
-        const std::vector<int> side_b = group_members[gb];   // copy: flip_nodes mutates it
-        flip_nodes(side_b, ga);                       // reject: merge the two sides back
+        const std::vector<int> side_b = group_members[gb];  // copy: flip_nodes mutates it
+        flip_nodes(side_b, ga);                             // reject: merge the two sides back
     } else {
         accepted_split_proposals++;
     }
@@ -410,17 +410,16 @@ void MCMC::propose_merge_move() {
     int s = sample_partner(r);
 
     std::vector<int> nodes_r = group_members[r];
-    std::vector<int> nodes   = nodes_r;
+    std::vector<int> nodes = nodes_r;
     nodes.insert(nodes.end(), group_members[s].begin(), group_members[s].end());
-    std::sort(nodes.begin(), nodes.end());            // canonical order (P4)
+    std::sort(nodes.begin(), nodes.end());  // canonical order (P4)
 
     // target for the reverse split: the original two groups.  Read off the
     // partition BEFORE merging -- O(k), unlike a search of nodes_r per node.
     std::vector<char> target(nodes.size());
-    for (std::size_t i = 0; i < nodes.size(); ++i)
-        target[i] = (partition[nodes[i]] == r) ? 0 : 1;
+    for (std::size_t i = 0; i < nodes.size(); ++i) target[i] = (partition[nodes[i]] == r) ? 0 : 1;
 
-    const double log_fwd = pair_logprob(r, s);      // P of choosing the unordered pair {r, s}
+    const double log_fwd = pair_logprob(r, s);  // P of choosing the unordered pair {r, s}
 
     // --- perform the merge ---
     flip_nodes(nodes_r, s);
@@ -432,8 +431,7 @@ void MCMC::propose_merge_move() {
     const int ga = merged;
 
     std::vector<char> staged(nodes.size());
-    for (std::size_t i = 0; i < nodes.size(); ++i)
-        staged[i] = (partition[nodes[i]] == ga) ? 0 : 1;
+    for (std::size_t i = 0; i < nodes.size(); ++i) staged[i] = (partition[nodes[i]] == ga) ? 0 : 1;
 
     const double log_sweep = split_partition_logprob(nodes, ga, gb, staged, target);
 
@@ -441,18 +439,17 @@ void MCMC::propose_merge_move() {
     const std::vector<int> scratch_side = group_members[gb];  // copy: flip_nodes mutates it
     flip_nodes(scratch_side, ga);
 
-    if (log_sweep == NEG_INF) {                       // reverse impossible -> reject
+    if (log_sweep == NEG_INF) {  // reverse impossible -> reject
         flip_nodes(nodes_r, num_groups);
         return;
     }
 
     const double log_rev = -std::log(static_cast<double>(K - 1)) + log_sweep;  // Eq. 32
 
-    const double delta = (H_b - H_b_old)
-                       + beta * (H_A_G_b - H_A_G_b_old)
-                       + (H_s_G_b_depths - H_s_G_b_depths_old)   // score prior: untempered (merge_split_log_pi)
-                       + log_fwd - log_rev
-                       - merge_label_factor(K);      // x 1/K; H_b untouched
+    const double delta =
+        (H_b - H_b_old) + beta * (H_A_G_b - H_A_G_b_old) +
+        (H_s_G_b_depths - H_s_G_b_depths_old)  // score prior: untempered (merge_split_log_pi)
+        + log_fwd - log_rev - merge_label_factor(K);  // x 1/K; H_b untouched
 
     if (uniform_random(rng) >= std::exp(-delta)) {
         // Reject: split the original nodes back out into a fresh group.  Labels
@@ -464,7 +461,6 @@ void MCMC::propose_merge_move() {
         accepted_merge_proposals++;
     }
 }
-
 
 // =============================================================================
 //  JOINT MERGE-SPLIT MOVE  (Eq. 35, accepted with Eq. 36)
@@ -500,19 +496,23 @@ void MCMC::propose_merge_split_move() {
     const std::vector<int> nodes_r = group_members[r];
     std::vector<int> nodes = nodes_r;
     nodes.insert(nodes.end(), group_members[s].begin(), group_members[s].end());
-    std::sort(nodes.begin(), nodes.end());            // canonical order (P4)
+    std::sort(nodes.begin(), nodes.end());  // canonical order (P4)
 
     // the original split, as an assignment over `nodes`
     std::vector<char> original(nodes.size());
     for (std::size_t i = 0; i < nodes.size(); ++i)
-        original[i] = (partition[nodes[i]] == r) ? 0 : 1;   // before the merge: O(k)
+        original[i] = (partition[nodes[i]] == r) ? 0 : 1;  // before the merge: O(k)
 
     // ---- forward: merge, then stage and split again ----
     flip_nodes(nodes_r, s);
     int merged = partition[nodes[0]];
     int gb = stage_split(nodes, merged, MERGE_SPLIT_GIBBS_SWEEPS);
     int ga = -1;
-    for (int nd : nodes) if (partition[nd] != gb) { ga = partition[nd]; break; }
+    for (int nd : nodes)
+        if (partition[nd] != gb) {
+            ga = partition[nd];
+            break;
+        }
     // stage_split always leaves both sides non-empty.  If that ever failed, the
     // chain would be sitting in the MERGED state, and returning would accept it
     // with no Metropolis test -- so fail loudly rather than bias silently.
@@ -532,32 +532,38 @@ void MCMC::propose_merge_split_move() {
     int merged2 = partition[nodes[0]];
     int gb2 = stage_split(nodes, merged2, MERGE_SPLIT_GIBBS_SWEEPS);
     int ga2 = -1;
-    for (int nd : nodes) if (partition[nd] != gb2) { ga2 = partition[nd]; break; }
-    if (ga2 < 0) throw std::logic_error("propose_merge_split_move: reverse staged split has an empty side");
+    for (int nd : nodes)
+        if (partition[nd] != gb2) {
+            ga2 = partition[nd];
+            break;
+        }
+    if (ga2 < 0)
+        throw std::logic_error("propose_merge_split_move: reverse staged split has an empty side");
 
     std::vector<char> staged2(nodes.size());
-    for (std::size_t i = 0; i < nodes.size(); ++i) staged2[i] = (partition[nodes[i]] == ga2) ? 0 : 1;
+    for (std::size_t i = 0; i < nodes.size(); ++i)
+        staged2[i] = (partition[nodes[i]] == ga2) ? 0 : 1;
 
     const double log_rev = split_partition_logprob(nodes, ga2, gb2, staged2, original);
 
     if (log_fwd == NEG_INF || log_rev == NEG_INF) {
-        set_split_assignment(nodes, ga2, gb2, original);   // back to where we started
+        set_split_assignment(nodes, ga2, gb2, original);  // back to where we started
         return;
     }
 
-    set_split_assignment(nodes, ga2, gb2, proposed);        // land on the proposal
+    set_split_assignment(nodes, ga2, gb2, proposed);  // land on the proposal
     // The Eq. 19 pair probability depends on the state, so unlike a uniform pair
     // choice it does not cancel: the reverse picks {ga2, gb2} in the proposed state.
     const double log_pair_rev = pair_logprob(ga2, gb2);
 
     // Eq. 36.  No label factor: q is unchanged.
-    const double delta = (H_b - H_b_old)
-                       + beta * (H_A_G_b - H_A_G_b_old)
-                       + (H_s_G_b_depths - H_s_G_b_depths_old)   // score prior: untempered (merge_split_log_pi)
-                       + log_fwd - log_rev + log_pair_fwd - log_pair_rev;
+    const double delta =
+        (H_b - H_b_old) + beta * (H_A_G_b - H_A_G_b_old) +
+        (H_s_G_b_depths - H_s_G_b_depths_old)  // score prior: untempered (merge_split_log_pi)
+        + log_fwd - log_rev + log_pair_fwd - log_pair_rev;
 
     if (uniform_random(rng) >= std::exp(-delta)) {
-        set_split_assignment(nodes, ga2, gb2, original);    // reject
+        set_split_assignment(nodes, ga2, gb2, original);  // reject
     } else {
         accepted_merge_split_proposals++;
     }

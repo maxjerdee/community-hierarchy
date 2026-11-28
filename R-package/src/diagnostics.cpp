@@ -12,28 +12,31 @@ constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
 
 // Inverse standard normal CDF (Acklam's rational approximation, |rel err| < 1.2e-9).
 double inv_norm_cdf(double p) {
-    static const double a[] = {-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02,
-                               1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00};
-    static const double b[] = {-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02,
-                               6.680131188771972e+01, -1.328068155288572e+01};
-    static const double c[] = {-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00,
-                               -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00};
+    static const double a[] = {-3.969683028665376e+01, 2.209460984245205e+02,
+                               -2.759285104469687e+02, 1.383577518672690e+02,
+                               -3.066479806614716e+01, 2.506628277459239e+00};
+    static const double b[] = {-5.447609879822406e+01, 1.615858368580409e+02,
+                               -1.556989798598866e+02, 6.680131188771972e+01,
+                               -1.328068155288572e+01};
+    static const double c[] = {-7.784894002430293e-03, -3.223964580411365e-01,
+                               -2.400758277161838e+00, -2.549732539343734e+00,
+                               4.374664141464968e+00,  2.938163982698783e+00};
     static const double d[] = {7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00,
                                3.754408661907416e+00};
     const double lo = 0.02425, hi = 1.0 - lo;
     if (p < lo) {
         double q = std::sqrt(-2.0 * std::log(p));
-        return (((((c[0]*q + c[1])*q + c[2])*q + c[3])*q + c[4])*q + c[5]) /
-               ((((d[0]*q + d[1])*q + d[2])*q + d[3])*q + 1.0);
+        return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+               ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1.0);
     }
     if (p > hi) {
         double q = std::sqrt(-2.0 * std::log(1.0 - p));
-        return -(((((c[0]*q + c[1])*q + c[2])*q + c[3])*q + c[4])*q + c[5]) /
-                ((((d[0]*q + d[1])*q + d[2])*q + d[3])*q + 1.0);
+        return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+               ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1.0);
     }
     double q = p - 0.5, r = q * q;
-    return (((((a[0]*r + a[1])*r + a[2])*r + a[3])*r + a[4])*r + a[5]) * q /
-           (((((b[0]*r + b[1])*r + b[2])*r + b[3])*r + b[4])*r + 1.0);
+    return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q /
+           (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1.0);
 }
 
 bool too_short(const Chains& x, std::size_t min_chains) {
@@ -99,8 +102,11 @@ double ess(const Chains& x) {
     const int N = static_cast<int>(x[0].size());
     double lo = x[0][0], hi = x[0][0];
     for (const auto& c : x)
-        for (double v : c) { lo = std::min(lo, v); hi = std::max(hi, v); }
-    if (hi - lo < 1e-15) return static_cast<double>(M) * N;   // numpy finfo(float).resolution
+        for (double v : c) {
+            lo = std::min(lo, v);
+            hi = std::max(hi, v);
+        }
+    if (hi - lo < 1e-15) return static_cast<double>(M) * N;  // numpy finfo(float).resolution
 
     std::vector<double> chain_mean(static_cast<std::size_t>(M));
     for (int m = 0; m < M; ++m) chain_mean[m] = mean(x[m]);
@@ -108,7 +114,8 @@ double ess(const Chains& x) {
         double s = 0.0;
         for (int m = 0; m < M; ++m) {
             double a = 0.0;
-            for (int t = 0; t + lag < N; ++t) a += (x[m][t] - chain_mean[m]) * (x[m][t + lag] - chain_mean[m]);
+            for (int t = 0; t + lag < N; ++t)
+                a += (x[m][t] - chain_mean[m]) * (x[m][t + lag] - chain_mean[m]);
             s += a / N;
         }
         return s / M;
@@ -222,7 +229,8 @@ Chains chains_of(const FitResult& result, double (*get)(const SampleState&)) {
     std::size_t len = std::numeric_limits<std::size_t>::max();
     for (const auto& kv : by_chain) len = std::min(len, kv.second.size());
     Chains out;
-    for (auto& kv : by_chain) out.emplace_back(kv.second.begin(), kv.second.begin() + static_cast<std::ptrdiff_t>(len));
+    for (auto& kv : by_chain)
+        out.emplace_back(kv.second.begin(), kv.second.begin() + static_cast<std::ptrdiff_t>(len));
     return out;
 }
 
@@ -247,7 +255,8 @@ DiagnosticsResult score_diagnostics(const FitResult& result, bool relative) {
     std::size_t len = std::numeric_limits<std::size_t>::max();
     for (const auto& kv : by_chain) len = std::min(len, kv.second.size());
     if (by_chain.empty()) len = 0;
-    std::vector<Chains> q(static_cast<std::size_t>(n), Chains(by_chain.size(), std::vector<double>(len)));
+    std::vector<Chains> q(static_cast<std::size_t>(n),
+                          Chains(by_chain.size(), std::vector<double>(len)));
     std::size_t m = 0;
     for (const auto& kv : by_chain) {
         for (std::size_t t = 0; t < len; ++t) {

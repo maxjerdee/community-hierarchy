@@ -1,29 +1,30 @@
 #ifndef FIT_H
 #define FIT_H
 
-#include "MCMC_core.h"
-#include "fit_result.h"
 #include <atomic>
 #include <functional>
 #include <optional>
 #include <unordered_map>
 #include <vector>
+#include "MCMC_core.h"
+#include "fit_result.h"
 
 // All parameters controlling a single call to fit().
 struct FitParams {
     std::vector<std::unordered_map<int, double>> wins;
     std::vector<std::unordered_map<int, double>> ties;
-    std::vector<std::unordered_map<int, double>> group_adj; // empty = single-layer mode
+    std::vector<std::unordered_map<int, double>> group_adj;  // empty = single-layer mode
     bool weighted_SBM = false;
-    bool weighted_proposals = false;  // weighted_SBM only: true = block-informed proposals follow the weights (experimental)
+    bool weighted_proposals =
+        false;  // weighted_SBM only: true = block-informed proposals follow the weights (experimental)
 
     // Empty = the default starting state (initial_state.h): greedy modularity, and
     // win fractions.  Given scores that are not fixed also set the starting sigma_I
     // to their RMS, unless individual_depth(_init) is set.
-    std::vector<int>    initial_partition;
-    bool                partition_fixed   = false;
+    std::vector<int> initial_partition;
+    bool partition_fixed = false;
     std::vector<double> initial_scores;
-    bool                scores_fixed      = false;
+    bool scores_fixed = false;
 
     bool assortative = true;
 
@@ -31,25 +32,25 @@ struct FitParams {
     std::optional<double> variation_out;
     std::optional<double> degree_correction;
     std::optional<double> individual_depth;
-    std::optional<double> individual_depth_init; // starting value only, not fixed
+    std::optional<double> individual_depth_init;  // starting value only, not fixed
     std::optional<double> group_depth;
-    std::optional<double> group_depth_init;      // starting value only, not fixed
+    std::optional<double> group_depth_init;  // starting value only, not fixed
     std::optional<double> ties_parameter;
-    std::optional<int>    num_groups;
-    bool                  num_groups_fixed = false;
+    std::optional<int> num_groups;
+    bool num_groups_fixed = false;
 
     // Run lengths, named as in PyStan.  One iteration is sweeps_per_sample sweeps.
-    int    num_chains           = 1;
-    int    num_samples          = 1000;  // sampling iterations per chain
-    int    num_thin             = 1;     // record every num_thin-th: ceil(num_samples / num_thin) draws
-    int    num_warmup           = 500;   // warm-up iterations; step sizes adapt here only
-    int    sweeps_per_sample    = 10;
+    int num_chains = 1;
+    int num_samples = 1000;  // sampling iterations per chain
+    int num_thin = 1;        // record every num_thin-th: ceil(num_samples / num_thin) draws
+    int num_warmup = 500;    // warm-up iterations; step sizes adapt here only
+    int sweeps_per_sample = 10;
     // Iterations before warm-up with the partition and scores fixed, so that the
     // continuous parameters (variation_in/out, degree_correction,
     // individual_depth, group_depth, ties_parameter) settle on the initial
     // partition before it is free to move.
-    int    num_param_warmup     = 0;
-    double beta                 = 1.0;
+    int num_param_warmup = 0;
+    double beta = 1.0;
     // Collective merge/split moves (Peixoto arXiv:2003.07070).
     // ON by default: without them single-site MCMC can converge silently to the
     // WRONG answer -- on the N=115 football network four of six chains get stuck
@@ -58,11 +59,11 @@ struct FitParams {
     // already handles, which buys correctness you otherwise cannot detect
     // without multi-start R-hat on every fit.
     // Set false to reproduce pre-merge/split results exactly.
-    bool   merge_split_enabled  = true;
+    bool merge_split_enabled = true;
 
-    int    num_tempering_chains = 1;
-    int    seed                 = 0;
-    double timeout              = 60.0;
+    int num_tempering_chains = 1;
+    int seed = 0;
+    double timeout = 60.0;
 
     // Optional callbacks for progress reporting (all thread-safe).
     // Each receives (completed, total) where total = num_chains × phase_length.
@@ -78,9 +79,11 @@ struct FitParams {
 };
 
 // Draws recorded per chain: ceil(num_samples / num_thin).
-inline int draws_per_chain(const FitParams& p) { return (p.num_samples + p.num_thin - 1) / p.num_thin; }
+inline int draws_per_chain(const FitParams& p) {
+    return (p.num_samples + p.num_thin - 1) / p.num_thin;
+}
 
 // Run parallel-tempered MCMC and return the collected samples.
 FitResult fit(FitParams params);
 
-#endif // FIT_H
+#endif  // FIT_H

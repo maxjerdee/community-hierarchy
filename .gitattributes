@@ -1,1 +1,3 @@
+# LF line endings in the repository for every text file; git detects binaries.
+* text=auto eol=lf
 .git_archival.txt  export-subst

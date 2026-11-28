@@ -30,7 +30,9 @@ import community_hierarchy.MCMC_core as native
 
 
 def _c2v(concentration: float) -> float:
-    return math.exp(math.lgamma(concentration + 0.5) - math.lgamma(0.5) - math.lgamma(concentration + 1))
+    return math.exp(
+        math.lgamma(concentration + 0.5) - math.lgamma(0.5) - math.lgamma(concentration + 1)
+    )
 
 
 def _set_partitions(items):
@@ -40,7 +42,7 @@ def _set_partitions(items):
     first, rest = items[0], items[1:]
     for p in _set_partitions(rest):
         for i in range(len(p)):
-            yield p[:i] + [[first] + p[i]] + p[i + 1:]
+            yield p[:i] + [[first] + p[i]] + p[i + 1 :]
         yield [[first]] + p
 
 
@@ -55,7 +57,7 @@ def _batch_se(trace, batches=50):
 # partition, whose posterior is q! exp(-(H_b + H_s + H_A_G_b)) over partitions.
 N6 = 6
 WINS6 = [{1: 1.0, 2: 1.0}, {2: 1.0}, {}, {4: 1.0, 5: 1.0}, {5: 1.0}, {0: 1.0}]
-TIES6 = [{}, {}, {3: 1.0}, {2: 1.0}, {}, {}]      # ties are listed in both directions
+TIES6 = [{}, {}, {3: 1.0}, {2: 1.0}, {}, {}]  # ties are listed in both directions
 SCORES6 = [0.9, 0.3, -0.4, 0.7, 0.1, -0.8]
 # The same network with uneven real-valued weights, for the weighted SBM
 WINS6W = [{1: 7.5, 2: 0.6}, {2: 3.2}, {}, {4: 0.4, 5: 9.0}, {5: 1.7}, {0: 2.3}]
@@ -66,15 +68,31 @@ def _state6(partition, seed=0, weighted=False):
     q = len(set(partition))
     vi = _c2v(1.0)
     return native.MCMC(
-        WINS6W if weighted else WINS6, TIES6W if weighted else TIES6, [],
-        list(partition), False,
-        list(SCORES6), True,
-        q, False,
+        WINS6W if weighted else WINS6,
+        TIES6W if weighted else TIES6,
+        [],
+        list(partition),
+        False,
+        list(SCORES6),
         True,
-        vi, True, vi, True, 0.5, True,
-        1.0, True, 1.0, True, 1.0, True,
+        q,
+        False,
+        True,
+        vi,
+        True,
+        vi,
+        True,
+        0.5,
+        True,
+        1.0,
+        True,
+        1.0,
+        True,
+        1.0,
+        True,
         seed,
-        0.4, 0.15,
+        0.4,
+        0.15,
         weighted,
     )
 
@@ -84,7 +102,9 @@ _EXACT6_CSV = Path(__file__).parents[1] / "data" / "outputs" / "exact6_partition
 
 def _exact6_fixture(weighted=False):
     """Mathematica's exact P(q), P(node 0 with node 1) and P(node 0 with node 3)."""
-    row = pd.read_csv(_EXACT6_CSV).set_index("network").loc["weighted" if weighted else "unweighted"]
+    row = (
+        pd.read_csv(_EXACT6_CSV).set_index("network").loc["weighted" if weighted else "unweighted"]
+    )
     Pq = np.r_[0.0, [row[f"P_q{q}"] for q in range(1, N6 + 1)]]
     return Pq, float(row["p_0_1"]), float(row["p_0_3"])
 
@@ -132,7 +152,7 @@ def _run6(moves, steps, seed, weighted=False, weighted_proposals=None):
     st = _state6(list(range(N6)), seed=seed, weighted=weighted)
     if weighted_proposals is not None:
         st.weighted_proposals = weighted_proposals
-    st.set_beta(1.0)            # the constructor leaves beta = 0 until the first MCMC_sweep
+    st.set_beta(1.0)  # the constructor leaves beta = 0 until the first MCMC_sweep
     rng = np.random.default_rng(seed)
     f = {
         "site": st.propose_single_site_move,
@@ -154,11 +174,14 @@ def _run6(moves, steps, seed, weighted=False, weighted_proposals=None):
 
 
 @pytest.mark.statistical
-@pytest.mark.parametrize("moves", [
-    ("site",),                          # block-informed node move alone (opens / vacates groups)
-    ("merge", "split"),                 # q-changing collective moves alone
-    ("site", "merge", "split", "ms"),   # the production mix of partition kernels
-])
+@pytest.mark.parametrize(
+    "moves",
+    [
+        ("site",),  # block-informed node move alone (opens / vacates groups)
+        ("merge", "split"),  # q-changing collective moves alone
+        ("site", "merge", "split", "ms"),  # the production mix of partition kernels
+    ],
+)
 def test_partition_kernels_match_exact_posterior(exact6, moves):
     Pq, p01, p03 = exact6
     q, s01, s03 = _run6(list(moves), 300_000, seed=11)
@@ -166,7 +189,8 @@ def test_partition_kernels_match_exact_posterior(exact6, moves):
     for name, trace, exact in [("E[q]", q, Eq), ("P(0~1)", s01, p01), ("P(0~3)", s03, p03)]:
         se = _batch_se(trace)
         assert abs(trace.mean() - exact) < 5 * se + 1e-3, (
-            f"{moves}: {name} = {trace.mean():.4f}, exact {exact:.4f}, 5 SE = {5 * se:.4f}")
+            f"{moves}: {name} = {trace.mean():.4f}, exact {exact:.4f}, 5 SE = {5 * se:.4f}"
+        )
 
 
 @pytest.mark.statistical
@@ -176,14 +200,20 @@ def test_weighted_partition_kernels_match_exact_posterior(weighted_proposals):
     (the default) or the binary edge counts; both must leave the exact
     partition posterior invariant."""
     Pq, p01, p03 = _exact6_fixture(weighted=True)
-    q, s01, s03 = _run6(["site", "merge", "split", "ms"], 300_000, seed=12,
-                        weighted=True, weighted_proposals=weighted_proposals)
+    q, s01, s03 = _run6(
+        ["site", "merge", "split", "ms"],
+        300_000,
+        seed=12,
+        weighted=True,
+        weighted_proposals=weighted_proposals,
+    )
     Eq = float(np.dot(np.arange(N6 + 1), Pq))
     for name, trace, exact in [("E[q]", q, Eq), ("P(0~1)", s01, p01), ("P(0~3)", s03, p03)]:
         se = _batch_se(trace)
         assert abs(trace.mean() - exact) < 5 * se + 1e-3, (
             f"weighted_proposals={weighted_proposals}: {name} = {trace.mean():.4f}, "
-            f"exact {exact:.4f}, 5 SE = {5 * se:.4f}")
+            f"exact {exact:.4f}, 5 SE = {5 * se:.4f}"
+        )
 
 
 @pytest.mark.statistical
@@ -196,13 +226,28 @@ def test_full_sweep_recovers_depth_prior_on_edgeless_network():
     n = 10
     vi = _c2v(1.0)
     st = native.MCMC(
-        [{} for _ in range(n)], [{} for _ in range(n)], [],
-        [i % 3 for i in range(n)], False,
-        [0.0] * n, False,
-        3, False,
+        [{} for _ in range(n)],
+        [{} for _ in range(n)],
+        [],
+        [i % 3 for i in range(n)],
         False,
-        vi, True, vi, True, 0.5, True,
-        1.0, False, 1.0, False, 1.0, True,
+        [0.0] * n,
+        False,
+        3,
+        False,
+        False,
+        vi,
+        True,
+        vi,
+        True,
+        0.5,
+        True,
+        1.0,
+        False,
+        1.0,
+        False,
+        1.0,
+        True,
         5,
     )
     st.adapting = True
@@ -214,16 +259,25 @@ def test_full_sweep_recovers_depth_prior_on_edgeless_network():
     for _ in range(60_000):
         st.MCMC_sweep(1.0, 1)
         g, i = st.group_depth, st.individual_depth
-        lg.append(math.log(g)); li.append(math.log(i)); icc.append(g * g / (g * g + i * i))
-    assert steps == (st.step_score, st.step_group_depth, st.step_individual_depth, st.step_group_score), \
-        "step sizes changed after adaptation was switched off"
-    for name, trace, exact in [("E[log sigma_G]", lg, math.log(4.0)),
-                               ("E[log sigma_I]", li, math.log(4.0)),
-                               ("E[ICC]", icc, 0.5)]:
+        lg.append(math.log(g))
+        li.append(math.log(i))
+        icc.append(g * g / (g * g + i * i))
+    assert steps == (
+        st.step_score,
+        st.step_group_depth,
+        st.step_individual_depth,
+        st.step_group_score,
+    ), "step sizes changed after adaptation was switched off"
+    for name, trace, exact in [
+        ("E[log sigma_G]", lg, math.log(4.0)),
+        ("E[log sigma_I]", li, math.log(4.0)),
+        ("E[ICC]", icc, 0.5),
+    ]:
         trace = np.asarray(trace)
         se = _batch_se(trace)
         assert abs(trace.mean() - exact) < 5 * se, (
-            f"{name} = {trace.mean():.4f}, exact {exact:.4f}, 5 SE = {5 * se:.4f}")
+            f"{name} = {trace.mean():.4f}, exact {exact:.4f}, 5 SE = {5 * se:.4f}"
+        )
 
 
 def test_fast_group_score_shift_matches_full_recompute():
@@ -240,26 +294,41 @@ def test_fast_group_score_shift_matches_full_recompute():
         if i == j:
             continue
         i, j = int(i), int(j)
-        if rng.random() < 0.2:                     # ties are listed in both directions
+        if rng.random() < 0.2:  # ties are listed in both directions
             ties[i][j] = ties[i].get(j, 0.0) + 1.0
             ties[j][i] = ties[j].get(i, 0.0) + 1.0
         else:
             wins[i][j] = wins[i].get(j, 0.0) + 1.0
     st = native.MCMC(
-        wins, ties, [],
-        [i % 4 for i in range(n)], False,
-        list(rng.normal(size=n)), False,
-        4, False,
+        wins,
+        ties,
+        [],
+        [i % 4 for i in range(n)],
+        False,
+        list(rng.normal(size=n)),
+        False,
+        4,
+        False,
         True,
-        0.5, False, 0.5, False, 0.5, True,
-        1.3, False, 0.8, False, 0.7, False,
+        0.5,
+        False,
+        0.5,
+        False,
+        0.5,
+        True,
+        1.3,
+        False,
+        0.8,
+        False,
+        0.7,
+        False,
         1,
     )
     for _ in range(5000):
         st.propose_group_score_move()
     assert st.accepted_group_score_proposals > 500
     st.check_state_bookkeeping(True)
-    for _ in range(200):          # and inside full sweeps, mixed with every other move
+    for _ in range(200):  # and inside full sweeps, mixed with every other move
         st.MCMC_sweep(1.0, 1)
     st.check_state_bookkeeping(True)
 
@@ -283,18 +352,44 @@ def test_depth_moves_recover_the_prior_without_data(scale_move):
     try:
         uI, uG = [], []
         for seed in range(8):
-            st = native.MCMC(empty, empty, [], part, True, [0.0] * N, False, 3, True, False,
-                             0.5, True, 0.5, True, 0.5, True, 1.0, False, 1.0, False, 0.0, True,
-                             seed, 0.1, 0.1)
-            st.adapting = True                     # tune the steps during burn-in, as fit() does
+            st = native.MCMC(
+                empty,
+                empty,
+                [],
+                part,
+                True,
+                [0.0] * N,
+                False,
+                3,
+                True,
+                False,
+                0.5,
+                True,
+                0.5,
+                True,
+                0.5,
+                True,
+                1.0,
+                False,
+                1.0,
+                False,
+                0.0,
+                True,
+                seed,
+                0.1,
+                0.1,
+            )
+            st.adapting = True  # tune the steps during burn-in, as fit() does
             for _ in range(2000):
                 st.MCMC_sweep(1.0, 1)
             st.adapting = False
             a, b = [], []
             for _ in range(20000):
                 st.MCMC_sweep(1.0, 1)
-                a.append(cdf(st.individual_depth)); b.append(cdf(st.group_depth))
-            uI.append(a); uG.append(b)
+                a.append(cdf(st.individual_depth))
+                b.append(cdf(st.group_depth))
+            uI.append(a)
+            uG.append(b)
     finally:
         native.set_individual_depth_scale_move(1)
     for name, u in (("sigma_I", np.array(uI)), ("sigma_G", np.array(uG))):
@@ -302,6 +397,11 @@ def test_depth_moves_recover_the_prior_without_data(scale_move):
         se = means.std(ddof=1) / math.sqrt(len(means))
         assert abs(means.mean() - 0.5) < max(4 * se, 0.02), (name, means.mean(), se)
         for q in (0.1, 0.5, 0.9):
-            per_chain = (u < q).mean(1)            # fraction below the q-quantile of the prior
+            per_chain = (u < q).mean(1)  # fraction below the q-quantile of the prior
             se_q = per_chain.std(ddof=1) / math.sqrt(len(per_chain))
-            assert abs(per_chain.mean() - q) < max(4 * se_q, 0.02), (name, q, per_chain.mean(), se_q)
+            assert abs(per_chain.mean() - q) < max(4 * se_q, 0.02), (
+                name,
+                q,
+                per_chain.mean(),
+                se_q,
+            )

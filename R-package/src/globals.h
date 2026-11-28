@@ -13,9 +13,11 @@
 // with tol = NUMERICAL_CHECK_EPSILON unless the call site passes a larger one.
 const double NUMERICAL_CHECK_EPSILON = 1e-6;  // absolute part
 const double NUMERICAL_CHECK_REL_TOL = 1e-9;  // relative part (incremental round-off)
-const double CONCENTRATION_EPSILON = 1e-12; // Small value to avoid zero concentration parameters
-const double MAX_CONCENTRATION = 1e8; // Maximum concentration parameter before approximating with multinomial
-const double PARAMETER_PROPOSAL_STEP_SIZE = 0.01; // initial CDF-space step of the parameter moves (adapted in burn-in)
+const double CONCENTRATION_EPSILON = 1e-12;   // Small value to avoid zero concentration parameters
+const double MAX_CONCENTRATION =
+    1e8;  // Maximum concentration parameter before approximating with multinomial
+const double PARAMETER_PROPOSAL_STEP_SIZE =
+    0.01;  // initial CDF-space step of the parameter moves (adapted in burn-in)
 // Per-parameter proposal step sizes (can be tuned independently)
 const double VARIATION_IN_STEP_SIZE = PARAMETER_PROPOSAL_STEP_SIZE;
 const double VARIATION_OUT_STEP_SIZE = PARAMETER_PROPOSAL_STEP_SIZE;
@@ -23,7 +25,8 @@ const double DEGREE_CORRECTION_STEP_SIZE = PARAMETER_PROPOSAL_STEP_SIZE;
 const double INDIVIDUAL_DEPTH_STEP_SIZE = PARAMETER_PROPOSAL_STEP_SIZE;
 const double GROUP_DEPTH_STEP_SIZE = PARAMETER_PROPOSAL_STEP_SIZE;
 const double TIES_PARAMETER_STEP_SIZE = PARAMETER_PROPOSAL_STEP_SIZE;
-const double GROUP_SCORE_STEP_SIZE = 0.1; // INITIAL RW step (scaled-score units) for the group-score shift; adapted in burn-in
+const double GROUP_SCORE_STEP_SIZE =
+    0.1;  // INITIAL RW step (scaled-score units) for the group-score shift; adapted in burn-in
 
 // ---- step-size adaptation (burn-in only; frozen for sampling) ----
 // Robbins-Monro on log step: log s += gamma_t (accepted - target),
@@ -37,9 +40,10 @@ const double ADAPT_GAIN = 0.5;
 const double ADAPT_T0 = 20.0;
 const double ADAPT_KAPPA = 0.6;
 const double ADAPT_MIN_STEP = 1e-5;
-const double ADAPT_MAX_STEP_CDF = 0.5;   // CDF-space steps (scores, depths, ties, densities, variations)
+const double ADAPT_MAX_STEP_CDF =
+    0.5;  // CDF-space steps (scores, depths, ties, densities, variations)
 const double ADAPT_MAX_STEP_GROUP_SCORE = 10.0;
-const double SCORE_STEP_SIZE = 0.01;     // INITIAL CDF-space step of single-node score moves
+const double SCORE_STEP_SIZE = 0.01;  // INITIAL CDF-space step of single-node score moves
 
 // ---- proposal mix ----
 // Each free continuous parameter is proposed PARAMETER_MOVE_WEIGHT times as often
@@ -70,7 +74,6 @@ extern double INDIVIDUAL_DEPTH_CENTRED_PROB;
 // scores (dense or weighted networks).  Mutable for benchmarking.
 extern int INDIVIDUAL_DEPTH_SCALE_MOVE;
 
-
 // ---- single-node group move (Peixoto 2020, Phys. Rev. E 102, 012305, Eq. 15) ----
 // With probability BLOCK_NEW_GROUP_PROB the node moves to a new group; otherwise
 // s ~ P_e(s | i, b) (Eq. 14): a uniform neighbour j, t = b_j, then s with
@@ -78,8 +81,8 @@ extern int INDIVIDUAL_DEPTH_SCALE_MOVE;
 const double BLOCK_SITE_EPS = 0.5;
 const double BLOCK_NEW_GROUP_PROB = 0.01;
 
-
-const double DEPTH_PRIOR_WIDTH = 4.0; // scale of the half-Cauchy prior on individual_depth, group_depth and ties_parameter
+const double DEPTH_PRIOR_WIDTH =
+    4.0;  // scale of the half-Cauchy prior on individual_depth, group_depth and ties_parameter
 
 // One generator PER THREAD.  fit() runs each chain on its own std::async thread,
 // and MCMC constructors call rng.seed(seed).  With a single shared
@@ -93,7 +96,6 @@ extern thread_local std::mt19937 rng;
 // Not std::uniform_real_distribution: implementation-defined, so a seeded run
 // would differ between libstdc++ and libc++ (wasm).  See rng.h.
 inline constexpr UniformRandom uniform_random{};
-
 
 // ---- merge/split tuning (auxiliary: cannot affect correctness) ----
 // Number of Gibbs sweeps used to refine a split during STAGING.  This is the
@@ -153,4 +155,4 @@ extern double MERGE_SPLIT_WEIGHT;
 // sweep as the single-node moves".  See package-testing/asbm/merge_split_weight.
 extern double MERGE_SPLIT_EQUAL_SPEND_C;
 
-#endif // GLOBALS_H
+#endif  // GLOBALS_H
