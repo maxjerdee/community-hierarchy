@@ -8,6 +8,8 @@ build:
   tools:
     python: "3.12"
   commands:
+    # RTD clones shallow and without tags; setuptools_scm needs the tags for the version
+    - git fetch --unshallow --tags || git fetch --tags
     - asdf plugin add uv
     - asdf install uv latest
     - asdf global uv latest
