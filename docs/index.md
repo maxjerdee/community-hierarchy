@@ -3,15 +3,14 @@
 ```{toctree}
 :maxdepth: 2
 :hidden:
-:caption: Contents:
-:glob:
+:caption: Contents
 
-modules.md
-examples/prediction.md
-examples/speed_test.md
-examples/visualization.md
+model.md
+api.md
+examples/quickstart.md
+examples/paper.md
+design.md
 ```
-
 
 ```{include} ../README.md
 :start-after: <!-- SPHINX-START -->

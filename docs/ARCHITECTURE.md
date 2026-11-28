@@ -30,7 +30,7 @@ the end of every sweep (`check_state_bookkeeping`, which throws on mismatch):
 | `H_M` | block edge counts, negative binomial with means `density_in n_r²/2`, `density_out n_r n_s` | b, densities, variations |
 | `H_k` | degrees within groups, Dirichlet-multinomial (multinomial when no degree correction) | b, degree_correction |
 | `H_A_G_k_M_b` | edge placement given block counts and degrees (configuration model) | b |
-| `H_W` | weighted SBM only: edge weights uniform on the simplex of each block pair's total | b |
+| `H_W` | weighted SBM only: edge weights uniform on the simplex of each block pair's total, and the totals of the Q block pairs with edges uniform on the simplex of the overall weight, (Q−1)!/w^(Q−1); counting only pairs with edges keeps the partition posterior independent of the weight unit | b |
 | `H_A_G_b` | `H_M + H_k + H_A_G_k_M_b (+ H_W)`: the undirected network given b | |
 | `H_Adir_G_A_s_nu` | edge directions given scores: Bradley–Terry with ties (a tie ∝ `ties_parameter·e^{(s_i+s_j)/2}`) | s, ties_parameter |
 | `H_s_G_b_depths` | score prior given the partition: `s_i = c_r + ε_i`, group means `c_r` integrated out | s, b, individual_depth, group_depth |
@@ -38,11 +38,21 @@ the end of every sweep (`check_state_bookkeeping`, which throws on mismatch):
 The undirected network is `wins + ties`, or, in **two-layer mode**
 (`group_graph=`), a separate undirected graph drives the communities while
 `wins`/`ties` still drive the directions. Edge weights are integer
-multiplicities except in `weighted_SBM` mode.
+multiplicities except in `weighted_SBM` mode. Exception: with
+`hierarchy_model="bradley_terry"` (ties fixed at zero) `fit()` currently drops neutral
+edges altogether, from the communities as well as the hierarchy, because the core gives
+a tie probability 0 there (open item in `TODO.md`).
 
-Scores are stored scaled, `x_i = s_i / individual_depth` (`scaled_scores`), and
-`H_s_G_b_depths` is the density of `x` (there is no Jacobian term to add when
-`individual_depth` changes with `x` held fixed).
+Input handling (`input_output.py`) rejects, before the core is built: self-loops in
+either layer; weights that are not finite and positive (and non-integer weights unless
+`weighted_SBM`); explicit values that the chosen model fixes (e.g. `group_depth` with
+`interaction="independent"`). The initial partition is built in `G.nodes()` order in
+both modes.
+
+The state holds the scores `s_i` themselves (and per-group sums of them), and
+`H_s_G_b_depths` is the density of `s`:
+`s ~ N(0, individual_depth²/2 · I + group_depth²/2 · B)`, `B` the same-group
+indicator. Every move that rescales scores carries its Jacobian in `s`.
 
 ## Tempering convention
 
@@ -59,11 +69,16 @@ is reversible with respect to `exp(-H_s_G_b_depths)`). It is documented at
 
 | move | where | why it is valid |
 |---|---|---|
-| single-site | `propose_single_site_move` | proposal drawn from the partition prior (arXiv:2501.07668), so `H_b` cancels; accept on `beta·ΔH_A_G_b + ΔH_s` |
+| single-site | `propose_single_site_move` | block-informed proposal of Peixoto (2020) Eq. 14/15, c = 0.5, new group with d = 0.01; Hastings ratio of the proposals; accept on `ΔH_b + beta·ΔH_A_G_b + ΔH_s` (with the label factor when q changes) |
 | merge / split / joint merge-split | `MCMC_merge_split.cpp` | Peixoto arXiv:2003.07070 with staged splits as auxiliary variables; label-multiplicity factor for a label-array representation; pitfalls P1–P5 documented in the file |
-| score | `propose_score_move` | CDF-space random walk on the exact conditional of `x_i` under the score prior; accept on `beta·ΔH_Adir` |
+| score | `propose_score_move` | CDF-space random walk on the exact conditional of `s_i` under the score prior; accept on `beta·ΔH_Adir` |
 | group score shift | `propose_group_score_move` | symmetric random walk shifting all of one group's scores; accept on `beta·ΔH_Adir + ΔH_s` |
 | parameters | `propose_parameter_move` → `change_parameter` | random walks in each prior's CDF space (reflected), so the prior cancels |
+| `individual_depth` (σ_I), two kernels by a fixed ½ coin | `propose_individual_depth_centred`, `propose_individual_depth_residual` | (1) scores fixed: accept on `ΔH_s`, no Jacobian; (2) deviations from group means scaled by λ = σ_I'/σ_I, group means fixed: accept on `ΔH_s + beta·ΔH_Adir`, Jacobian λ^(n−q) |
+| `group_depth` (σ_G), two kernels by a fixed ½ coin | `change_parameter`, `propose_group_depth_rescale` | (1) scores fixed: accept on `ΔH_s`; (2) group means scaled by λ = σ_G'/σ_G, deviations fixed: accept on `ΔH_s + beta·ΔH_Adir`, Jacobian λ^q |
+
+Each kernel has its own step size. Steps adapt during burn-in only (Robbins–Monro
+on the log step towards acceptance 0.44) and are frozen for sampling.
 
 Priors on parameters: variations and degree correction Uniform(0,1); densities
 Exponential(1); `individual_depth`, `group_depth`, `ties_parameter`

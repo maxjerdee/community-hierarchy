@@ -27,6 +27,7 @@ exclude_patterns = [
     ".DS_Store",
     ".env",
     ".venv",
+    "ARCHITECTURE.md",   # included by design.md
 ]
 
 html_theme = "furo"
@@ -51,15 +52,38 @@ html_theme_options: dict[str, Any] = {
 
 myst_enable_extensions = [
     "colon_fence",
+    "dollarmath",
 ]
+myst_heading_anchors = 3
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "pandas": ("https://pandas.pydata.org/docs/", None),
+    "networkx": ("https://networkx.org/documentation/stable/", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
 }
 
 nitpick_ignore = [
     ("py:class", "_io.StringIO"),
     ("py:class", "_io.BytesIO"),
 ]
+# NumPy-style type descriptions that are not classes: literal choices ({"a", "b"}),
+# ranges ("float in [0, 1]", "int >= 1"), and the words "optional", "sequence", ...
+nitpick_ignore_regex = [
+    ("py:class", r'.*["{}\[\]<>=].*'),
+    ("py:class", r".* .*"),
+    ("py:class", r"\d+(\.\d+)?"),
+    ("py:class", r"optional|sequence|array-like|default|callable|iterable|hashable|path-like|or|"
+                 r"colormap|colors|collection|n_nodes|shape"),
+    ("py:class", r"pandas\.core\..*"),
+]
+autodoc_type_aliases = {"Result": "community_hierarchy.Result"}
+napoleon_preprocess_types = True
+napoleon_type_aliases = {
+    "nx.Graph": "networkx.Graph", "nx.DiGraph": "networkx.DiGraph",
+    "nx.MultiDiGraph": "networkx.MultiDiGraph",
+    "pd.DataFrame": "pandas.DataFrame", "np.ndarray": "numpy.ndarray",
+}
 
 always_document_param_types = True

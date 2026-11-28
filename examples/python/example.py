@@ -5,17 +5,20 @@ import matplotlib.pyplot as plt
 
 import community_hierarchy as ch
 
+# International football, 2023-2026: one edge per competitive match, from the
+# winner to the loser (type="dominant"), or a draw (type="neutral").
 here = Path(__file__).resolve().parents[1]
-G = nx.read_gml(here / "data" / "networks" / "english-football.gml", label="id")
+G = nx.read_gml(here / "paper" / "international_football" / "data" / "football_group_stage.gml",
+                label="label")
 
 result = ch.fit(
-    ch.Config(),
+    ch.Config(),          # draws are modelled because G has neutral edges
     G,
-    num_chains=1,
-    samples_per_chain=500,
-    burn_sweeps=500,
+    num_chains=2,
+    samples_per_chain=300,
+    burn_sweeps=100,
     seed=1,
-    # show_progress=False,
+    timeout=300,
     show_progress=True,
 )
 
@@ -30,7 +33,7 @@ npdf = result.network_properties_df()
 print(npdf.to_string(index=False))
 
 # Per-node posterior summary: scores, community labels, group mean score.
-# Uses consensus partition for n ≤ 3000 (the Bayesian posterior summary).
+# Groups are the maximum-overlap consensus partition (a posterior summary).
 print("\nTop nodes by score:")
 node_df = result.node_properties_df()
 print(node_df.sort_values("score_mean", ascending=False).head().to_string(index=False))
@@ -51,11 +54,18 @@ plt.close(fig_a)
 print("Saved node properties plot to:", plot_a)
 
 # Adjacency matrix reordered by inferred community
-fig_b, _ = ch.plot_adjacency_matrix(result, G, title="english-football")
+fig_b, _ = ch.plot_adjacency_matrix(result, G, title="international football")
 plot_b = Path(__file__).resolve().parent / "adjacency.png"
 fig_b.savefig(plot_b, dpi=150, bbox_inches="tight")
 plt.close(fig_b)
 print("Saved adjacency matrix to:", plot_b)
+
+# Description-length trace, one line per chain
+fig_c, _ = ch.plot_MCMC_entropy(result)
+plot_c = Path(__file__).resolve().parent / "description_length.png"
+fig_c.savefig(plot_c, dpi=150)
+plt.close(fig_c)
+print("Saved description-length trace to:", plot_c)
 
 # q trajectory convergence diagnostic
 fig, ax = plt.subplots(figsize=(8, 3))

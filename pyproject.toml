@@ -14,7 +14,7 @@ license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.10,<3.14"
 classifiers = [
-  "Development Status :: 1 - Planning",
+  "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
   "Intended Audience :: Developers",
   "Operating System :: OS Independent",
@@ -34,11 +34,11 @@ dependencies = [
     "numpy >= 1.26.0",
     "pandas >= 2.2.0, < 3.0",
     "networkx >= 3.0",
-    "tqdm >= 4.65.0",
 ]
 
 [project.urls]
 Homepage = "https://github.com/maxjerdee/community-hierarchy"
+Documentation = "https://community-hierarchy.readthedocs.io"
 "Bug Tracker" = "https://github.com/maxjerdee/community-hierarchy/issues"
 Discussions = "https://github.com/maxjerdee/community-hierarchy/discussions"
 Changelog = "https://github.com/maxjerdee/community-hierarchy/releases"
@@ -66,6 +66,8 @@ minimum-version = "build-system.requires"
 build-dir = "build/{wheel_tag}"
 metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
 sdist.include = ["python/community_hierarchy/src/community_hierarchy/_version.py"]
+# The paper examples (data, results, figures) live in the repository only
+sdist.exclude = ["examples/"]
 wheel.packages = ["python/community_hierarchy/src/community_hierarchy"]
 
 
@@ -80,6 +82,9 @@ skip = "*-manylinux_i686 *-musllinux_i686 *-win32"
 # Smoke test of the installed wheel (the full suite, with its long statistical
 # tests, runs locally and in development, not once per wheel)
 test-command = "python {project}/tests/smoke_wheel.py"
+# Test the oldest and newest Python on each platform; the others share the same
+# code and compiler, and installing the dependencies dominates the time per wheel.
+test-skip = "cp311-* cp312-* *-musllinux_*"
 
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "manylinux_2_28"
@@ -93,7 +98,7 @@ addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
 xfail_strict = true
 # Sampling-based checks: correct but slow, and they dominate the suite.
 #   pytest -m "not statistical"   fast loop while editing
-#   pytest                        everything, as CI runs it
+#   pytest                        everything (before a release; CI runs only tests/smoke_wheel.py)
 markers = [
   "statistical: needs a real MCMC run; slow and tolerance-based",
 ]
