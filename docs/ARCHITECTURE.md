@@ -8,8 +8,8 @@ the sampler.
 
 | layer | files | role |
 |---|---|---|
-| Python API | `python/community_hierarchy/src/community_hierarchy/core.py` | `Config`, `fit()`, `Result` (summaries, plots) |
-| input handling | `.../input_output.py` | input validation, GML output, plotting |
+| Python API | `python/community_hierarchy/src/community_hierarchy/`: `config.py`, `fitting.py`, `result.py` | `Config` and its checks; `fit()`; `Result` (summaries) |
+| Python input and output | `.../checks.py`, `.../plots.py`, `.../gml.py` | argument and edge checks, node attributes; plots; GML output |
 | R API | `R-package/` | `ch_config()`, `ch_fit()`, summaries; a copy of `src/` (`tools/sync_r_core.py`) |
 | binding | `bindings/python/bindings.cpp` | pybind11: `fit_backend`, `FitResult`, and the raw `MCMC` class |
 | model presets | `src/model_presets.{h,cpp}` | named presets + explicit values → sampler parameters, and their checks (every binding) |
@@ -47,7 +47,7 @@ multiplicities except in `weighted_SBM` mode. `fit()` rejects
 because a draw has probability 0 under it. The core itself, if given ties with
 `ties_parameter` fixed at 0, keeps them in the SBM and out of `H_Adir`.
 
-Input handling (`input_output.py`) rejects, before the core is built: self-loops in
+Input handling (`checks.py`, and `R/fit.R` in R) rejects, before the core is built: self-loops in
 either layer; weights that are not finite and positive (and non-integer weights unless
 `weighted_SBM`); explicit values that the chosen model fixes (e.g. `group_depth` with
 `interaction="independent"`). The initial partition is built in `G.nodes()` order in

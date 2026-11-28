@@ -199,7 +199,7 @@ def test_imports_alongside_community_hierarchy(first):
     second = "community_hierarchy" if first == "asbm" else "asbm"
     code = (
         f"import {first}, {second}; "
-        "import asbm.core as ac, community_hierarchy.core as dc; "
+        "import asbm.core as ac, community_hierarchy.fitting as dc; "
         "assert ac.fit_backend is not None, 'asbm native backend failed to load'; "
         "assert dc._fit_backend is not None, 'community_hierarchy native backend failed to load'; "
         "import asbm._asbm, community_hierarchy.MCMC_core as dm; "
@@ -518,7 +518,7 @@ def test_numpy_partition_labels_and_seed_are_accepted():
 
 def test_initial_partition_in_two_layer_mode_follows_G_node_order():
     from community_hierarchy.MCMC_core import build_group_layer, greedy_modularity_partition
-    from community_hierarchy.input_output import _group_graph_edges
+    from community_hierarchy.checks import _group_graph_edges
 
     group_graph = nx.Graph()
     group_graph.add_nodes_from([0, 4, 1, 5, 2, 6, 3, 7])  # a different order
@@ -534,7 +534,7 @@ def test_initial_partition_in_two_layer_mode_follows_G_node_order():
 
 def test_multigraph_group_graph_sums_parallel_edges():
     from community_hierarchy.MCMC_core import build_group_layer
-    from community_hierarchy.input_output import _group_graph_edges
+    from community_hierarchy.checks import _group_graph_edges
 
     gg = nx.MultiGraph()
     gg.add_edge(0, 1, weight=2.0)

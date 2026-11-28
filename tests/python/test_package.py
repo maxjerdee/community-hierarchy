@@ -333,7 +333,7 @@ def _make_fake_native_result(G):
 
 def test_fit_forwards_seed_and_chains_to_backend(monkeypatch):
     """fit() must pass seed, num_chains, num_warmup, num_samples to backend."""
-    import community_hierarchy.core as core_mod
+    import community_hierarchy.fitting as core_mod
 
     captured = {}
     _real_backend = core_mod._fit_backend
@@ -361,7 +361,7 @@ def test_initial_partition_wrong_length_raises():
 
 def test_initial_partition_explicit_is_used(monkeypatch):
     """An explicit initial_partition of the correct length is forwarded to the backend."""
-    import community_hierarchy.core as core_mod
+    import community_hierarchy.fitting as core_mod
 
     captured = {}
     _real_backend = core_mod._fit_backend
@@ -640,7 +640,7 @@ def test_tempering_swap_uses_full_energy():
 
 def test_fit_forwards_num_tempering_chains(monkeypatch):
     """fit() must forward num_tempering_chains to the backend when provided."""
-    import community_hierarchy.core as core_mod
+    import community_hierarchy.fitting as core_mod
 
     captured = {}
     _real_backend = core_mod._fit_backend
