@@ -1,0 +1,34 @@
+Package: communityhierarchy
+Type: Package
+Title: Joint Inference of Communities and Hierarchy in Directed Networks
+Version: 0.5.0.9000
+Authors@R:
+    person("Maximilian", "Jerdee", email = "mjerdee@santafe.edu",
+           role = c("aut", "cre", "cph"))
+Description: Fits a joint Bayesian model of community structure and ranking
+    in directed networks of wins, losses and draws, and measures how much of the
+    ranking the communities explain. The undirected network follows a
+    degree-corrected stochastic block model (Peixoto 2017
+    <doi:10.1103/PhysRevE.95.012317>), each interaction is decided by the
+    Bradley-Terry model, with draws as in Davidson (1970)
+    <doi:10.1080/01621459.1970.10481082>, and a node's score is its group's score
+    plus an individual deviation. The posterior is sampled by Markov chain Monte
+    Carlo with merge-split moves (Peixoto 2020 <doi:10.1103/PhysRevE.102.012305>)
+    in a C++ core shared with the 'Python' package 'community-hierarchy'.
+License: MIT + file LICENSE
+URL: https://github.com/maxjerdee/community-hierarchy,
+    https://community-hierarchy.readthedocs.io
+BugReports: https://github.com/maxjerdee/community-hierarchy/issues
+Encoding: UTF-8
+Depends: R (>= 4.0)
+Imports:
+    igraph (>= 1.2),
+    Rcpp,
+    stats
+LinkingTo: Rcpp
+Suggests:
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+SystemRequirements: C++17
+RoxygenNote: 7.3.3
+Roxygen: list(markdown = TRUE)
