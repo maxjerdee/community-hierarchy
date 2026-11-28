@@ -31,9 +31,14 @@ FitResult fit(FitParams p) {
         // (Previously each replica passed its own seed, but every constructor
         // reseeded the same thread_local generator, so only the last one counted.)
         // With one replica this is the same seed as before: seed + chain.
-        rng.seed(static_cast<std::mt19937::result_type>(p.seed + chain_id));
+        // seed + chain in 64-bit arithmetic: an int sum overflows (undefined
+        // behaviour) for seeds near INT_MAX.  For every seed that did not overflow
+        // the resulting generator seeds are unchanged.
+        const std::uint64_t chain_seed =
+            static_cast<std::uint64_t>(static_cast<std::int64_t>(p.seed) + static_cast<std::int64_t>(chain_id));
+        rng.seed(static_cast<std::mt19937::result_type>(chain_seed));
 
-        std::mt19937_64 init_rng(static_cast<std::uint64_t>(p.seed + chain_id) * 2654435761ULL);
+        std::mt19937_64 init_rng(chain_seed * 2654435761ULL);
 
         for (int ci = 0; ci < p.num_tempering_chains; ++ci) {
             double vi  = p.variation_in.value_or(next_uniform(init_rng));
@@ -64,6 +69,7 @@ FitResult fit(FitParams p) {
                 -1.0, -1.0,
                 p.weighted_SBM
             );
+            chain_stack.back().weighted_proposals = p.weighted_SBM && p.weighted_proposals;
         }
 
         // Beta schedule: [0, ..., beta] on a log scale; single chain → [beta].
@@ -81,7 +87,7 @@ FitResult fit(FitParams p) {
             }
         }
 
-        std::mt19937_64 swap_rng(static_cast<std::uint64_t>(p.seed + chain_id) + 999983ULL);
+        std::mt19937_64 swap_rng(chain_seed + 999983ULL);
 
         // Swap criterion: the tempered energy, i.e. the data likelihood terms only.
         // Every move targets exp(-(H_b + H_s_G_b_depths + priors + beta * H_total)),

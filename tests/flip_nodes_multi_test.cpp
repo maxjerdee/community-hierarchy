@@ -69,7 +69,7 @@ void make_graph(unsigned seed) {
 
 MCMC build(const std::vector<int>& partition, int q, int seed) {
     // Depth/ties parameters default to U(0,1) draws in fit.cpp, so 0.0 is
-    // degenerate (it makes scaled_scores NaN).  Use 0.5, and give the nodes
+    // degenerate (the score prior divides by sigma_I).  Use 0.5, and give the nodes
     // distinct scores so the score-dependent terms are actually exercised.
     std::vector<double> scores(N);
     for (int i = 0; i < N; ++i) scores[i] = (i - N / 2) / static_cast<double>(N);

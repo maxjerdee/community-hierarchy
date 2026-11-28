@@ -2,9 +2,8 @@
 //  Merge and split moves  (Peixoto, arXiv:2003.07070, Eqs. 17, 32, 33, 34, 38)
 // =============================================================================
 //
-//  Ported from the validated reference implementation
-//  NetworksProjects/Community/MCMC/merge_split_mcmc.py, which is checked against
-//  the exact partition prior (uniform P(q)) and per-move detailed balance.
+//  Validated by tests/merge_split_test.cpp against the exact partition prior
+//  (uniform P(q)) and an exact enumeration of the partition target.
 //
 //  THE ONE IDEA THAT MAKES THIS WORK (Eqs. 25-27): the staged split is an
 //  AUXILIARY VARIABLE.  Detailed balance in the augmented space is independent
@@ -14,17 +13,17 @@
 //  sum over every intermediate trajectory and is intractable; not needing it is
 //  the whole point.
 //
-//  PITFALLS -- every one of these was a real bug found by testing, and three of
-//  them are live in netgroups/src/MCMC_merge_split.cpp:
+//  PITFALLS -- every one of these was a real bug found by testing in an
+//  earlier implementation:
 //
 //   P1. Do NOT multiply the forward split probability by the prestage/staging
-//       probability.  (netgroups gets this right.)
+//       probability.
 //   P2. The reverse split must stage THE MERGED GROUP, not a random one.
 //   P3. The reverse staging must draw from the SAME distribution the forward
 //       split uses -- i.e. call the same staging routine.
 //   P4. The Gibbs sweep is ORDER-DEPENDENT.  Both directions must walk the
-//       nodes in the same canonical order.  We sort.  netgroups takes the order
-//       from group_members, whose order is history-dependent -- a silent bias.
+//       nodes in the same canonical order.  We sort.  Taking the order from
+//       group_members, whose order is history-dependent, is a silent bias.
 //   P5. [AGGREGATE] Because this is a LABEL-ARRAY representation, two distinct
 //       labellings can describe the same partition, and their probabilities
 //       must be SUMMED:
@@ -209,18 +208,10 @@ void MCMC::set_split_assignment(const std::vector<int>& nodes, int ga, int gb,
 }
 
 // -----------------------------------------------------------------------------
-//  Prestage + M staging sweeps for `nodes`, currently all in group `ga`.
-//  Creates the second side as a brand-new group and returns its index.
+//  Prestage strategies.  AUXILIARY: no probability is computed or returned (P1).
 //
-//  AUXILIARY: no probability is computed or returned (P1).  Peixoto samples the
-//  prestage uniformly from three strategies; we implement his "random split"
-//  (size m uniform in [1,k-1], then a uniform subset of that size).  Note that
-//  this is NOT a uniform random bitmask, which would weight m by C(k,m) and so
-//  almost always produce a balanced split.  Adding his sequential spreading and
-//  sequential coalescence strategies would improve the acceptance rate; being
-//  auxiliary, they cannot affect correctness.
-// -----------------------------------------------------------------------------
-//  Peixoto samples the prestage uniformly from THREE strategies, and is explicit
+//  Peixoto samples the prestage uniformly from THREE strategies (all three are
+//  implemented below; MERGE_SPLIT_PRESTAGE_MODE selects), and is explicit
 //  that the variety is the point: "counterintuitively, what we need is a variety
 //  of split proposals, that are both good and bad".  Good splits let good splits
 //  be proposed; bad splits are what let a bad MERGE be accepted, since a merge's
@@ -345,18 +336,6 @@ double MCMC::split_partition_logprob(const std::vector<int>& nodes, int ga, int 
     const double m = std::max(lp1, lp2);
     return m + std::log((lp1 == NEG_INF ? 0.0 : std::exp(lp1 - m)) +
                         (lp2 == NEG_INF ? 0.0 : std::exp(lp2 - m)));
-}
-
-// -----------------------------------------------------------------------------
-//  [AGGREGATE] (b): log P of proposing a particular merged partition.  An
-//  ordered pair (r,s) is drawn uniformly with probability 1/(K(K-1)), but
-//  merging r into s and s into r give the SAME partition, so the outcome has
-//  probability 2/(K(K-1)).
-// -----------------------------------------------------------------------------
-double MCMC::merge_logprob(int K) const {
-    if (K < 2) return NEG_INF;
-    return std::log(2.0) - std::log(static_cast<double>(K))
-                         - std::log(static_cast<double>(K - 1));
 }
 
 // =============================================================================
@@ -496,13 +475,13 @@ void MCMC::propose_merge_move() {
 //  posterior pins down q but not the assignment -- exactly the regime where a
 //  plain merge followed later by a plain split would have to cross a barrier.
 //
-//  Two simplifications fall out of q being unchanged:
-//    * both directions draw an ordered pair from the SAME number of groups, so
-//      the 2/(K(K-1)) merge factors cancel;
-//    * the label-multiplicity factor is q!/q'! = 1, so there is NO (K+1) or 1/K
-//      term here.  That is a real difference from the plain moves, not an
-//      oversight.
-//  Only the two final-sweep probabilities survive in the ratio.
+//  The pair {r, s} is chosen with Peixoto's block-informed probabilities
+//  (2020, Eq. 19; pair_logprob), which depend on the state, so the forward and
+//  reverse pair probabilities do NOT cancel and both enter the ratio.  Because q
+//  is unchanged, the label-multiplicity factor is q!/q'! = 1: there is NO (K+1)
+//  or 1/K term here.  That is a real difference from the plain moves, not an
+//  oversight.  The ratio is the two final-sweep probabilities and the two pair
+//  probabilities.
 // =============================================================================
 void MCMC::propose_merge_split_move() {
     merge_split_proposals++;

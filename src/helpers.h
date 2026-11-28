@@ -14,6 +14,8 @@ double log_binom(double a, double b);
 
 // Logarithm of the factorial
 double log_factorial(int n);
+// log Gamma(x + 1): log x! for integer x, its continuous extension for real x
+double log_factorial_real(double x);
 
 // Logarithm of the double factorial
 double log_factorial2(int n);
@@ -25,16 +27,17 @@ double log_neg_binom(int x, double mean, double concentration);
 double log_sum_exp(double a, double b);
 double log_sum_exp(std::vector<double> xs);
 
-// Compute the log(mean) and standard error of that assessment given log values
-std::pair<double, double> log_mean_and_se(std::vector<double> log_vals);
-
-// Inverse erf
-double inverse_erf(double x);
-
-// Value consistency check: compare actual vs bookkeeping value, optionally throw error
+// Value consistency check: with throw_error, throw if
+// |actual - bookkeeping| > tolerance + NUMERICAL_CHECK_REL_TOL * |actual| (or NaN);
+// returns actual
 double value_check(double actual, double bookkeeping, double tolerance, bool throw_error, const std::string& name);
 
-// Convert between variation (Gini) and concentration (Dirichlet) parameters
+// Convert between variation and concentration parameters.  The "variation" of a
+// concentration (shape) c is the Gini coefficient of a Gamma(c) variable,
+//     G(c) = Gamma(c + 1/2) / (sqrt(pi) Gamma(c + 1)),
+// which falls from 1 (c -> 0) through 1/2 (c = 1) to 0 (c -> infinity).  It is used
+// for the negative-binomial edge counts (H_M) and the Dirichlet-multinomial
+// degrees (H_k), so that both overdispersions live on [0, 1].
 double concentration_to_variation(double concentration);
 double variation_to_concentration(double variation, double tol = 1e-8, int max_iter = 100);
 
@@ -47,44 +50,21 @@ double half_cauchy_cdf(double a, double w);
 double half_cauchy_inv_cdf(double p, double w);
 double half_cauchy_proposal(double a, double w, double move_sigma);
 
-// Cauchy prior with width w and mean mu: P(a|mu,w) = 1 / (pi w (1 + ((a - mu) / w)^2))
-double cauchy_cdf(double a, double mu, double width);
-double cauchy_inv_cdf(double p, double mu, double width);
-double cauchy_proposal(double a, double mu, double width, double move_sigma);
-
 // Exponential prior with mean mu: P(a|mu) = (1/mu) exp(-a/mu) for a >= 0
 double exponential_cdf(double a, double mu);
 double exponential_inv_cdf(double p, double mu);
 double exponential_proposal(double a, double mu, double move_sigma);
 
-// Gaussian prior with mean mu and width sigma: P(a|mu,sigma) = (1/sqrt(2*pi*sigma^2)) exp(-(a-mu)^2/(2*sigma^2))
+// Gaussian N(mu, sigma^2): CDF and quantile accurate to ~1e-15 relative in both
+// tails (erfc; Acklam's approximation plus one Halley step).
 double gaussian_cdf(double a, double mu, double sigma);
 double gaussian_inv_cdf(double p, double mu, double sigma);
+// CDF-space random walk for N(mu, sigma^2) (the score move).  Its Hastings ratio
+// assumes an exact CDF/quantile pair; the CDF value is carried through its
+// nearer tail so that both tails keep full precision.  See helpers.cpp.
 double gaussian_proposal(double a, double mu, double sigma, double move_sigma);
 
-// Positive uniform proposal
-double positive_uniform_proposal(double a, double move_sigma);
-
-/* Sampling */
-// Sample from a set of outcomes given (log) weights (not necessarily normalized),
-// also return the entropy of that choice
-std::pair<int, double> sample_weights(std::vector<double> weights);
-std::pair<int, double> sample_log_weights(std::vector<double> log_weights);
-
-// Sample from unordered_map with template keys and log-weight values
-// Returns pair of (key, entropy)
-template <typename T>
-std::pair<T, double> sample_log_weights_map(const std::unordered_map<T, double>& log_weights_map);
-
-// Sample from a Bernoulli distribution with given probability
-std::pair<int, double> sample_bernoulli(double p);
-
-/* Sorting */
-// Return the index permutation which labels the vector from largest to smallest
-template <typename T> std::vector<int> argsort(const std::vector<T> &array);
-
 /* Printing functions */
-void print(const MCMC& state);
 void print(std::vector<std::vector<int>> table);
 void print(std::vector<std::vector<double>> table);
 void print(std::vector<int> vec);

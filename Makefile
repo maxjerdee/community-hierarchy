@@ -1,20 +1,26 @@
-# Makefile to build the pybind11 extension module and the C++ test harness
+# Makefile to build the pybind11 extension module and the C++ test harness.
+# The supported build is CMake / scikit-build-core (pip install -e .); this is a
+# quick alternative for local work.  NATIVE=1 adds -march=native (the binary then
+# only runs on CPUs like the build machine's).
 
 PYTHON ?= python3
 CXX ?= g++
-BUILD_DIR := build
+BUILD_DIR := build-make
 SRC_DIR := src
-PKG_DIR := $(SRC_DIR)/community_hierarchy
+PKG_DIR := python/community_hierarchy/src/community_hierarchy
+BINDINGS := bindings/python/bindings.cpp
 MODULE_NAME := MCMC_core
 EXT_SUFFIX := $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX') or '')")
 PYBIND11_INCLUDES := $(shell $(PYTHON) -m pybind11 --includes 2>/dev/null)
 # Prefer embed flags so executables link against libpython; fall back to standard ldflags
 PY_LDFLAGS := $(shell $(PYTHON)-config --embed --ldflags 2>/dev/null || $(PYTHON)-config --ldflags 2>/dev/null || python3-config --embed --ldflags 2>/dev/null || python3-config --ldflags 2>/dev/null || echo "")
 MKDIR_P := mkdir -p
+NATIVE ?= 0
+ARCH_FLAGS := $(if $(filter 1,$(NATIVE)),-march=native,)
 
-CXXFLAGS := -std=c++17 -Wall -Wextra -O3 -march=native -fPIC -I$(SRC_DIR) -DCOMMUNITY_HIERARCHY_PYBIND
+CXXFLAGS := -std=c++17 -Wall -Wextra -O3 $(ARCH_FLAGS) -fPIC -I$(SRC_DIR) -DCOMMUNITY_HIERARCHY_PYBIND
 DEBUG_CXXFLAGS := -std=c++17 -Wall -Wextra -O0 -g -fPIC -I$(SRC_DIR) -DCOMMUNITY_HIERARCHY_PYBIND
-TEST_CXXFLAGS := -std=c++17 -Wall -Wextra -O3 -march=native -fPIC -I$(SRC_DIR)
+TEST_CXXFLAGS := -std=c++17 -Wall -Wextra -O3 $(ARCH_FLAGS) -fPIC -I$(SRC_DIR)
 TEST_DEBUG_CXXFLAGS := -std=c++17 -Wall -Wextra -O0 -g -fPIC -I$(SRC_DIR)
 
 SOURCES := $(SRC_DIR)/MCMC_core.cpp \
@@ -36,9 +42,8 @@ DEBUG_TEST_CORE_OBJECTS := $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%_test_debug
 MODULE_TARGET := $(PKG_DIR)/$(MODULE_NAME)$(EXT_SUFFIX)
 TEST_BIN := $(BUILD_DIR)/mcmc_core_test
 TEST_BIN_DEBUG := $(BUILD_DIR)/mcmc_core_test_debug
-CSV_BIN := AddHealth_analysis/run_sampler_to_csv
 
-.PHONY: all clean test csv
+.PHONY: all clean test test-valgrind
 
 all: $(MODULE_TARGET) $(TEST_BIN)
 
@@ -54,19 +59,16 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
 $(BUILD_DIR)/tests_%.o: tests/%.cpp | $(BUILD_DIR)
 	$(CXX) $(TEST_CXXFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/addhealth_%.o: AddHealth_analysis/%.cpp | $(BUILD_DIR)
-	$(CXX) $(TEST_CXXFLAGS) -c $< -o $@
-
 $(BUILD_DIR)/%_test.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
 	$(CXX) $(TEST_CXXFLAGS) -c $< -o $@
 
-$(MODULE_TARGET): $(OBJECTS) | $(PKG_DIR)
+$(BUILD_DIR)/bindings.o: $(BINDINGS) | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) $(PYBIND11_INCLUDES) -c $< -o $@
+
+$(MODULE_TARGET): $(OBJECTS) $(BUILD_DIR)/bindings.o | $(PKG_DIR)
 	$(CXX) $(CXXFLAGS) -shared $^ -o $@ $(PY_LDFLAGS)
 
 $(TEST_BIN): $(TEST_OBJECTS) $(TEST_CORE_OBJECTS) | $(BUILD_DIR)
-	$(CXX) $(TEST_CXXFLAGS) $^ -o $@
-
-$(CSV_BIN): $(BUILD_DIR)/addhealth_run_sampler_to_csv.o $(TEST_CORE_OBJECTS)
 	$(CXX) $(TEST_CXXFLAGS) $^ -o $@
 
 # Debug build for valgrind
@@ -102,9 +104,6 @@ test: $(TEST_BIN) $(EXTRA_TESTS)
 	./$(TEST_BIN)
 	./$(BUILD_DIR)/merge_split_test
 	./$(BUILD_DIR)/flip_nodes_multi_test
-
-# Build the C++ sampler-to-CSV binary only
-csv: $(CSV_BIN)
 
 # Run with valgrind (requires valgrind to be installed)
 test-valgrind: $(TEST_BIN_DEBUG)

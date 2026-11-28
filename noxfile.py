@@ -99,7 +99,7 @@ def build_api_docs(session: nox.Session) -> None:
         "--module-first",
         "--no-toc",
         "--force",
-        "src/community_hierarchy",
+        "python/community_hierarchy/src/community_hierarchy",
     )
 
 

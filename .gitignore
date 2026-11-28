@@ -193,3 +193,7 @@ Thumbs.db
 # paper examples: map downloads and PDF copies of the figures
 examples/paper/*/.cache/
 examples/paper/*/figures/*.pdf
+
+# Example outputs of fit.py's QUICK settings (the full-run results and figures are committed)
+examples/paper/*/results/*_quick.csv
+examples/paper/*/figures/*_quick.*

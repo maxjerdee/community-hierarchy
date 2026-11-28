@@ -238,6 +238,11 @@ PYBIND11_MODULE(MCMC_core, m) {
     m.def("set_merge_split_weight", [](double w){ MERGE_SPLIT_WEIGHT = w; }, py::arg("w"),
           "relative weight of each collective move; <0 = linear-time default");
     m.def("get_merge_split_weight", [](){ return MERGE_SPLIT_WEIGHT; });
+    m.def("set_individual_depth_centred_prob", [](double p){ INDIVIDUAL_DEPTH_CENTRED_PROB = p; }, py::arg("p"),
+          "probability that a sigma_I proposal is the centred move (scores held fixed)");
+    m.def("get_individual_depth_centred_prob", [](){ return INDIVIDUAL_DEPTH_CENTRED_PROB; });
+    m.def("set_individual_depth_scale_move", [](int k){ INDIVIDUAL_DEPTH_SCALE_MOVE = k; }, py::arg("k"),
+          "0: non-centred sigma_I move (all scores scale); 1: residual rescale (group means fixed)");
     m.def("set_equal_spend_c", [](double c){ MERGE_SPLIT_EQUAL_SPEND_C = c; }, py::arg("c"),
           "divisor of fit()'s equal-spend rule w = q/(C*M); larger = fewer collective moves");
     m.def("get_equal_spend_c", [](){ return MERGE_SPLIT_EQUAL_SPEND_C; });
@@ -324,6 +329,7 @@ PYBIND11_MODULE(MCMC_core, m) {
            .def_readonly("H_Adir_G_A_s_nu",    &MCMC::H_Adir_G_A_s_nu)
            .def_readonly("H_s_G_b_depths",     &MCMC::H_s_G_b_depths)
            .def_readonly("weighted_SBM",        &MCMC::weighted_SBM)
+           .def_readwrite("weighted_proposals",  &MCMC::weighted_proposals)
            .def_readwrite("adapting",           &MCMC::adapting)
            .def_readonly("step_score",          &MCMC::step_score)
            .def_readonly("step_individual_depth", &MCMC::step_individual_depth)
@@ -344,6 +350,8 @@ PYBIND11_MODULE(MCMC_core, m) {
            .def_readonly("accepted_new_group_proposals",   &MCMC::accepted_new_group_proposals)
            .def_readonly("vacate_proposals",               &MCMC::vacate_proposals)
            .def_readonly("accepted_vacate_proposals",      &MCMC::accepted_vacate_proposals)
+           // time_*: profiling counters, filled only when the global `timing` flag is
+           // set at compile time (globals.cpp); 0 otherwise.
            .def_readonly("time_H_k",                    &MCMC::time_H_k)
            .def_readonly("time_H_M",                    &MCMC::time_H_M)
            .def_readonly("time_H_A_G_k_M_b",            &MCMC::time_H_A_G_k_M_b)
@@ -372,7 +380,12 @@ PYBIND11_MODULE(MCMC_core, m) {
            .def("check_state_bookkeeping", &MCMC::check_state_bookkeeping, py::arg("throw_error") = true)
            .def("change_parameter", &MCMC::change_parameter,
                 py::arg("param_name"),
-                py::arg("new_value"));
+                py::arg("new_value"),
+                "One Metropolis-Hastings step of a continuous parameter towards new_value, "
+                "which must be drawn from a CDF-space proposal of that parameter's prior "
+                "(the prior is not in the acceptance). Not a setter: the value may be "
+                "rejected. individual_depth rescales the scores with it unless scores are "
+                "fixed.");
 
     // --- FitResultNative class ---
     py::class_<FitResultNative>(m, "FitResult", py::module_local())
@@ -436,7 +449,8 @@ PYBIND11_MODULE(MCMC_core, m) {
         int    seed,
         double timeout,
         bool   show_progress,
-        bool   weighted_SBM
+        bool   weighted_SBM,
+        bool   weighted_proposals
     ) {
         auto to_opt_d = [](py::object o) -> std::optional<double> {
             return o.is_none() ? std::nullopt : std::optional<double>(py::cast<double>(o));
@@ -476,6 +490,7 @@ PYBIND11_MODULE(MCMC_core, m) {
         params.seed                 = seed;
         params.timeout              = timeout;
         params.weighted_SBM        = weighted_SBM;
+        params.weighted_proposals  = weighted_proposals;
 
         // Abort flag — set by our SIGINT handler so fit() can exit early.
         std::atomic<bool> abort_flag{false};
@@ -624,5 +639,6 @@ PYBIND11_MODULE(MCMC_core, m) {
     py::arg("seed")                      = 0,
     py::arg("timeout")                   = 60.0,
     py::arg("show_progress")             = false,
-    py::arg("weighted_SBM")              = false);
+    py::arg("weighted_SBM")              = false,
+    py::arg("weighted_proposals")        = false);
 }

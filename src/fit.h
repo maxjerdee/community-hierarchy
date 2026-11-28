@@ -15,6 +15,7 @@ struct FitParams {
     std::vector<std::unordered_map<int, double>> ties;
     std::vector<std::unordered_map<int, double>> group_adj; // empty = single-layer mode
     bool weighted_SBM = false;
+    bool weighted_proposals = false;  // weighted_SBM only: true = block-informed proposals follow the weights (experimental)
 
     std::vector<int>    initial_partition;
     bool                partition_fixed   = false;

@@ -111,13 +111,13 @@ def test_HW_matches_peixoto_formula():
     C++ H_W matches full Peixoto formula: H(W|A,μ,b) + H(μ).
     Partition [0,0,1]: M_01=2 (binary edges 0-2, 1-2), μ_01=w02+w12.
       H(W|A,μ,b) = log(w02+w12)
-      H(μ)       = 2·log(w_total) − log(2!)   [K=2, npairs=3]
+      H(μ)       = log(w_total)   [two block pairs with edges: (0,0) and (0,1)]
     """
     mcmc = make_mcmc_from_fixture([0, 0, 1], w01, w02, w12)
     # H(W|A,μ,b) component
     HW_partial = math.log(w02 + w12)
-    # H(μ) component: K=2 → npairs=3, (npairs-1)*log(w) - log((npairs-1)!)
-    K = 2; npairs = K * (K + 1) // 2
+    # H(μ) component over the block pairs with edges, (npairs-1)*log(w) - log((npairs-1)!)
+    npairs = 2
     H_mu = (npairs - 1) * math.log(w_total) - math.lgamma(npairs)
     expected = HW_partial + H_mu
     assert abs(mcmc.H_W - expected) < 1e-4, (

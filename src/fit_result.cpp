@@ -290,9 +290,10 @@ std::vector<int> FitResult::consensus_partition(const std::string& method, bool 
     std::transform(m.begin(), m.end(), m.begin(), [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
     const auto idx = consensus_sample_indices(min_samples);
     const int modal_k = modal_num_groups();
-    if (m == "moc") return moc_consensus(idx, modal_k);
+    if (m == "moc") return moc_unrestricted(idx);
+    if (m == "moc_modal_k") return moc_consensus(idx, modal_k);
     if (m == "binder") return binder_consensus(idx, modal_k, refine);
-    throw std::invalid_argument("consensus method must be \"moc\" or \"binder\", got \"" + method + "\"");
+    throw std::invalid_argument("consensus method must be \"moc\", \"moc_modal_k\" or \"binder\", got \"" + method + "\"");
 }
 
 // Dahl's method at the modal number of groups.  Dahl's method is an argmin over
@@ -419,6 +420,77 @@ std::vector<int> FitResult::moc_consensus(const std::vector<int>& idx, int K) co
     return best_c;
 }
 
+// Maximum-overlap consensus (Peixoto 2021, PRX 11:021003, Sec. IV) with the
+// number of groups FREE, as graph-tool's partition_overlap_center.  Maximises
+//     sum_t max_{pi_t} sum_i 1[c_i = pi_t(b_t,i)]
+// over all partitions c by the same coordinate ascent: (1) align each sample to
+// c by maximum bipartite matching of the contingency table (Hungarian); a group
+// of the sample left without a partner among c's groups gets a fresh label
+// beyond c's, so the vote can open new groups; (2) give every node its majority
+// aligned label.  Groups that win no node vanish, so K is set by the samples.
+// Starts from the one-group partition (graph-tool's default), from up to three
+// evenly spaced samples and from the modal-K consensus; the best overlap wins.  Deterministic: ties go
+// to the current label, then the smallest.
+std::vector<int> FitResult::moc_unrestricted(const std::vector<int>& idx) const {
+    const int n = num_nodes_;
+    const int T = static_cast<int>(idx.size());
+    if (T == 0) return std::vector<int>(n, 0);
+    std::vector<std::vector<int>> P(static_cast<std::size_t>(T));
+    std::vector<int> Kt(static_cast<std::size_t>(T));
+    int Kmax = 1;
+    for (int t = 0; t < T; ++t) {
+        P[t] = compact_labels(samples_[static_cast<std::size_t>(idx[t])].partition, Kt[t]);
+        Kmax = std::max(Kmax, Kt[t]);
+    }
+    std::vector<std::vector<int>> starts{std::vector<int>(n, 0)};
+    const int R = std::min(3, T);
+    for (int r = 0; r < R; ++r) starts.push_back(P[static_cast<std::size_t>(r * T / R)]);
+    // Also start from the modal-K consensus: the ascent never lowers the overlap of
+    // its start, so the unrestricted consensus is never worse than the K-held one.
+    starts.push_back(moc_consensus(idx, modal_num_groups()));
+
+    std::vector<int> best_c;
+    long long best_total = -1;
+    std::vector<int> votes;
+    std::vector<double> cost;
+    for (auto c : starts) {
+        int Kc;
+        c = compact_labels(c, Kc);
+        for (int it = 0; it < 100; ++it) {
+            const int L = std::max(Kc, Kmax);
+            votes.assign(static_cast<std::size_t>(n) * L, 0);
+            long long total = 0;
+            for (int t = 0; t < T; ++t) {
+                const int S = std::max(Kc, Kt[t]);
+                cost.assign(static_cast<std::size_t>(S) * S, 0.0);
+                const auto& b = P[static_cast<std::size_t>(t)];
+                for (int i = 0; i < n; ++i) cost[static_cast<std::size_t>(c[i]) * S + b[i]] -= 1.0;
+                // rows: c's groups (< Kc), then fresh labels; columns: the sample's groups
+                const auto row_to_col = hungarian_min(cost, S);
+                std::vector<int> col_to_row(static_cast<std::size_t>(S), -1);
+                for (int k = 0; k < S; ++k) col_to_row[static_cast<std::size_t>(row_to_col[k])] = k;
+                for (int i = 0; i < n; ++i) {
+                    const int k = col_to_row[static_cast<std::size_t>(b[i])];
+                    ++votes[static_cast<std::size_t>(i) * L + k];
+                    if (k == c[i]) ++total;
+                }
+            }
+            if (total > best_total) { best_total = total; best_c = c; }
+            std::vector<int> next(c);
+            for (int i = 0; i < n; ++i) {
+                const int* v = &votes[static_cast<std::size_t>(i) * L];
+                int bk = c[i];
+                for (int k = 0; k < L; ++k) if (v[k] > v[bk]) bk = k;
+                next[i] = bk;
+            }
+            next = compact_labels(next, Kc);
+            if (next == c) break;
+            c = std::move(next);
+        }
+    }
+    return best_c;
+}
+
 // Greedy single-node descent on the same Binder loss with the number of groups
 // HELD FIXED: a node moves only to another existing group, and a node alone in
 // its group cannot move.  Dahl's method picks the best of the partitions the
@@ -475,15 +547,16 @@ void FitResult::refine_consensus(std::vector<int>& p, const std::vector<double>&
 std::vector<double> FitResult::coincidence_matrix() const {
     int n = num_nodes_;
     int ns = static_cast<int>(samples_.size());
-    std::vector<double> mat(n * n, 0.0);
+    std::vector<double> mat(static_cast<std::size_t>(n) * static_cast<std::size_t>(n), 0.0);
     if (ns == 0) return mat;
     double inv = 1.0 / ns;
     for (const auto& s : samples_) {
         for (int i = 0; i < n; ++i) {
             for (int j = i; j < n; ++j) {
                 if (s.partition[i] == s.partition[j]) {
-                    mat[i * n + j] += inv;
-                    if (i != j) mat[j * n + i] += inv;
+                    const std::size_t N = static_cast<std::size_t>(n);
+                    mat[static_cast<std::size_t>(i) * N + static_cast<std::size_t>(j)] += inv;
+                    if (i != j) mat[static_cast<std::size_t>(j) * N + static_cast<std::size_t>(i)] += inv;
                 }
             }
         }
@@ -520,7 +593,15 @@ std::vector<double> FitResult::score_stds() const {
     return stds;
 }
 
+// Posterior-predictive outcome probabilities of one new interaction between
+// node_a and node_b, averaged over the samples, under the direction model of
+// calculate_H_Adir_G_A_s_nu (Davidson's Bradley-Terry with ties, pi = exp(s)):
+//   ties_allowed: {P(a beats b), P(tie), P(b beats a)} with each sample's nu;
+//   otherwise:    {P(a beats b), P(b beats a)}, plain Bradley-Terry (nu = 0).
 std::vector<double> FitResult::direction_probabilities(int node_a, int node_b, bool ties_allowed) const {
+    if (node_a < 0 || node_a >= num_nodes_ || node_b < 0 || node_b >= num_nodes_)
+        throw std::out_of_range("direction_probabilities: node index out of range [0, " +
+                                std::to_string(num_nodes_) + ")");
     int ns = static_cast<int>(samples_.size());
     if (ns == 0) return ties_allowed ? std::vector<double>{0.0, 0.0, 0.0}
                                      : std::vector<double>{0.0, 0.0};

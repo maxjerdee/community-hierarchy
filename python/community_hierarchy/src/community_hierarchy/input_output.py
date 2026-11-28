@@ -4,7 +4,11 @@ import networkx as nx
 import pandas as pd
 import matplotlib.pyplot as plt
 from typing import Optional, Iterable, Any
+import math
+import numbers
 import warnings
+
+import numpy as np
 
 # Sentinel for unset parameters
 _UNSET = object()
@@ -47,6 +51,60 @@ def _sanitize_graph_attributes_for_gml(G: nx.Graph) -> None:
         attrs.update(sanitized)
 
 
+def _is_int(x: Any) -> bool:
+    """An integer, including numpy integers, but not a bool."""
+    return isinstance(x, numbers.Integral) and not isinstance(x, (bool, np.bool_))
+
+
+def _is_real(x: Any) -> bool:
+    """A real number, including numpy scalars, but not a bool."""
+    return isinstance(x, numbers.Real) and not isinstance(x, (bool, np.bool_))
+
+
+def _check_forced_values(hierarchy_model: Any, interaction: str,
+                         group_depth: Any, ties_parameter: Any) -> None:
+    """Raise if an explicit value contradicts one the presets force.
+
+    ``hierarchy_model="bradley_terry"`` fixes ``ties_parameter`` at 0 and
+    ``interaction="independent"`` fixes ``group_depth`` at 0 (see
+    :func:`_set_model_parameters`).  An explicit, different value (including
+    None, "infer") would otherwise be overwritten silently.
+    """
+    if hierarchy_model == "bradley_terry" and ties_parameter is not _UNSET \
+            and not (_is_real(ties_parameter) and float(ties_parameter) == 0.0):
+        raise ValueError(
+            f"hierarchy_model='bradley_terry' fixes ties_parameter at 0, but "
+            f"ties_parameter={ties_parameter!r} was given. Use "
+            "hierarchy_model='bradley_terry_ties' to model draws."
+        )
+    if interaction == "independent" and group_depth is not _UNSET \
+            and not (_is_real(group_depth) and float(group_depth) == 0.0):
+        raise ValueError(
+            f"interaction='independent' fixes group_depth at 0, but "
+            f"group_depth={group_depth!r} was given. Use interaction='coupled' "
+            "to fit group_depth."
+        )
+
+
+def _check_weight(u: Any, v: Any, data: dict, *, integer: bool, what: str = "Edge") -> None:
+    """A ``weight`` attribute must be a finite positive number (an integer
+    multiplicity unless ``integer`` is False)."""
+    if "weight" not in data:
+        return
+    w = data["weight"]
+    if not _is_real(w):
+        raise TypeError(f"{what} ({u!r}, {v!r}) has non-numeric weight {w!r}.")
+    w = float(w)
+    if not math.isfinite(w) or w <= 0.0:
+        raise ValueError(f"{what} ({u!r}, {v!r}) has weight {w!r}; weights must be finite and positive.")
+    if integer and w != round(w):
+        raise ValueError(
+            f"{what} ({u!r}, {v!r}) has weight {w!r}; without weighted_SBM a weight is a "
+            "multiplicity and must be a positive integer. Use Config(weighted_SBM=True) "
+            "for real-valued weights."
+        )
+
+
 # Check that the arguments passed to the function are valid, if not raise an error
 def _check_input_validity(
     G: nx.Graph,
@@ -62,15 +120,22 @@ def _check_input_validity(
     variation_in: Optional[float] = _UNSET,
     variation_out: Optional[float] = _UNSET,
     degree_correction: bool = _UNSET,
-    mean_degree_scaling: Optional[float] = _UNSET,
     individual_depth: Optional[float] = _UNSET,
     group_depth: Optional[float] = _UNSET,
     ties_parameter: Optional[float] = _UNSET,
     num_groups: Optional[int] = _UNSET,
+    weighted_SBM: bool = False,
     initial_partition: Optional[Iterable[int]] = None,
     initial_scores: Optional[Iterable[float]] = None,
+    initial_individual_depth: Optional[float] = None,
+    initial_group_depth: Optional[float] = None,
     seed: Optional[int] = None,
-    num_samples: int = 1000,
+    num_chains: int = 1,
+    samples_per_chain: int = 1000,
+    sweeps_per_sample: int = 10,
+    burn_sweeps: int = 500,
+    param_warmup_sweeps: int = 0,
+    thinning: int = 1,
     beta: float = 1.0,
     num_tempering_chains: int = 1,
     no_cache: bool = False,
@@ -91,6 +156,9 @@ def _check_input_validity(
         raise TypeError(
             "G must be a directed NetworkX graph (e.g., nx.DiGraph or nx.MultiDiGraph)."
         )
+    # Check that the graph is not empty
+    if G.number_of_nodes() == 0:
+        raise ValueError("Graph G must have at least one node.")
 
     # Node attribute name checks
     for attr_name, attr_value in (
@@ -102,7 +170,7 @@ def _check_input_validity(
                 raise TypeError(f"{attr_name} must be a string or None.")
             if not attr_value:
                 raise ValueError(f"{attr_name} must be a non-empty string or None.")
-    
+
     # Warn if group_attribute is provided alongside a non-default groups_model
     if group_attribute is not None and groups_model != "general_ASBM":
         warnings.warn(
@@ -110,19 +178,26 @@ def _check_input_validity(
             "The group_attribute will be used for model initialization, but the specified model type will still be applied. "
             "To avoid confusion, consider using the default groups_model when providing node attributes.",
             UserWarning,
+            stacklevel=3,
         )
-    
 
-    # Check whether any of the edges have type data
-    # If any one does, they must all have type data and it should be either "dominant" or "neutral"
+    # Edges: self-loops, weights and types.  If any edge has a type, all must,
+    # and it must be "dominant" or "neutral".
     type_found = False
     neutral_type_found = False
     for u, v, data in G.edges(data=True):
+        if u == v:
+            raise ValueError(
+                f"G has a self-loop at node {u!r}; self-loops are not supported "
+                "(an interaction needs two nodes). Remove them, e.g. with "
+                "G.remove_edges_from(nx.selfloop_edges(G))."
+            )
+        _check_weight(u, v, data, integer=not weighted_SBM)
         if "type" in data:
             type_found = True
-            if data["type"] == "neutral":
-                neutral_type_found = True
             edge_type = data["type"]
+            if edge_type == "neutral":
+                neutral_type_found = True
             if edge_type not in ["dominant", "neutral"]:
                 raise ValueError(
                     f"Edge ({u}, {v}) has invalid type '{edge_type}'. Must be 'dominant' or 'neutral'."
@@ -134,10 +209,6 @@ def _check_input_validity(
                 raise ValueError(
                     f"Edge ({u}, {v}) is missing 'type' attribute while other edges have it."
                 )
-        
-    # Check that the graph is not empty
-    if G.number_of_nodes() == 0:
-        raise ValueError("Graph G must have at least one node.")
 
     # groups_model
     valid_models = [
@@ -161,19 +232,22 @@ def _check_input_validity(
             hierarchy_model = "bradley_terry"  # Default when no ties
 
     # Warn if hierarchy_attribute is provided alongside an explicitly-provided hierarchy_model
-    if hierarchy_attribute is not None and original_hierarchy_model != _UNSET:
+    if hierarchy_attribute is not None and original_hierarchy_model is not _UNSET:
         warnings.warn(
             f"hierarchy_attribute '{hierarchy_attribute}' was provided alongside hierarchy_model '{original_hierarchy_model}'. "
             "The hierarchy_attribute will be used for model initialization, but the specified model type will still be applied. "
             "To avoid confusion, consider using the default hierarchy_model when providing node attributes.",
             UserWarning,
+            stacklevel=3,
         )
 
-    # Warning, neutral edges will be ignored by bradley_terry model
+    # Plain Bradley-Terry gives a draw probability 0: a graph with draws in it
+    # has likelihood 0 under that model, so it is an error, not a fit.
     if hierarchy_model == "bradley_terry" and neutral_type_found:
-        warnings.warn(
-            "Hierarchy model 'bradley_terry' does not account for neutral edges. These edges will be ignored in hierarchy inference. 'bradley_terry_ties' model will account for them.",
-            UserWarning,
+        raise ValueError(
+            "hierarchy_model='bradley_terry' has no draws, but G has neutral edges. "
+            "Use hierarchy_model='bradley_terry_ties' (the default when G has "
+            "neutral edges), or remove the neutral edges."
         )
 
     valid_hierarchy_models = ["bradley_terry", "bradley_terry_ties"]
@@ -219,7 +293,7 @@ def _check_input_validity(
     # variation_in/out: None or 0 <= x <= 1
     for name, val in (("variation_in", variation_in), ("variation_out", variation_out)):
         if val is not None:
-            if not isinstance(val, (int, float)):
+            if not _is_real(val):
                 raise TypeError(f"{name} must be a float in [0, 1] or None.")
             if not (0.0 <= float(val) <= 1.0):
                 raise ValueError(
@@ -230,23 +304,26 @@ def _check_input_validity(
     if degree_correction is not _UNSET and not isinstance(degree_correction, bool):
         raise TypeError("degree_correction must be True or False.")
 
-    # individual_depth: None or float (positive, but must be numeric)
-    if individual_depth is not None:
-        if not isinstance(individual_depth, (int, float)):
-            raise TypeError("individual_depth must be a float (or None).")
-        if individual_depth <= 0:
-            raise ValueError("individual_depth must be positive.")
-
-    # group_depth: None or float (non-negative, but must be numeric)
-    if group_depth is not None:
-        if not isinstance(group_depth, (int, float)):
-            raise TypeError("group_depth must be a float (or None).")
-        if group_depth < 0:
-            raise ValueError("group_depth must be non-negative.")
+    # Depths and the ties parameter: None or a finite number in range
+    for name, val, positive in (
+        ("individual_depth", individual_depth, True),
+        ("group_depth", group_depth, False),
+        ("ties_parameter", ties_parameter, False),
+        ("initial_individual_depth", initial_individual_depth, True),
+        ("initial_group_depth", initial_group_depth, False),
+    ):
+        if val is None:
+            continue
+        if not _is_real(val) or not math.isfinite(float(val)):
+            raise TypeError(f"{name} must be a finite number (or None), got {val!r}.")
+        if positive and float(val) <= 0:
+            raise ValueError(f"{name} must be positive, got {val!r}.")
+        if not positive and float(val) < 0:
+            raise ValueError(f"{name} must be non-negative, got {val!r}.")
 
     # num_groups must be positive integer if provided and not greater than number of nodes
     if num_groups is not None:
-        if not isinstance(num_groups, int) or num_groups <= 0:
+        if not _is_int(num_groups) or num_groups <= 0:
             raise ValueError("num_groups must be a positive integer or None.")
         if G is not None and num_groups > G.number_of_nodes():
             raise ValueError(
@@ -266,7 +343,7 @@ def _check_input_validity(
                 "initial_partition length must match number of nodes in G."
             )
         for v in ip_list:
-            if not isinstance(v, int) or v < 0:
+            if not _is_int(v) or v < 0:
                 raise ValueError(
                     "initial_partition must contain non-negative integer labels."
                 )
@@ -293,36 +370,46 @@ def _check_input_validity(
         if G is not None and len(is_list) != G.number_of_nodes():
             raise ValueError("initial_scores length must match number of nodes in G.")
         for s in is_list:
-            if not isinstance(s, (int, float)):
-                raise ValueError("initial_scores must contain numeric values.")
+            if not _is_real(s) or not math.isfinite(float(s)):
+                raise ValueError("initial_scores must contain finite numeric values.")
 
-    # seed
-    if seed is not None and not isinstance(seed, int):
-        raise TypeError("seed must be an integer or None.")
+    # seed: chain c is seeded with seed + c in a C int
+    if seed is not None:
+        if not _is_int(seed):
+            raise TypeError("seed must be an integer or None.")
+        if not 0 <= int(seed) < 2**30:
+            raise ValueError(f"seed must be in [0, 2**30), got {seed}.")
 
-    # num_samples
-    if not isinstance(num_samples, int) or num_samples <= 0:
-        raise ValueError("num_samples must be a positive integer.")
+    # Run lengths
+    for name, val, minimum in (
+        ("num_chains", num_chains, 1),
+        ("samples_per_chain", samples_per_chain, 1),
+        # 0 is allowed: every sample is then the starting state, which is how the
+        # description length of a given state is evaluated (tests/test_wasm_parity.py).
+        ("sweeps_per_sample", sweeps_per_sample, 0),
+        ("thinning", thinning, 1),
+        ("num_tempering_chains", num_tempering_chains, 1),
+        ("burn_sweeps", burn_sweeps, 0),
+        ("param_warmup_sweeps", param_warmup_sweeps, 0),
+    ):
+        if not _is_int(val) or val < minimum:
+            raise ValueError(f"{name} must be an integer >= {minimum}, got {val!r}.")
 
     # beta (non-negative float)
-    if not isinstance(beta, (int, float)) or float(beta) < 0.0:
+    if not _is_real(beta) or not math.isfinite(float(beta)) or float(beta) < 0.0:
         raise ValueError("beta must be a non-negative number.")
 
-    # num_tempering_chains
-    if not isinstance(num_tempering_chains, int) or num_tempering_chains <= 0:
-        raise ValueError("num_tempering_chains must be a positive integer.")
-
-    # no_cache (boolean)
+    # no_cache (boolean; ignored)
     if not isinstance(no_cache, bool):
         raise TypeError("no_cache must be a boolean.")
 
     # timeout
-    if not isinstance(timeout, (int, float)) or float(timeout) <= 0.0:
+    if not _is_real(timeout) or float(timeout) <= 0.0:
         raise ValueError("timeout must be a positive number (seconds).")
 
     # verbose
     if not isinstance(verbose, bool):
-        raise TypeError("verbose must be a boolean.")
+        raise TypeError("show_progress must be a boolean.")
 
     # Passes all checks
     return None
@@ -343,10 +430,17 @@ def _check_group_graph(G: nx.Graph, group_graph: nx.Graph) -> None:
         only_S = S_nodes - G_nodes
         msg = "group_graph node set does not match the primary graph."
         if only_G:
-            msg += f" Nodes in G but not group_graph: {sorted(only_G)[:5]}{'...' if len(only_G) > 5 else ''}."
+            msg += f" Nodes in G but not group_graph: {sorted(only_G, key=repr)[:5]}{'...' if len(only_G) > 5 else ''}."
         if only_S:
-            msg += f" Nodes in group_graph but not G: {sorted(only_S)[:5]}{'...' if len(only_S) > 5 else ''}."
+            msg += f" Nodes in group_graph but not G: {sorted(only_S, key=repr)[:5]}{'...' if len(only_S) > 5 else ''}."
         raise ValueError(msg)
+    for u, v, data in group_graph.edges(data=True):
+        if u == v:
+            raise ValueError(
+                f"group_graph has a self-loop at node {u!r}; self-loops are not supported "
+                "in two-layer mode."
+            )
+        _check_weight(u, v, data, integer=False, what="group_graph edge")
 
 
 def _get_node_data(
@@ -559,21 +653,34 @@ def write_gml_with_inferences(
     result: "Result",
     *,
     partition: Optional[Any] = None,
+    prob: float = 0.90,
 ) -> None:
     """Write the graph to GML with inferred node and network attributes attached.
 
     Parameters
     ----------
     G : nx.Graph
-        Input network.
+        Input network (a copy is written; ``G`` is not modified).  Nodes of
+        ``G`` that were not in the fitted graph get no inferred attributes.
     output_filename : str
         Filename to save the GML.
     result : Result
         Inference result from :func:`community_hierarchy.fit`.
     partition : array-like, optional
-        Community partition for the ``inferred_group`` node attribute.
-        Defaults to ``result.mdl_partition``. Pass
-        ``result.consensus_partition()`` to use the consensus partition.
+        Community labels in the fitted graph's node order, for the
+        ``inferred_group`` node attribute.  Defaults to
+        ``result.mdl_partition``. Pass ``result.consensus_partition()`` to
+        use the consensus partition.
+    prob : float
+        Probability mass of the HDIs written to the graph.  Default 0.90.
+
+    Notes
+    -----
+    Node attributes: ``inferred_group``, ``inferred_score`` (posterior mean)
+    and ``inferred_score_std``.  Graph attributes, for each row of
+    :meth:`Result.network_properties_df` (including ``ICC`` and
+    ``sigma_T``): ``inferred_<parameter>_mean``, ``_std``, ``_hdi_lo`` and
+    ``_hdi_hi``.
     """
     from .core import Result  # local import to avoid circular
 
@@ -587,7 +694,8 @@ def write_gml_with_inferences(
     if partition is None:
         partition = result.mdl_partition
     scores = result.score_means
-    network_properties_df = result.parameter_df
+    score_stds = result.score_stds
+    network_properties_df = result.network_properties_df(prob=prob)
 
     G_copy = G.copy()
     node_order = list(result._node_order)
@@ -595,10 +703,11 @@ def write_gml_with_inferences(
         if node in G_copy.nodes:
             G_copy.nodes[node]["inferred_group"] = int(partition[idx])
             G_copy.nodes[node]["inferred_score"] = float(scores[idx])
+            G_copy.nodes[node]["inferred_score_std"] = float(score_stds[idx])
 
     for _, row in network_properties_df.iterrows():
-        G_copy.graph[f"inferred_{row['parameter']}_mean"] = row["mean"]
-        G_copy.graph[f"inferred_{row['parameter']}_std"] = row["std"]
+        for col in ("mean", "std", "hdi_lo", "hdi_hi"):
+            G_copy.graph[f"inferred_{row['parameter']}_{col}"] = float(row[col])
 
     _sanitize_graph_attributes_for_gml(G_copy)
     nx.write_gml(G_copy, output_filename)
@@ -612,6 +721,7 @@ def get_neighbors(G: nx.DiGraph | nx.Graph, node_order=None) -> Iterable[dict]:
     and the values are the edge weights.
 
     Edge weights are stored in the 'weight' attribute; if not present, default to 1.0.
+    Parallel edges of a multigraph are summed.
 
     Parameters
     ----------
@@ -638,20 +748,20 @@ def get_neighbors(G: nx.DiGraph | nx.Graph, node_order=None) -> Iterable[dict]:
         v_idx = node_to_index_dict[v]
         
         # Get weight from edge data, default to 1.0
-        weight = data.get('weight', 1.0)
+        weight = float(data.get('weight', 1.0))
         
-        # Add to the neighbors dictionary for u -> v
-        neighbors_list[u_idx][v_idx] = weight
-        
+        # Parallel edges (multigraphs) are summed.
+        neighbors_list[u_idx][v_idx] = neighbors_list[u_idx].get(v_idx, 0.0) + weight
+
         # For undirected graphs, also add the reverse direction
-        if not G.is_directed():
-            neighbors_list[v_idx][u_idx] = weight
+        if not G.is_directed() and u_idx != v_idx:
+            neighbors_list[v_idx][u_idx] = neighbors_list[v_idx].get(u_idx, 0.0) + weight
 
     return neighbors_list
 
 
 def plot_node_properties(
-    result: "Result",
+    result,
     *,
     partition: str = "auto",
     consensus_method: str = "moc",
@@ -660,37 +770,62 @@ def plot_node_properties(
     xlabel: str = "Community (inferred)",
     ylabel: str = r"$s_i$ (status score)",
     group_labels=None,
+    labels: str = "ticks",
+    flip: bool = False,
+    annotate=None,
+    filled=None,
+    group_gap: float = 5.0,
+    ladder_step=None,
+    annotation_fontsize: float = 6.0,
     output_filename: Optional[str] = None,
 ):
     """Plot posterior node scores ranked within each inferred community.
 
-    Each node is plotted as a dot at its rank within its community along the
-    x-axis, with a vertical error bar of ±1 posterior standard deviation. A
-    horizontal line marks the group mean score. Communities are labelled G1,
-    G2, … in ascending order of their mean score.
+    Each node is a dot at its rank within its community, with a vertical error bar
+    of +-1 posterior standard deviation; a horizontal line marks each community's
+    mean score.  Communities run left to right in ascending order of mean score,
+    and each takes as much width as it has nodes.
 
     Parameters
     ----------
-    result : Result
-        Inference result from :func:`community_hierarchy.fit`.
-    partition : str
-        Which partition to use; passed to :meth:`Result.node_properties_df`.
-        ``"auto"`` (default) uses the consensus partition.
-    consensus_method : {"moc", "binder"}
-        Consensus method; passed to :meth:`Result.node_properties_df`.
+    result : Result or pandas.DataFrame
+        A fit from :func:`community_hierarchy.fit`, or a table in the format of
+        :meth:`Result.node_properties_df` (columns ``node``, ``score_mean``,
+        ``score_std``, ``group``), e.g. one saved to CSV.
+    partition, consensus_method : str
+        For a ``Result``: passed to :meth:`Result.node_properties_df`.
     ax : matplotlib.axes.Axes, optional
         Axes to draw into. If *None* a new figure is created.
-    palette : list of colors or colormap, optional
-        Colors for each community in ascending mean-score order.
-        Defaults to the ``tab10`` colormap.
-    xlabel : str
-        X-axis label.
-    ylabel : str
-        Y-axis label.
+    palette : list, dict, or colormap, optional
+        Community colours: a list in ascending mean-score order, a dict
+        ``{group: colour}``, or a colormap.  Defaults to ``tab10`` (``tab20`` for
+        more than 10 communities).
+    xlabel, ylabel : str
+        Axis labels (``xlabel`` is not shown with ``labels="ladder"``).
     group_labels : list or dict, optional
-        Override the automatic "G1", "G2", … tick labels.
-        Pass a list (one entry per community, in ascending mean-score order)
-        or a dict mapping community integer ids to label strings.
+        Community names: a list in ascending mean-score order or a dict
+        ``{group: name}``.  Defaults to "G1", "G2", ...
+    labels : {"ticks", "ladder", "none"}
+        Where community names go: as x-axis ticks (default), as coloured labels
+        below the data, rising one rung per community from left to right so that
+        neighbouring names never collide, or nowhere (communities are told apart
+        by colour only).
+    flip : bool
+        Plot minus the scores, so that low rank is at the top.  Not needed
+        to correct edge direction: pass ``source_high_rank=False`` to
+        :func:`community_hierarchy.fit` instead, after which higher scores
+        always mean higher rank.  Default False.
+    annotate : dict, optional
+        ``{node: text}``: rotated labels above these nodes' error bars.
+    filled : collection, optional
+        Nodes drawn as filled markers; the rest are hollow.  *None*: all filled.
+    group_gap : float
+        Gap between communities, in units of the spacing between nodes.
+    ladder_step : float, optional
+        Rise of the label ladder per community, in score units.  Defaults to
+        3.5% of the score range.
+    annotation_fontsize : float
+        Font size of the ``annotate`` labels.
     output_filename : str, optional
         If given, save the figure to this path.
 
@@ -699,93 +834,98 @@ def plot_node_properties(
     fig, ax : tuple
     """
     import numpy as np
+    import pandas as pd
+    import matplotlib.patheffects as pe
     from .core import Result  # local import to avoid circular
 
-    if not isinstance(result, Result):
-        raise TypeError("result must be a community_hierarchy.Result instance.")
+    if isinstance(result, Result):
+        node_df = result.node_properties_df(partition=partition, consensus_method=consensus_method)
+    elif isinstance(result, pd.DataFrame):
+        node_df = result
+    else:
+        raise TypeError("result must be a community_hierarchy.Result or a node_properties_df() table.")
+    if labels not in ("ticks", "ladder", "none"):
+        raise ValueError(f"labels must be 'ticks', 'ladder' or 'none', got {labels!r}")
+    df = node_df[["node", "score_mean", "score_std", "group"]].copy()
+    if flip:
+        df["score_mean"] = -df["score_mean"]
 
-    node_df = result.node_properties_df(partition=partition, consensus_method=consensus_method)
-
-    # Sort communities by ascending group mean score
-    grp_mean = node_df.groupby("group")["group_score_mean"].first().sort_values()
-    grp_order = grp_mean.index.tolist()
+    grp_order = df.groupby("group")["score_mean"].mean().sort_values().index.tolist()
     K = len(grp_order)
 
-    # Build palette
-    if palette is None:
-        cmap_tab = plt.get_cmap("tab10")
-        colors = [cmap_tab(i % 10) for i in range(K)]
-    elif hasattr(palette, "__call__"):
-        colors = [palette(i / max(K - 1, 1)) for i in range(K)]
+    if palette is None:   # tab10, or tab20 for more than 10 communities
+        cmap_tab, n_col = (plt.get_cmap("tab10"), 10) if K <= 10 else (plt.get_cmap("tab20"), 20)
+        color_of = {g: cmap_tab(i % n_col) for i, g in enumerate(grp_order)}
+    elif isinstance(palette, dict):
+        color_of = {g: palette.get(g, "#9e9e9e") for g in grp_order}
+    elif callable(palette):
+        color_of = {g: palette(i / max(K - 1, 1)) for i, g in enumerate(grp_order)}
     else:
-        colors = list(palette)
+        color_of = {g: list(palette)[i] for i, g in enumerate(grp_order)}
 
-    color_of = {g: colors[i] for i, g in enumerate(grp_order)}
-
-    # Auto group label mapping
     if group_labels is None:
         label_of = {g: f"G{i + 1}" for i, g in enumerate(grp_order)}
     elif isinstance(group_labels, dict):
-        label_of = group_labels
+        label_of = {g: group_labels.get(g, "") for g in grp_order}
     else:
         label_of = {g: str(group_labels[i]) for i, g in enumerate(grp_order)}
 
-    SCALE = 8.0
-    GAP = SCALE * 5.0
-
-    # Assign x-positions: nodes spread within group, gap between groups
-    starts = {}
-    pos = 0.0
-    for g in grp_order:
-        starts[g] = pos
-        n_g = int((node_df["group"] == g).sum())
-        pos += (n_g - 1) * SCALE + GAP
-
     if ax is None:
-        n_nodes = len(node_df)
-        w = min(14.0, max(8.0, n_nodes * 0.12))
+        w = min(14.0, max(8.0, len(df) * 0.12))
         fig, ax = plt.subplots(figsize=(w, w / 2))
     else:
         fig = ax.get_figure()
+    filled = None if filled is None else set(filled)
+    annotate = annotate or {}
 
-    xtick_pos, xtick_labels = [], []
+    pos, centres, floor = 0.0, {}, np.inf
     for g in grp_order:
-        grp = (
-            node_df[node_df["group"] == g]
-            .sort_values("score_mean")
-            .reset_index(drop=True)
-        )
+        grp = df[df["group"] == g].sort_values("score_mean")
         n_g = len(grp)
-        xs = starts[g] + np.arange(n_g) * SCALE
+        xs = pos + np.arange(n_g)
         c = color_of[g]
-        for k, row in grp.iterrows():
-            x = xs[k]
-            ax.plot(
-                [x, x],
-                [row["score_mean"] - row["score_std"],
-                 row["score_mean"] + row["score_std"]],
-                color=c, lw=0.5, alpha=0.55, zorder=2,
-            )
-            ax.plot(
-                x, row["score_mean"], "o",
-                color=c, ms=3.0, alpha=0.85, zorder=3, markeredgewidth=0,
-            )
-        ax.hlines(
-            grp["score_mean"].mean(),
-            xs[0] - 0.4 * SCALE, xs[-1] + 0.4 * SCALE,
-            colors=c, linewidth=1.2, alpha=0.6, zorder=4,
-        )
-        xtick_pos.append(float(xs.mean()))
-        xtick_labels.append(label_of[g])
+        alpha, lw = max(0.25, 0.6 - 0.005 * n_g), max(0.3, 0.6 - 0.004 * n_g)
+        ax.errorbar(xs, grp["score_mean"], yerr=grp["score_std"], fmt="none",
+                    color=c, elinewidth=lw, capsize=0, alpha=alpha, zorder=2)
+        full = np.array([filled is None or nd in filled for nd in grp["node"]])
+        for sel, face in ((full, c), (~full, "none")):
+            ax.scatter(xs[sel], grp["score_mean"].values[sel], s=10, facecolors=face,
+                       edgecolors=c, linewidths=0.6, alpha=min(alpha + 0.3, 1.0), zorder=3)
+        ax.hlines(grp["score_mean"].mean(), xs[0] - 0.4, xs[-1] + 0.4,
+                  colors=c, linewidth=1.6, zorder=4)
+        for x, (_, row) in zip(xs, grp.iterrows()):
+            if row["node"] in annotate:
+                ax.annotate(str(annotate[row["node"]]), xy=(x, row["score_mean"] + row["score_std"]),
+                            xytext=(0, 2), textcoords="offset points", ha="center", va="bottom",
+                            rotation=90, fontsize=annotation_fontsize, color="#222222", zorder=5,
+                            path_effects=[pe.withStroke(linewidth=1.0, foreground="white")])
+        centres[g] = float(xs.mean())
+        floor = min(floor, float((grp["score_mean"] - grp["score_std"]).min()))
+        pos += n_g - 1 + group_gap
 
-    ax.axhline(0, color="#aaaaaa", lw=0.7, ls="-", alpha=0.6, zorder=1)
-    ax.set_xticks(xtick_pos)
-    ax.set_xticklabels(xtick_labels)
-    ax.set_xlabel(xlabel)
+    ax.axhline(0, color="#aaaaaa", lw=0.7, alpha=0.6, zorder=1)
     ax.set_ylabel(ylabel)
-    ax.set_xlim(-GAP / 2, pos - GAP * 1.5)
+    ax.set_xlim(-group_gap / 2, pos - group_gap / 2)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
+    if labels == "ticks":
+        ax.set_xticks([centres[g] for g in grp_order])
+        ax.set_xticklabels([label_of[g] for g in grp_order])
+        ax.set_xlabel(xlabel)
+    elif labels == "none":
+        ax.set_xticks([])
+        ax.spines["bottom"].set_visible(False)
+    else:
+        ylo, yhi = ax.get_ylim()
+        step = ladder_step if ladder_step is not None else 0.035 * (yhi - ylo)
+        y0 = floor - step
+        for i, g in enumerate(grp_order):
+            if label_of[g]:
+                ax.text(centres[g], y0 + i * step, label_of[g], ha="center", va="top",
+                        fontsize=7, fontweight="bold", color=color_of[g], clip_on=False)
+        ax.set_ylim(min(ylo, y0 - 2 * step), yhi)
+        ax.set_xticks([])
+        ax.spines["bottom"].set_visible(False)
 
     if output_filename is not None:
         fig.savefig(output_filename)
@@ -826,7 +966,7 @@ def plot_adjacency_matrix(
         ``weight`` attribute; missing weights default to 1.0.
     partition : str
         Which partition to use; passed to :meth:`Result.node_properties_df`.
-    consensus_method : {"moc", "binder"}
+    consensus_method : {"moc", "moc_modal_k", "binder"}
         Consensus method; passed to :meth:`Result.node_properties_df`.
     cmap : str or colormap, optional
         Colormap for the matrix cells. Defaults to ``"Greens"``.
@@ -956,16 +1096,28 @@ def plot_adjacency_matrix(
 def plot_MCMC_entropy(
     result: "Result",
     *,
+    ax=None,
     output_filename: Optional[str] = None,
 ):
-    """Plot total entropy over MCMC samples to inspect convergence.
+    """Trace plot of the description length over the samples, one line per chain.
+
+    The description length of a sample is ``H_A_b + H_Adir_G_A_s_nu +
+    H_s_G_b_depths`` in nats (see :meth:`Result.samples_df`); a trace that
+    is still drifting, or chains that sit at different levels, mean the fit
+    has not converged.
 
     Parameters
     ----------
     result : Result
         Inference result from :func:`community_hierarchy.fit`.
+    ax : matplotlib.axes.Axes, optional
+        Axes to draw into. If *None* a new figure is created.
     output_filename : str, optional
         If given, save the figure to this path.
+
+    Returns
+    -------
+    fig, ax : tuple
     """
     from .core import Result  # local import to avoid circular
 
@@ -973,18 +1125,23 @@ def plot_MCMC_entropy(
         raise TypeError("result must be a community_hierarchy.Result instance.")
 
     samples_df = result.samples_df()
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(
-        samples_df["H_A_b"]
-        + samples_df["H_Adir_G_A_s_nu"]
-        + samples_df["H_s_G_b_depths"]
-    )
-    ax.set_xlabel("Sample index")
-    ax.set_ylabel("H_A_b + H_Adir_G_A_s_nu + H_s_G_b_depths")
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(10, 6))
+    else:
+        fig = ax.get_figure()
+    dl = samples_df["H_A_b"] + samples_df["H_Adir_G_A_s_nu"] + samples_df["H_s_G_b_depths"]
+    chains = samples_df["chain_id"].unique() if len(samples_df) else []
+    for c in chains:
+        sel = (samples_df["chain_id"] == c).to_numpy()
+        ax.plot(np.arange(sel.sum()), dl[sel].to_numpy(),
+                lw=1.0, label=f"chain {c}" if len(chains) > 1 else None)
+    if len(chains) > 1:
+        ax.legend(frameon=False)
+    ax.set_xlabel("Sample index within chain")
+    ax.set_ylabel("Description length (nats)")
     ax.set_title("Convergence of MCMC")
 
     if output_filename is not None:
         fig.savefig(output_filename)
 
     return fig, ax
-

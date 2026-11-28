@@ -50,7 +50,7 @@ def test_non_integer_weights_are_rejected(bad):
     G = _graph()
     u, v = next(iter(G.edges()))
     G[u][v]["weight"] = bad
-    with pytest.raises(ValueError, match="non-negative integers"):
+    with pytest.raises(ValueError, match="positive integer"):
         fit(Config(), G, num_samples=2, burn_sweeps=1, show_progress=False)
 
 
@@ -241,8 +241,9 @@ def test_explicit_hierarchy_model_is_respected():
 
 # ---------------------------------------------------------------------------
 # Default consensus is the maximum-overlap consensus (Peixoto 2021) with the
-# number of groups held at the posterior mode; both methods return modal K,
-# and the thinning keeps max(min_samples, ESS of H_A_b) evenly spaced samples.
+# number of groups free, as graph-tool's partition_overlap_center;
+# "moc_modal_k" and "binder" hold the number of groups at the posterior mode.
+# The thinning keeps max(min_samples, ESS of H_A_b) evenly spaced samples.
 # ---------------------------------------------------------------------------
 def _overlap(c, b):
     from scipy.optimize import linear_sum_assignment
@@ -255,33 +256,58 @@ def _overlap(c, b):
     return M[r, s].sum()
 
 
-def test_consensus_methods_return_modal_group_count():
+def _small_fit():
     G = nx.gnp_random_graph(40, 0.12, seed=4, directed=True)
-    r = fit(Config(), G, num_chains=2, samples_per_chain=40, sweeps_per_sample=2,
-            burn_sweeps=50, seed=3, show_progress=False)
+    return fit(Config(), G, num_chains=2, samples_per_chain=40, sweeps_per_sample=2,
+               burn_sweeps=50, seed=3, show_progress=False)
+
+
+def test_consensus_methods_group_counts():
+    r = _small_fit()
     K = int(r.samples_df()["num_groups"].mode().min())
-    moc = r.consensus_partition()                       # default is MOC
+    moc = r.consensus_partition()                       # default is unrestricted MOC
     assert list(moc) == list(r.consensus_partition("MOC"))   # case-insensitive, deterministic
-    assert len(set(moc)) == K
+    assert len(set(r.consensus_partition("moc_modal_k"))) == K
     assert len(set(r.consensus_partition("binder"))) == K
     with pytest.raises(ValueError):
         r.consensus_partition("vi")
 
 
-def test_moc_is_at_least_as_good_as_every_modal_sample():
-    """MOC optimises over all K-group partitions, so its total overlap with the
-    samples is no worse than that of any recorded modal-K sample it could have
-    returned (it starts from some of them and ascends)."""
-    G = nx.gnp_random_graph(40, 0.12, seed=4, directed=True)
-    r = fit(Config(), G, num_chains=2, samples_per_chain=40, sweeps_per_sample=2,
-            burn_sweeps=50, seed=3, show_progress=False)
+def test_moc_overlap_no_worse_than_its_starts():
+    """Each MOC ascends from its starts, so its total overlap with the samples is
+    no worse than theirs: for "moc_modal_k" the first modal-K sample, for "moc"
+    the one-group partition, the first sample and the "moc_modal_k" consensus."""
+    r = _small_fit()
     df = r.samples_df()
     P = df[[f"{v}_group" for v in r._node_order]].values
     K = int(df["num_groups"].mode().min())
-    moc = r.consensus_partition()
-    total = sum(_overlap(moc, p) for p in P)
-    starts = [p for p in P if len(set(p)) == K][:1]   # the first restart's start
-    assert all(total >= sum(_overlap(s, p) for p in P) for s in starts)
+    total = lambda c: sum(_overlap(c, p) for p in P)
+    fixed, free = total(r.consensus_partition("moc_modal_k")), total(r.consensus_partition())
+    assert fixed >= total([p for p in P if len(set(p)) == K][0])
+    assert free >= total(P[0]) and free >= total(np.zeros(P.shape[1], int))
+    assert free >= fixed
+
+
+def test_unrestricted_moc_recovers_planted_partition():
+    """Peixoto's (and graph-tool's documentation) example: noisy copies of one
+    partition, each with a node given a random label among 5.  Run through a
+    fit result whose samples are those copies."""
+    rng = np.random.default_rng(0)
+    x = np.array([5, 5, 2, 0, 1, 0, 1, 0, 0, 0, 0])
+    nat = _small_fit()._native
+    _, lst = nat.__getstate__()
+    template = dict(lst[0])
+    samples = []
+    for _ in range(200):
+        y = x.copy(); y[rng.integers(len(y))] = rng.integers(5)
+        d = dict(template)
+        d.update(partition=[int(v) for v in y], scores=[0.0] * len(x),
+                 num_groups=len(set(y)), H_A_b=float(rng.normal()))
+        samples.append(d)
+    res = type(nat).__new__(type(nat))
+    res.__setstate__((len(x), samples))
+    c = np.asarray(res.consensus_partition("moc", True, 1000))
+    assert _overlap(c, x) == len(x) and len(set(c)) == len(set(x))
 
 
 def test_consensus_thinning_floor_and_ess():
@@ -304,3 +330,174 @@ def test_consensus_thinning_floor_and_ess():
     L = df.groupby("chain_id").size().min()
     x = np.stack([g["H_A_b"].values[:L] for _, g in df.groupby("chain_id")])
     assert abs(ess - float(az.ess(x, method="bulk"))) <= 0.02 * float(az.ess(x, method="bulk")) + 1
+
+
+# ---------------------------------------------------------------------------
+# 2026-11 audit: argument validation, silent overrides, node order, two-layer
+# input handling and GML output.
+# ---------------------------------------------------------------------------
+
+_QUICK = dict(num_samples=2, burn_sweeps=1, sweeps_per_sample=1, show_progress=False, seed=1)
+
+
+def _typed_graph() -> nx.DiGraph:
+    """Two cliques joined by one edge; within each clique half the edges are draws."""
+    G = nx.DiGraph()
+    for block in (range(0, 6), range(6, 12)):
+        for i in block:
+            for j in block:
+                if i < j:
+                    G.add_edge(i, j, type="neutral" if (i + j) % 2 else "dominant")
+    G.add_edge(0, 6, type="dominant")
+    return G
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        dict(hierarchy_model="bradley_terry", ties_parameter=0.5),
+        dict(hierarchy_model="bradley_terry", ties_parameter=None),
+        dict(interaction="independent", group_depth=0.7),
+        dict(interaction="independent", group_depth=None),
+    ],
+)
+def test_values_forced_by_a_preset_are_not_overwritten_silently(kwargs):
+    with pytest.raises(ValueError, match="fixes"):
+        Config(**kwargs)
+
+
+def test_forced_values_that_agree_are_accepted():
+    Config(hierarchy_model="bradley_terry", ties_parameter=0.0)
+    Config(interaction="independent", group_depth=0)
+
+
+def test_ties_parameter_with_auto_bradley_terry_is_rejected():
+    # No neutral edges: an omitted hierarchy_model resolves to bradley_terry.
+    with pytest.raises(ValueError, match="no neutral edges"):
+        fit(Config(ties_parameter=0.5), _graph(), **_QUICK)
+
+
+@pytest.mark.parametrize("kwargs", [dict(mixing_variation="bogus"), dict(assortative="yes"),
+                                    dict(weighted_SBM=1), dict(group_attribute="")])
+def test_config_validates_its_fields(kwargs):
+    with pytest.raises(ValueError):
+        Config(**kwargs)
+
+
+def test_config_repr_omits_unset_fields():
+    assert "object at" not in repr(Config())
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "name"),
+    [
+        (dict(num_chains=0), "num_chains"),
+        (dict(samples_per_chain=0, num_samples=None), "samples_per_chain"),
+        (dict(sweeps_per_sample=-1), "sweeps_per_sample"),
+        (dict(thinning=0), "thinning"),
+        (dict(burn_sweeps=-1), "burn_sweeps"),
+        (dict(param_warmup_sweeps=-1), "param_warmup_sweeps"),
+        (dict(seed=-1), "seed"),
+    ],
+)
+def test_run_lengths_are_validated(kwargs, name):
+    args = dict(_QUICK)
+    args.update(kwargs)
+    if args.get("num_samples") is None:
+        args.pop("num_samples")
+    with pytest.raises(ValueError, match=name):
+        fit(Config(), _graph(), **args)
+
+
+def test_negative_ties_parameter_is_rejected():
+    with pytest.raises(ValueError, match="ties_parameter"):
+        fit(Config(ties_parameter=-1.0), _typed_graph(), **_QUICK)
+
+
+@pytest.mark.parametrize("bad", ["2", float("nan"), float("inf"), 0, -1.0])
+def test_bad_weights_are_rejected(bad):
+    G = _graph()
+    u, v = next(iter(G.edges()))
+    G[u][v]["weight"] = bad
+    with pytest.raises((TypeError, ValueError), match="weight"):
+        fit(Config(weighted_SBM=True), G, **_QUICK)
+
+
+def test_self_loops_rejected_in_multiplicity_mode():
+    G = _graph()
+    G.add_edge(0, 0)
+    with pytest.raises(ValueError, match="self-loop"):
+        fit(Config(), G, **_QUICK)
+
+
+def test_numpy_partition_labels_and_seed_are_accepted():
+    G = _graph()
+    part = np.zeros(G.number_of_nodes(), dtype=np.int64)
+    part[::2] = 1
+    r = fit(Config(), G, initial_partition=part, **{**_QUICK, "seed": np.int64(3)})
+    # and a result's partition can be fed back in
+    fit(Config(), G, initial_partition=r.consensus_partition(), **_QUICK)
+
+
+def test_initial_partition_in_two_layer_mode_follows_G_node_order():
+    from community_hierarchy.core import _gen_initial_partition
+
+    G_wins = nx.DiGraph()
+    G_wins.add_nodes_from(range(8))
+    group_graph = nx.Graph()
+    group_graph.add_nodes_from([0, 4, 1, 5, 2, 6, 3, 7])          # a different order
+    group_graph.add_edges_from([(i, j) for i in range(4) for j in range(i + 1, 4)])
+    group_graph.add_edges_from([(i, j) for i in range(4, 8) for j in range(i + 1, 8)])
+    group_graph.add_edge(3, 4)
+    p = _gen_initial_partition(G_wins, nx.Graph(), None, group_graph=group_graph,
+                               node_order=list(G_wins.nodes()))
+    assert len(set(p[:4])) == 1 and len(set(p[4:])) == 1 and p[0] != p[4]
+
+
+def test_multigraph_group_graph_sums_parallel_edges():
+    from community_hierarchy.input_output import get_neighbors
+
+    gg = nx.MultiGraph()
+    gg.add_edge(0, 1, weight=2.0)
+    gg.add_edge(0, 1, weight=3.0)
+    gg.add_edge(1, 2)
+    assert get_neighbors(gg) == [{1: 5.0}, {0: 5.0, 2: 1.0}, {1: 1.0}]
+
+
+def test_write_gml_uses_network_properties(tmp_path):
+    r = fit(Config(), _graph(), **{**_QUICK, "num_samples": 20})
+    out = tmp_path / "out.gml"
+    import community_hierarchy as ch
+
+    ch.write_gml_with_inferences(_graph(), str(out), r)    # filterwarnings=error: no deprecation
+    H = nx.read_gml(out)
+    for key in ("inferred_ICC_mean", "inferred_sigma_T_hdi_lo", "inferred_group_depth_hdi_hi"):
+        assert key in H.graph
+
+
+def test_network_properties_df_validates_prob():
+    r = fit(Config(), _graph(), **_QUICK)
+    for bad in (0.0, 1.0, 1.5, -0.1):
+        with pytest.raises(ValueError, match="prob"):
+            r.network_properties_df(prob=bad)
+
+
+def test_plot_MCMC_entropy_draws_one_line_per_chain():
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    import community_hierarchy as ch
+
+    r = fit(Config(), _graph(), **{**_QUICK, "num_chains": 3, "num_samples": 5})
+    fig, ax = ch.plot_MCMC_entropy(r)
+    assert len(ax.get_lines()) == 3
+    plt.close(fig)
+
+
+def test_bradley_terry_on_neutral_edges_is_rejected():
+    # Plain Bradley-Terry gives a draw probability 0, so a graph with draws has
+    # likelihood 0 under it: an error, not a fit that quietly drops them.
+    with pytest.raises(ValueError, match="neutral edges"):
+        fit(Config(hierarchy_model="bradley_terry"), _typed_graph(), **_QUICK)

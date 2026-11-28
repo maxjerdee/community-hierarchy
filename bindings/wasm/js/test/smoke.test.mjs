@@ -9,7 +9,7 @@ after(() => m.terminate());
 
 // Synthetic directed graph: two communities of 8 nodes each.
 //   Within each community: symmetric ties (undirected clique) — every pair tied.
-//     This creates group cohesion that the ds SBM can detect.
+//     This creates group cohesion that the SBM can detect.
 //   Between communities: A (0-7) dominates B (8-15) — all directed wins.
 // The directional asymmetry between communities (A beats B) combined with dense
 // within-community ties makes the K=2 {A, B} partition optimal.
@@ -155,4 +155,39 @@ test("tie edges are accepted", async () => {
   }).result;
   assert.equal(r.numNodes, NUM_NODES);
   assert.ok(Number.isFinite(r.mdlValue));
+});
+
+test("wins point from winner to loser", async () => {
+  // 0 beats everyone, everyone beats 3.
+  const w = [[0, 1], [0, 2], [0, 3], [1, 3], [2, 3], [0, 1], [0, 2], [1, 3], [2, 3]];
+  const r = await m.fit(w, [], { burn_sweeps: 50, samples: 50, sweeps_per_sample: 2, seed: 1 }).result;
+  assert.ok(r.scoreMeans[0] > r.scoreMeans[3], "the source of a win must score higher");
+});
+
+test("out-of-range node ids are rejected", () => {
+  assert.throws(() => m.fit([[0, 50], [1, 0]], [], { num_nodes: 2 }), RangeError);
+  assert.throws(() => m.fit({ from: [0, 1.5], to: [1, 0] }, [], {}), TypeError);
+  assert.throws(() => m.fit({ from: [0, 1], to: [1] }, [], {}), TypeError);
+  assert.throws(() => m.fit([[0, 1, -2]], [], {}), TypeError);
+});
+
+test("the core rejects bad edges and partitions", async () => {
+  // Bypass index.js: the worker hands these straight to ds_session_create.
+  await assert.rejects(m.fit([[0, 0], [0, 1]], [], { burn_sweeps: 1, samples: 1 }).result, /self-loop/);
+  await assert.rejects(
+    m.fit([[0, 1], [1, 2]], [], { burn_sweeps: 1, samples: 1, initialPartition: [0, 5, 5] }).result,
+    /every label|labels must be/);
+  await assert.rejects(
+    m.fit([[0, 1], [1, 2]], [], { burn_sweeps: 1, samples: 1, initialPartition: [0, 1] }).result,
+    /length num_nodes/);
+});
+
+test("initial scores are used as given", async () => {
+  const s = [3, 0, 0, -3];
+  const r = await m.fit([[0, 1], [1, 2], [2, 3]], [], {
+    burn_sweeps: 0, samples: 1, sweeps_per_sample: 0, seed: 1, initialScores: s,
+  }).result;
+  // Zero sweeps: the one recorded sample is the starting state (Python does
+  // not rescale user scores either; it starts individual_depth at their RMS).
+  assert.deepEqual(Array.from(r.scoreMeans), s);
 });

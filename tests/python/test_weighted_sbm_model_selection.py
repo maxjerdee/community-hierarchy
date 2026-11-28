@@ -10,12 +10,12 @@ where
 
 is -log P(W|A,μ,b) for the per-block-pair uniform simplex model, and
 
-  H(μ) = (q(q+1)/2 − 1)·log(w) − log((q(q+1)/2 − 1)!)
+  H(μ) = (Q − 1)·log(w) − log((Q − 1)!),   Q = #{r ≤ s : M_rs > 0}
 
-is -log P(μ), the cost of encoding the q(q+1)/2 block-pair weight totals
-as a single draw from the simplex of fixed total w.  This H(μ) term is
-ESSENTIAL: without it, singletons (q=N) give H(W|A,μ,b)=0 and the MCMC
-never escapes the singleton basin in single-layer weighted mode.
+is -log P(μ), the totals of the Q block pairs joined by an edge drawn
+uniformly from the simplex of fixed total w.  Block pairs with no edges
+carry no weight and are not counted, which keeps H_W differences between
+partitions independent of the unit of weight.
 
 H_W is ADDED to the total description length (H_A_G_b += H_W), so
 more-negative H_W = better fit = lower description length.
@@ -83,10 +83,10 @@ def _hw_analytic(M_diag, mu_diag, M_off, mu_off, w_total=None):
     for m, mu in zip(M_off, mu_off):
         if m > 0:
             h += (m - 1) * math.log(mu) - math.lgamma(m)
-    # H(μ): -log P(μ) on simplex of total weight w_total
+    # H(μ): -log P(μ) on the simplex of total weight w_total, over the block
+    # pairs joined by at least one edge
     if w_total is not None and w_total > 0:
-        q = len(M_diag)          # number of groups
-        npairs = q * (q + 1) // 2
+        npairs = sum(m > 0 for m in list(M_diag) + list(M_off))
         if npairs > 1:
             h += (npairs - 1) * math.log(w_total) - math.lgamma(npairs)
     return h
@@ -155,7 +155,7 @@ def _hw_mathematica_formula(SW, AB, groups):
       HWGAb = HWGAMub + HMu
 
     where HWGAMub is the per-block-pair uniform simplex (Eq. 33) and
-    HMu = (q(q+1)/2 - 1)*log(w) - log((q(q+1)/2 - 1)!).
+    HMu = (Q - 1)*log(w) - log((Q - 1)!), Q the number of block pairs with edges.
 
     Diagonal (r=r): M[r][r]/2 edges (halved for undirected), μ[r][r]/2 weight.
     Off-diagonal (r<s): M[r][s] edges, μ[r][s] total weight.
@@ -175,7 +175,7 @@ def _hw_mathematica_formula(SW, AB, groups):
                 hwga += (M[r][s] - 1) * math.log(mu[r][s]) - math.lgamma(M[r][s])
     # H(μ): total weight = sum of all μ_rs / 2 (symmetric matrix)
     w_total = sum(mu[r][s] for r in range(q) for s in range(q)) / 2.0
-    npairs = q * (q + 1) // 2
+    npairs = sum(M[r][s] != 0 for r in range(q) for s in range(r, q))
     if npairs > 1 and w_total > 0:
         hwga += (npairs - 1) * math.log(w_total) - math.lgamma(npairs)
     return hwga
@@ -276,3 +276,28 @@ def test_weighted_sbm_prefers_correct_partition():
         f"H_W(K=2)={mcmc_k2.H_W:.2f}, H_W(K=1)={mcmc_k1.H_W:.2f}, "
         f"ΔH_W={delta_hw:.2f} — correct partition should be favoured by >>50 nats"
     )
+
+
+def test_HW_differences_do_not_depend_on_the_unit_of_weight():
+    """Multiplying every weight by c shifts H_W by the same amount, (m - 1) log c,
+    for every partition, so differences between partitions (what the sampler
+    uses) do not change.  With the totals' simplex over all q(q+1)/2 block pairs
+    instead of the pairs with edges this fails: partitions with empty block pairs
+    gain or lose log c per empty pair."""
+    import random
+    rng = random.Random(1)
+    n = 8
+    edges = {(i, j): rng.uniform(0.05, 3.0) for i in range(n) for j in range(i + 1, n) if rng.random() < 0.6}
+    def hw(partition, c):
+        adj = [{} for _ in range(n)]
+        for (i, j), w in edges.items():
+            adj[i][j] = adj[j][i] = c * w
+        return native.MCMC(wins=[{} for _ in range(n)], ties=[{} for _ in range(n)], group_adj=adj,
+                           partition=list(partition), scores=[0.0] * n,
+                           num_groups=len(set(partition)), seed=0, weighted_SBM=True).H_W
+    partitions = ([0] * n, [0, 0, 0, 0, 1, 1, 1, 1], [0, 1, 2, 3, 0, 1, 2, 3], list(range(n)))
+    for c in (0.01, 7.0, 1000.0):
+        shifts = [hw(p, c) - hw(p, 1.0) for p in partitions]
+        expected = (len(edges) - 1) * math.log(c)
+        for p, d in zip(partitions, shifts):
+            assert abs(d - expected) < 1e-8, (p, c, d, expected)

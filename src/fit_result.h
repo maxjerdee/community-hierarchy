@@ -52,15 +52,17 @@ public:
 
     double mdl_value() const;
     std::vector<int> mdl_partition() const;
-    // Point estimate of the partition, always with the MODAL number of groups.
+    // Point estimate of the partition.
     //   method = "moc"    (default) maximum-overlap consensus (Peixoto 2021,
-    //                     PRX 11:021003) over ALL partitions with modal-K groups,
-    //                     scored against every retained sample;
+    //                     PRX 11:021003) over ALL partitions, the number of
+    //                     groups free, as graph-tool's partition_overlap_center;
+    //   method = "moc_modal_k" the same with the number of groups held at the
+    //                     posterior mode;
     //   method = "binder" Dahl's method at the modal K, then (refine = true) a
     //                     greedy single-node descent on the Binder loss with K held.
-    // Both use the samples thinned to max(min_samples, ESS of H_A_b), evenly
+    // All use the samples thinned to max(min_samples, ESS of H_A_b), evenly
     // spaced (all of them if there are fewer than min_samples).  refine is
-    // ignored by "moc".
+    // ignored by the MOC methods.
     std::vector<int> consensus_partition(const std::string& method = "moc",
                                          bool refine = true,
                                          int min_samples = 1000) const;
@@ -101,6 +103,7 @@ private:
     int best_index() const;
     std::vector<int> binder_consensus(const std::vector<int>& idx, int modal_k, bool refine) const;
     std::vector<int> moc_consensus(const std::vector<int>& idx, int modal_k) const;
+    std::vector<int> moc_unrestricted(const std::vector<int>& idx) const;
     static std::pair<double, double> hdi_bounds(std::vector<double> arr, double prob);
 };
 

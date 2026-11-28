@@ -13,7 +13,7 @@
 #include "helpers.h"
 #include "MCMC_core.h" // Include full definition of MCMC
 
-// Logarithm of the binomial coefficient
+// log C(a, b) = lgamma(a + 1) - lgamma(b + 1) - lgamma(a - b + 1), for real a, b.
 double log_binom(double a, double b) {
   if (b == 0) {
     return 0;
@@ -21,9 +21,8 @@ double log_binom(double a, double b) {
   return std::lgamma(a + 1) - std::lgamma(b + 1) - std::lgamma(a - b + 1);
 }
 
-// Logarithm of the factorial
-// Tabulated per thread (chains are threads): the same values std::lgamma gives,
-// computed once.  lgamma dominated the single-node and merge-split moves.
+// log n!.  Tabulated per thread (chains are threads): the same values std::lgamma
+// gives, computed once.  lgamma dominated the single-node and merge-split moves.
 static thread_local std::vector<double> LOG_FACTORIAL_TABLE;
 double log_factorial(int n) {
   if (n < 0) return std::lgamma(n + 1);
@@ -36,18 +35,41 @@ double log_factorial(int n) {
   return LOG_FACTORIAL_TABLE[static_cast<std::size_t>(n)];
 }
 
-// Logarithm of the double factorial
+// log Gamma(x + 1) for real x >= 0: log x! for integer x (from the table), its
+// continuous extension otherwise.  For edge weights, which are real in
+// weighted_SBM mode (an int argument would silently truncate them).
+double log_factorial_real(double x) {
+  const double r = std::round(x);
+  if (r == x && r >= 0.0 && r < 1e7) return log_factorial(static_cast<int>(r));
+  return std::lgamma(x + 1.0);
+}
+
+// log n!! for even n = 2k: k log 2 + log k!.
 double log_factorial2(int n) {
-  // Check that n is an even integer
   if (n % 2 != 0) {
     throw std::invalid_argument("log_factorial2: argument must be even, got " + std::to_string(n));
   }
   return n / 2 * std::log(2) + std::lgamma(n / 2 + 1);
 }
 
-// Logarithm of the negative binomial distribution of x with a given mean and concentration parameter, 
-// P(x|mean,concentration) = binom(x+concentration-1, x) * concentration^concentration mean^x/(concentration + mean)^(concentration + x)
-// concentration = 1 is a geometric distribution, concentration = inf is a Poisson distribution
+// log of the negative binomial pmf of x with mean `mean` and concentration
+// (shape) c:
+//   P(x | mean, c) = C(x + c - 1, x) c^c mean^x / (c + mean)^(c + x),
+// i.e. a Poisson(lambda) count with lambda ~ Gamma(shape c, mean `mean`).  c = 1
+// is geometric; beyond 1/CONCENTRATION_EPSILON the Poisson limit is used.
+//
+// The c-dependent pieces lgamma(x + c), lgamma(c) and c log c are cached per
+// thread, for TWO concentrations: calculate_H_M and flip_nodes alternate between
+// concentration_in and concentration_out on every block pair, and a single slot
+// was rebuilt on every alternation (flips ~7x slower whenever
+// variation_in != variation_out).
+namespace {
+struct NegBinomCache {
+  double c = -1.0, lgc = 0.0, clogc = 0.0;
+  std::vector<double> lgxc;   // lgxc[x] = lgamma(x + c)
+};
+}  // namespace
+
 double log_neg_binom(int x, double mean, double concentration) {
   if (x < 0) {
     return -std::numeric_limits<double>::infinity();
@@ -64,24 +86,29 @@ double log_neg_binom(int x, double mean, double concentration) {
     // For very large concentration, approximate with Poisson
     return -mean + x * std::log(mean) - log_factorial(x);
   }
-  // log_binom(x + c - 1, x) = lgamma(x + c) - lgamma(x + 1) - lgamma(c).  The
-  // c-dependent pieces are tabulated per thread and rebuilt whenever c changes
-  // (only when a variation parameter is sampled).
-  static thread_local double tab_c = -1.0, tab_lgc = 0.0, tab_clogc = 0.0;
-  static thread_local std::vector<double> tab_lgxc;
-  if (concentration_used != tab_c) {
-    tab_c = concentration_used;
-    tab_lgc = std::lgamma(concentration_used);
-    tab_clogc = concentration_used * std::log(concentration_used);
-    tab_lgxc.clear();
+  // log_binom(x + c - 1, x) = lgamma(x + c) - lgamma(x + 1) - lgamma(c).
+  static thread_local NegBinomCache slots[2];
+  static thread_local int last_filled = 1;
+  NegBinomCache* t;
+  if (slots[0].c == concentration_used) {
+    t = &slots[0];
+  } else if (slots[1].c == concentration_used) {
+    t = &slots[1];
+  } else {
+    last_filled = 1 - last_filled;          // evict the slot filled longer ago
+    t = &slots[last_filled];
+    t->c = concentration_used;
+    t->lgc = std::lgamma(concentration_used);
+    t->clogc = concentration_used * std::log(concentration_used);
+    t->lgxc.clear();
   }
-  if (x >= static_cast<int>(tab_lgxc.size())) {
-    const std::size_t old = tab_lgxc.size();
+  if (x >= static_cast<int>(t->lgxc.size())) {
+    const std::size_t old = t->lgxc.size();
     const std::size_t want = std::max<std::size_t>(static_cast<std::size_t>(x) + 1, 2 * old + 64);
-    tab_lgxc.resize(want);
-    for (std::size_t k = old; k < want; ++k) tab_lgxc[k] = std::lgamma(static_cast<double>(k) + concentration_used);
+    t->lgxc.resize(want);
+    for (std::size_t k = old; k < want; ++k) t->lgxc[k] = std::lgamma(static_cast<double>(k) + concentration_used);
   }
-  return (tab_lgxc[static_cast<std::size_t>(x)] - log_factorial(x) - tab_lgc) + tab_clogc +
+  return (t->lgxc[static_cast<std::size_t>(x)] - log_factorial(x) - t->lgc) + t->clogc +
          x * std::log(mean) - (concentration_used + x) * std::log(concentration_used + mean);
 }
 
@@ -103,56 +130,6 @@ double log_sum_exp(std::vector<double> xs) {
   }
   return xs_max + std::log(result);
 }
-
-double inverse_erf(double x) {
-    if (x < -1 || x > 1) {
-        throw std::runtime_error("inverse_erf: argument must be in [-1, 1], got " + std::to_string(x));
-    }
-  // Reference: https://stackoverflow.com/questions/27229371/inverse-error-function-in-c
-
-  const double absx = std::abs(x);
-  if (absx == 1.0) {
-    return std::copysign(std::numeric_limits<double>::infinity(), x);
-  }
-
-  // Asymptotic correction near |x| -> 1 to enforce divergence
-  if (absx > 0.999) {
-    const double eps = 1.0 - absx;
-    const double log_pi = std::log(std::acos(-1.0));
-    const double L = -std::log(eps) - 0.5 * log_pi;
-    const double z = std::sqrt(L - 0.5 * std::log(L));
-    return std::copysign(z, x);
-  }
-
-  float p, r, t;
-  t = fmaf (x, 0.0f - x, 1.0f);
-  t = std::log(t);
-  if (fabsf(t) > 6.125f) { // maximum ulp error = 2.35793
-    p =              3.03697567e-10f; //  0x1.4deb44p-32 
-    p = fmaf (p, t,  2.93243101e-8f); //  0x1.f7c9aep-26 
-    p = fmaf (p, t,  1.22150334e-6f); //  0x1.47e512p-20 
-    p = fmaf (p, t,  2.84108955e-5f); //  0x1.dca7dep-16 
-    p = fmaf (p, t,  3.93552968e-4f); //  0x1.9cab92p-12 
-    p = fmaf (p, t,  3.02698812e-3f); //  0x1.8cc0dep-9 
-    p = fmaf (p, t,  4.83185798e-3f); //  0x1.3ca920p-8 
-    p = fmaf (p, t, -2.64646143e-1f); // -0x1.0eff66p-2 
-    p = fmaf (p, t,  8.40016484e-1f); //  0x1.ae16a4p-1 
-  } else { // maximum ulp error = 2.35002
-    p =              5.43877832e-9f;  //  0x1.75c000p-28 
-    p = fmaf (p, t,  1.43285448e-7f); //  0x1.33b402p-23 
-    p = fmaf (p, t,  1.22774793e-6f); //  0x1.499232p-20 
-    p = fmaf (p, t,  1.12963626e-7f); //  0x1.e52cd2p-24 
-    p = fmaf (p, t, -5.61530760e-5f); // -0x1.d70bd0p-15 
-    p = fmaf (p, t, -1.47697632e-4f); // -0x1.35be90p-13 
-    p = fmaf (p, t,  2.31468678e-3f); //  0x1.2f6400p-9 
-    p = fmaf (p, t,  1.15392581e-2f); //  0x1.7a1e50p-7 
-    p = fmaf (p, t, -2.32015476e-1f); // -0x1.db2aeep-3 
-    p = fmaf (p, t,  8.86226892e-1f); //  0x1.c5bf88p-1 
-  }
-  r = x * p;
-  return r;
-}
-
 
 double concentration_to_variation(double concentration) {
   if (concentration < 0.0) {
@@ -236,82 +213,24 @@ double variation_to_concentration(double variation, double tol, int max_iter) {
   return 0.5 * (lo + hi);
 }
 
-// Sample from a set of outcomes given weights (not necessarily normalized),
-// also return the entropy of that choice
-std::pair<int, double> sample_weights(std::vector<double> weights) {
-  // Sample according to these weights (this is where all the randomness comes
-  // from), use the global rng mersenne twister
-  // Normalize weights
-  double sum = std::accumulate(weights.begin(), weights.end(), 0.0);
-  for (double &weight : weights) {
-    weight /= sum;
-  }
-
-  double p = uniform_random(rng);
-
-  double culm_weight = 0.0;
-  for (size_t i = 0; i < weights.size(); ++i) {
-    culm_weight += weights[i];
-    if (p <= culm_weight) {
-      return std::make_pair(static_cast<int>(i), -std::log(weights[i]));
-    }
-  }
-  // If no match found, return the last element as a fallback (due to rounding
-  // issues)
-  return std::make_pair(weights.size() - 1, -std::log(weights.back()));
+// CDF-space proposals.  To move a parameter a with prior P(a) and CDF F, map it
+// to p = F(a), take a Gaussian random-walk step in p reflected into [0, 1], and
+// map back with F^{-1}.  The step kernel K(p, p') is symmetric and the prior is
+// uniform in p, so in a-space the proposal density is K(F(a), F(a')) P(a'): the
+// prior cancels from the Hastings ratio, leaving only the likelihood.  This
+// relies on F and F^{-1} being exact inverses of each other (see
+// gaussian_proposal).
+//
+// Fold any real x onto [0, 1] by reflection at 0 and 1 (period 2).
+static double reflect_unit(double x) {
+  x = std::fmod(x, 2.0);           // any distance: fold onto (-2, 2), then onto [0, 2)
+  if (x < 0.0) x += 2.0;           // (fmod(p + 2, 2) failed for steps below -2)
+  if (x > 1.0) x = 2.0 - x;
+  return x;
 }
 
-// Sample from a set of log weights (not necessarily normalized),
-// also return the entropy of that choice
-std::pair<int, double> sample_log_weights(std::vector<double> log_weights) {
-  // Normalize the weights
-  double log_sum = log_sum_exp(log_weights);
-  std::vector<double> weights;
-  weights.reserve(log_weights.size()); // Reserve memory for weights
-  for (double log_weight : log_weights) {
-    weights.push_back(std::exp(log_weight - log_sum));
-  }
-  
-  return sample_weights(weights);
-}
-
-// Template implementation for sample_log_weights_map
-template <typename T>
-std::pair<T, double> sample_log_weights_map(const std::unordered_map<T, double>& log_weights_map) {
-    std::vector<double> log_weights;
-    std::vector<T> keys;
-  for (typename std::unordered_map<T, double>::const_iterator it = log_weights_map.begin(); it != log_weights_map.end(); ++it) {
-    log_weights.push_back(it->second);
-    keys.push_back(it->first);
-    }
-  std::pair<int, double> sampled = sample_log_weights(log_weights);
-  int index = sampled.first;
-  double entropy = sampled.second;
-    return {keys[index], entropy};
-}
-
-// Explicit instantiation for int keys
-template std::pair<int, double> sample_log_weights_map<int>(const std::unordered_map<int, double>& log_weights_map);
-
-double positive_uniform_proposal(double a, double move_sigma) {
-  double a_new = a + next_normal(rng, move_sigma);
-  // Impose reflective boundary conditions p_new \in [0,inf)
-  a_new = fabs(a_new);
-  return a_new;
-}
-
-// Transformations of parameters to the [0,1] interval according to a given prior distribution to simplify the sampling process
-// In order to obtain a local move of a that respects the prior distribution P(a),
-// We compute p = cdf(a), apply a small uniform Gaussian perturbation to p, 
 double uniform_proposal(double p, double move_sigma) {
-  double p_new = p + next_normal(rng, move_sigma);
-  // Impose reflective boundary conditions p_new \in [0,1]
-  p_new = std::fmod(p_new, 2.0);           // any distance: fold onto [0, 2), then reflect
-  if (p_new < 0.0) p_new += 2.0;           // (fmod(p + 2, 2) failed for steps below -2)
-  if(p_new > 1.0){
-      p_new = 2.0 - p_new;
-  }
-  return p_new;
+  return reflect_unit(p + next_normal(rng, move_sigma));
 }
 // Half-Cauchy prior of width w: P(a|w) = 2 w / (pi (w^2 + a^2))
 double half_cauchy_cdf(double a, double w) {
@@ -325,19 +244,6 @@ double half_cauchy_proposal(double a, double w, double move_sigma) {
   double p_new = uniform_proposal(p, move_sigma);
   return half_cauchy_inv_cdf(p_new, w);
 }
-// Cauchy prior with width w and mean mu: P(a|mu,w) = 1 / (pi w (1 + ((a - mu) / w)^2))
-double cauchy_cdf(double a, double mu, double w) {
-  return 0.5 + std::atan((a - mu) / w) / M_PI;
-}
-double cauchy_inv_cdf(double p, double mu, double w) {
-  return mu + w * std::tan(M_PI * (p - 0.5));
-}
-double cauchy_proposal(double a, double mu, double w, double move_sigma) {
-  double p = cauchy_cdf(a, mu, w);
-  double p_new = uniform_proposal(p, move_sigma);
-  return cauchy_inv_cdf(p_new, mu, w);
-}
-
 // Exponential prior with mean mu: P(a|mu) = (1/mu) exp(-a/mu) for a >= 0
 double exponential_cdf(double a, double mu) {
   if (a <= 0.0) {
@@ -363,107 +269,116 @@ double exponential_proposal(double a, double mu, double move_sigma) {
   return exponential_inv_cdf(p_new, mu);
 }
 
-// Gaussian prior with mean mu and width sigma: P(a|mu,sigma) = (1/sqrt(2*pi*sigma^2)) exp(-(a-mu)^2/(2*sigma^2))
+// ---------------------------------------------------------------------------
+// Gaussian CDF and quantile, accurate in both tails.
+//
+// The score move (MCMC::propose_score_move) is a CDF-space random walk on the
+// exact Gaussian conditional of one score, and its Hastings ratio assumes that
+// the CDF and the quantile are exact inverses.  The former float-precision
+// inverse_erf round-tripped to ~1e-7 in the bulk and to ~1% beyond 3.3 sigma,
+// and 0.5 (1 + erf) saturated to exactly 0 or 1 beyond ~8.3 sigma.
+//
+// normal_lower_tail(z) = Phi(-|z|) via erfc keeps full relative precision in
+// either tail.  normal_quantile_lower(t), 0 < t <= 0.5, inverts it: Acklam's
+// rational approximation (P. J. Acklam, "An algorithm for computing the inverse
+// normal cumulative distribution function", 2003; |relative error| < 1.15e-9)
+// followed by one Halley step on erfc, as Acklam recommends, which brings it to
+// double precision (round trip |Phi(x) - t| / t ~ 1e-15, checked down to
+// t = 1e-300 in tests/mcmc_core_test.cpp).
+// ---------------------------------------------------------------------------
+namespace {
+const double SQRT2 = 1.41421356237309504880;
+const double SQRT2PI = 2.50662827463100050242;
+
+double normal_lower_tail(double z) {       // Phi(-|z|)
+  return 0.5 * std::erfc(std::fabs(z) / SQRT2);
+}
+
+double normal_quantile_lower(double t) {   // Phi^{-1}(t) <= 0 for 0 < t <= 0.5
+  static const double a[] = {-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02,
+                             1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00};
+  static const double b[] = {-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02,
+                             6.680131188771972e+01, -1.328068155288572e+01};
+  static const double c[] = {-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00,
+                             -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00};
+  static const double d[] = {7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00,
+                             3.754408661907416e+00};
+  if (!(t > 0.0)) return -std::numeric_limits<double>::infinity();
+  double x;
+  if (t < 0.02425) {                       // lower tail
+    const double q = std::sqrt(-2.0 * std::log(t));
+    x = (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+        ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1.0);
+  } else {                                 // central region
+    const double q = t - 0.5, r = q * q;
+    x = (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q /
+        (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1.0);
+  }
+  // One Halley step on f(x) = Phi(x) - t, with Phi(x) = erfc(-x / sqrt 2) / 2:
+  // u = f / f' = e / phi(x).  Below t ~ 1e-308 exp(x^2 / 2) overflows and the
+  // (then 1e-9-accurate) Acklam value is kept.
+  const double e = 0.5 * std::erfc(-x / SQRT2) - t;
+  const double u = e * SQRT2PI * std::exp(0.5 * x * x);
+  if (std::isfinite(u)) x -= u / (1.0 + 0.5 * x * u);
+  return std::min(x, 0.0);
+}
+}  // namespace
+
+// Gaussian CDF: computed through the nearer tail, so the lower tail keeps full
+// relative precision (the upper tail is limited by 1 - Phi rounding, ~1e-16).
 double gaussian_cdf(double a, double mu, double sigma) {
-  // CDF of Gaussian: 0.5 * (1 + erf((a - mu) / (sigma * sqrt(2))))
-  return 0.5 * (1.0 + std::erf((a - mu) / (sigma * std::sqrt(2.0))));
+  const double z = (a - mu) / sigma;
+  const double t = normal_lower_tail(z);
+  return z <= 0.0 ? t : 1.0 - t;
 }
 
+// Gaussian quantile, accurate to ~1e-15 relative over (0, 1): the nearer tail
+// probability min(p, 1 - p) is inverted, and the quantile is antisymmetric.
 double gaussian_inv_cdf(double p, double mu, double sigma) {
-  // Inverse CDF using inverse error function
-  if(verbose){
-    print("gaussian_inv_cdf called with p=" + std::to_string(p) + ", mu=" + std::to_string(mu) + ", sigma=" + std::to_string(sigma));
-    print("inverse_erf argument: " + std::to_string(2.0 * p - 1.0));
-    print("inverse_erf value: " + std::to_string(inverse_erf(2.0 * p - 1.0)));
-    print("Result: " + std::to_string(mu + sigma * std::sqrt(2.0) * inverse_erf(2.0 * p - 1.0)));
-  }
-  return mu + sigma * std::sqrt(2.0) * inverse_erf(2.0 * p - 1.0);
+  const double x = (p <= 0.5) ? normal_quantile_lower(p) : -normal_quantile_lower(1.0 - p);
+  return mu + sigma * x;
 }
 
+// Score proposal: a reflected random walk in the CDF space of N(mu, sigma^2).
+// The prior cancels only if CDF and quantile are exact inverses, so the CDF
+// value p is never formed near 1.  It is carried as the tail probability
+// t = Phi(-|z|) and a side, using that reflection into [0, 1] commutes with
+// p -> 1 - p: from the upper side, p' = 1 - reflect(t - step).  Both tails then
+// keep full relative precision (a raw p saturates to 1 beyond ~8.3 sigma, which
+// made distinct scores map to the same point).  Same random draw as
+// uniform_proposal.
 double gaussian_proposal(double a, double mu, double sigma, double move_sigma) {
-  if(verbose){
-    print("gaussian_proposal called with a=" + std::to_string(a) + ", mu=" + std::to_string(mu) + ", sigma=" + std::to_string(sigma) + ", move_sigma=" + std::to_string(move_sigma));
-  }
-  double p = gaussian_cdf(a, mu, sigma);
-  double p_new = uniform_proposal(p, move_sigma);
-  if(verbose){
-    print("gaussian_proposal intermediate p=" + std::to_string(p) + ", p_new=" + std::to_string(p_new));
-  }
-  double result = gaussian_inv_cdf(p_new, mu, sigma);
-  if(result < -1e10 || result > 1e10){
-    std::cerr << "Warning: gaussian_proposal result is very large: " << result << ". Check if the parameters are set correctly.\n";
-    std::cerr << "Input parameters were: a=" << a << ", mu=" << mu << ", sigma=" << sigma << ", move_sigma=" << move_sigma << "\n";
-    std::cerr << "Intermediate values were: p=" << p << ", p_new=" << p_new << "\n";
-  }
-  return result;
+  const double z = (a - mu) / sigma;
+  const bool upper = z > 0.0;
+  const double t = normal_lower_tail(z);
+  const double step = next_normal(rng, move_sigma);
+  // x = the new CDF value seen from the current side (lower: p', upper: 1 - p')
+  // (x = 0 needs the step to cancel t exactly; it is clamped so that the score
+  // stays finite.)
+  const double x = std::max(reflect_unit(t + (upper ? -step : step)),
+                            std::numeric_limits<double>::min());
+  // Map back from whichever tail x lies in: x <= 0.5 -> same side, else the other.
+  const double z_new_side = (x <= 0.5) ? normal_quantile_lower(x) : -normal_quantile_lower(1.0 - x);
+  const double z_new = upper ? -z_new_side : z_new_side;
+  return mu + sigma * z_new;
 }
 
-
-
-// Compute the log(mean) and standard error of that assessment given log values
-std::pair<double, double> log_mean_and_se(std::vector<double> log_vals){
-  // Compute the mean of the log values
-  double log_E_val = log_sum_exp(log_vals) - std::log(log_vals.size()); // Log of mean of values
-  std::vector<double> twice_log_vals;
-  for (double log_val : log_vals) { twice_log_vals.push_back(2 * log_val); } // 2 * log_vals
-  double log_E_val_2 = log_sum_exp(twice_log_vals) - std::log(log_vals.size()); // Log of mean of squared values
-  double log_std = 0.5 * (std::log(std::exp(0) - std::exp(2 * log_E_val - log_E_val_2)) + log_E_val_2); // Log of standard deviation of values
-  double log_E_val_err_est = std::exp(log_std - 0.5 * std::log(log_vals.size()) - log_E_val); // Log of standard error of mean of values
-
-  return std::make_pair(log_E_val, log_E_val_err_est); // Return the log of the mean and standard error of the mean of the values
-}
-
-// Value consistency check: compare actual vs bookkeeping value, optionally throw error
+// Value consistency check: compare the recomputed (actual) and the cached
+// (bookkeeping) value; with throw_error, fail when
+//     |actual - bookkeeping| > tolerance + NUMERICAL_CHECK_REL_TOL * |actual|
+// or either is NaN.  The relative part covers the round-off of incremental
+// updates on large totals and, unlike the former tolerance * actual, also
+// applies to negative values (H_W, H_Adir).  Returns actual (repairs the cache).
 double value_check(double actual, double bookkeeping, double tolerance, bool throw_error, const std::string& name) {
-  if (throw_error && ((std::abs(actual - bookkeeping) > tolerance && std::abs(actual - bookkeeping) > tolerance*actual)|| std::isnan(actual) || std::isnan(bookkeeping))) {
+  const double diff = std::abs(actual - bookkeeping);
+  if (throw_error && (std::isnan(actual) || std::isnan(bookkeeping) ||
+                      (actual != bookkeeping &&
+                       !(diff <= tolerance + NUMERICAL_CHECK_REL_TOL * std::abs(actual))))) {
     throw std::runtime_error("Bookkeeping mismatch for " + name +
         ": cached=" + std::to_string(bookkeeping) +
         ", actual=" + std::to_string(actual));
   }
   return actual;
-}
-
-// Sample from a bernoulli distribution with given probability
-std::pair<int, double> sample_bernoulli(double p) {
-  double r = uniform_random(rng);
-  if (r < p) {
-    return std::make_pair(1, -std::log(p));
-  } else {
-    return std::make_pair(0, -std::log(1 - p));
-  }
-}
-
-// Return the indices perm which label the row sums from largest to smallest
-template <typename T> std::vector<int> argsort(const std::vector<T> &array) {
-  std::vector<int> indices(array.size());
-  std::iota(indices.begin(), indices.end(), 0);
-  std::sort(indices.begin(), indices.end(),
-            [&array](int left, int right) -> bool {
-              // sort indices according to corresponding array element
-              return array[left] > array[right];
-            });
-
-  return indices;
-}
-
-// Explicit instantiation of template function for int type
-template std::vector<int> argsort<int>(const std::vector<int> &array);
-
-// Printing functions (useful for debugging)
-// Print function which calls print on all arguments
-// template <typename T, typename... Args>
-// void print(T t, Args... args){
-//     std::cout << t << " ";
-//     print(args...);
-// }
-
-void print(const MCMC& state) { 
-  std::cout << state.to_string_verbose() << std::endl; 
-}
-
-// Fix format specifier in printf
-void print_node(size_t i) {
-  printf("Node %zu\n", i); // Use %zu for size_t
 }
 
 void print(std::vector<std::vector<int>> table) {

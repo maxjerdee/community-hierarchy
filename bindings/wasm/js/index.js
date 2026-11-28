@@ -7,6 +7,8 @@
 //   const result = await run.result;   // run.cancel() stops early with partial results
 //
 // wins and ties are edge lists: [[u, v], ...], [[u, v, w], ...] or {from, to, weight?}.
+// A win [u, v] means u beats v (u ranks above v).  Node ids are integers in
+// [0, num_nodes).
 
 const isNode = typeof process !== "undefined" && !!(process.versions && process.versions.node)
   && typeof window === "undefined";
@@ -46,19 +48,44 @@ function normalizeEdges(edges, name) {
     const weighted = edges.some((e) => e.length > 2);
     if (weighted) weight = new Float64Array(edges.length);
     edges.forEach((e, i) => {
+      if (!Array.isArray(e) || e.length < 2)
+        throw new TypeError(`${name} edge ${i}: expected [u, v] or [u, v, w]`);
+      checkId(name, i, e[0]); checkId(name, i, e[1]);
       from[i] = e[0]; to[i] = e[1];
       if (weighted) weight[i] = e.length > 2 ? e[2] : 1;
-      if (!Number.isInteger(e[0]) || !Number.isInteger(e[1]) || e[0] < 0 || e[1] < 0)
-        throw new TypeError(`${name} edge ${i}: node ids must be non-negative integers`);
     });
   } else if (edges && edges.from && edges.to) {
+    if (edges.from.length !== edges.to.length ||
+        (edges.weight && edges.weight.length !== edges.from.length))
+      throw new TypeError(`${name}: from, to (and weight) must have the same length`);
+    // Check before Int32Array.from, which would silently truncate 1.5 or wrap 2**32.
+    for (let i = 0; i < edges.from.length; i++) {
+      checkId(name, i, edges.from[i]); checkId(name, i, edges.to[i]);
+    }
     from = Int32Array.from(edges.from);
     to   = Int32Array.from(edges.to);
     if (edges.weight) weight = Float64Array.from(edges.weight);
   } else {
     throw new TypeError(`${name} must be an array of [u, v(, w)] or {from, to, weight?}`);
   }
+  if (weight) {
+    for (let i = 0; i < weight.length; i++)
+      if (!(Number.isFinite(weight[i]) && weight[i] > 0))
+        throw new TypeError(`${name} edge ${i}: weight must be finite and positive`);
+  }
   return { from, to, weight };
+}
+
+function checkId(name, i, id) {
+  if (!Number.isInteger(id) || id < 0 || id > 0x7fffffff)
+    throw new TypeError(`${name} edge ${i}: node ids must be non-negative integers`);
+}
+
+/** Every id must be < n (the C++ core checks again). */
+function checkRange(name, from, to, n) {
+  for (let i = 0; i < from.length; i++)
+    if (from[i] >= n || to[i] >= n)
+      throw new RangeError(`${name} edge ${i} (${from[i]}, ${to[i]}): node ids must be < num_nodes = ${n}`);
 }
 
 /**
@@ -122,14 +149,17 @@ export async function load(config = {}) {
   return {
     /**
      * Fit the community_hierarchy model to a directed network.
-     * @param wins    directed win edges: [[u, v], ...] or {from, to, weight?}
-     *                u beats v means u→v is a win for u
+     * @param wins    directed win edges: [[u, v], ...] or {from, to, weight?};
+     *                [u, v] means u beats v (u ranks above v)
      * @param ties    undirected tie edges: [[u, v], ...] or {from, to, weight?}
      *                pass [] or null for no ties
      * @param options { num_nodes?, num_groups?, num_groups_fixed?, assortative?,
      *                  merge_split_enabled?, burn_sweeps?, samples?,
-     *                  sweeps_per_sample?, seed?,
+     *                  sweeps_per_sample?, seed?, degree_correction_mode?,
+     *                  weighted_sbm?, independent_coupling?, variation_in?,
+     *                  variation_out?,
      *                  initialPartition?: Int32Array, initialScores?: Float64Array }
+     *                (defaults and differences from the Python fit(): see README.md)
      * @param hooks   { onProgress({burnDone, burnTotal, samplesDone, samplesTotal,
      *                              fraction, currentPartition?, currentScores?,
      *                              bestPartition?, bestScores?, ...}) }
@@ -146,6 +176,9 @@ export async function load(config = {}) {
         for (let i = 0; i < winsFrom.length; i++) n = Math.max(n, winsFrom[i] + 1, winsTo[i] + 1);
         for (let i = 0; i < tiesFrom.length; i++) n = Math.max(n, tiesFrom[i] + 1, tiesTo[i] + 1);
       }
+      if (!Number.isInteger(n) || n < 1) throw new RangeError("num_nodes must be a positive integer");
+      checkRange("wins", winsFrom, winsTo, n);
+      checkRange("ties", tiesFrom, tiesTo, n);
 
       const job = {
         numNodes: n,

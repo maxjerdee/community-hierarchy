@@ -16,7 +16,7 @@
  * The move type is drawn with the (state-independent) weights set in MCMC_sweep:
  * - single_site_move:   block-informed single-node move, Peixoto 2020 Eq. 15 (weight n)
  * - merge/split/merge_split_move: collective partition moves (MCMC_merge_split.cpp;
- *                       weight MERGE_SPLIT_WEIGHT = 1 each)
+ *                       weight MERGE_SPLIT_WEIGHT each, see globals.h)
  * - score_move:         update one node's hierarchy score (weight n)
  * - parameter_move:     update one continuous parameter
  *                       (weight PARAMETER_MOVE_WEIGHT x # free parameters)
@@ -24,7 +24,7 @@
  * shift per group.
  */
 void MCMC::propose_move() {
-    start_time = std::chrono::high_resolution_clock::now();
+    if (timing) start_time = std::chrono::high_resolution_clock::now();
 
     double p = uniform_random(rng);
     double cumulative_weight = 0.0;
@@ -53,13 +53,14 @@ void MCMC::propose_move() {
                 propose_merge_split_move();
             }
 
-            end_time = std::chrono::high_resolution_clock::now();
-            duration = std::chrono::duration<double>(end_time - start_time).count();
-
-            if (proposal_type == "single_site_move") {
-                time_single_site_proposals += duration;
-            } else if (proposal_type == "parameter_move") {
-                time_parameter_proposals += duration;
+            if (timing) {
+                end_time = std::chrono::high_resolution_clock::now();
+                duration = std::chrono::duration<double>(end_time - start_time).count();
+                if (proposal_type == "single_site_move") {
+                    time_single_site_proposals += duration;
+                } else if (proposal_type == "parameter_move") {
+                    time_parameter_proposals += duration;
+                }
             }
             break;
         }
@@ -74,37 +75,63 @@ void MCMC::propose_move() {
 
 // Eq. 14: P_e(g | i, b) = sum_t (k_i^t / k_i) (e_tg + c) / (e_t + c B), with k_i^t
 // the number of i's (non-self) neighbours in group t.  Isolated nodes: uniform.
+//
+// With weighted_proposals (weighted_SBM only) the same formula is used with edge
+// WEIGHTS in place of edge counts: k_i^t is the weight from i into group t and
+// e_tg the block-pair weight total mu_tg (weight_counts).  This is still a valid
+// MH proposal (forward and reverse use the same function); it matters on dense
+// weighted networks, where the binary counts are nearly uniform.
+double MCMC::proposal_block_edges(int t, int g) const {
+    return weighted_proposals ? weight_counts[t][g] : static_cast<double>(edge_counts[t][g]);
+}
+
+double MCMC::proposal_block_degree(int t) const {
+    return weighted_proposals ? weight_counts_sum[t] : static_cast<double>(edge_counts_sum[t]);
+}
+
 double MCMC::block_move_prob(int node, int g) const {
     const auto& nb = neighbors_com[static_cast<std::size_t>(node)];
-    int k = 0;
-    std::vector<int> kt(static_cast<std::size_t>(num_groups), 0);
+    double k = 0.0;
+    std::vector<double> kt(static_cast<std::size_t>(num_groups), 0.0);
     for (const auto& e : nb)
-        if (e.first != node) { ++k; ++kt[static_cast<std::size_t>(partition[e.first])]; }
-    if (k == 0) return 1.0 / num_groups;
+        if (e.first != node) {
+            const double a = weighted_proposals ? e.second : 1.0;
+            k += a;
+            kt[static_cast<std::size_t>(partition[e.first])] += a;
+        }
+    if (k <= 0.0) return 1.0 / num_groups;
     const double c = BLOCK_SITE_EPS;
     double p = 0.0;
     for (int t = 0; t < num_groups; ++t)
-        if (kt[static_cast<std::size_t>(t)])
-            p += static_cast<double>(kt[static_cast<std::size_t>(t)]) / k
-                 * (edge_counts[t][g] + c) / (edge_counts_sum[t] + c * num_groups);
+        if (kt[static_cast<std::size_t>(t)] > 0.0)
+            p += kt[static_cast<std::size_t>(t)] / k
+                 * (proposal_block_edges(t, g) + c) / (proposal_block_degree(t) + c * num_groups);
     return p;
 }
 
-// Draw from Eq. 14: a uniform non-self neighbour j, t = b_j, then g with
-// probability (e_tg + c) / (e_t + c B).
+// Draw from Eq. 14: a non-self neighbour j (uniform, or by weight), t = b_j, then g
+// with probability (e_tg + c) / (e_t + c B).
 int MCMC::sample_block_move(int node) {
     const auto& nb = neighbors_com[static_cast<std::size_t>(node)];
-    int k = 0;
-    for (const auto& e : nb) if (e.first != node) ++k;
-    if (k == 0) return next_int(rng, 0, num_groups - 1);
-    int idx = next_int(rng, 0, k - 1), t = -1;
-    for (const auto& e : nb)
-        if (e.first != node) { if (idx == 0) { t = partition[e.first]; break; } --idx; }
+    double k = 0.0;
+    for (const auto& e : nb) if (e.first != node) k += weighted_proposals ? e.second : 1.0;
+    if (k <= 0.0) return next_int(rng, 0, num_groups - 1);
+    int t = -1;
+    if (weighted_proposals) {
+        const double u = uniform_random(rng) * k;
+        double cum = 0.0;
+        for (const auto& e : nb)
+            if (e.first != node) { t = partition[e.first]; cum += e.second; if (u < cum) break; }
+    } else {
+        int idx = next_int(rng, 0, static_cast<int>(k) - 1);
+        for (const auto& e : nb)
+            if (e.first != node) { if (idx == 0) { t = partition[e.first]; break; } --idx; }
+    }
     const double c = BLOCK_SITE_EPS;
-    const double tot = edge_counts_sum[t] + c * num_groups;
+    const double tot = proposal_block_degree(t) + c * num_groups;
     const double u = uniform_random(rng) * tot;
     double cum = 0.0;
-    for (int g = 0; g < num_groups; ++g) { cum += edge_counts[t][g] + c; if (u < cum) return g; }
+    for (int g = 0; g < num_groups; ++g) { cum += proposal_block_edges(t, g) + c; if (u < cum) return g; }
     return num_groups - 1;
 }
 
@@ -201,6 +228,12 @@ void MCMC::propose_single_site_move() {
  *   density_in/out                     ~ Exponential(mean 1)
  *   individual_depth, group_depth, ties_parameter ~ half-Cauchy(DEPTH_PRIOR_WIDTH)
  * change_parameter() recomputes the affected entropy and accepts or restores.
+ *
+ * sigma_I and sigma_G each have several kernels, chosen by state-independent
+ * coins (globals.h).  With scores_fixed only the kernels that leave the scores
+ * unchanged are used -- the centred sigma_I move and the plain sigma_G move --
+ * each a valid MH kernel for p(sigma | s, b) on its own, so the posterior of
+ * the depths given the fixed scores is still targeted exactly.
  */
 void MCMC::propose_parameter_move() {
     parameter_proposals++;
@@ -216,46 +249,52 @@ void MCMC::propose_parameter_move() {
     const auto& parameter = free_parameters[
         static_cast<std::size_t>(next_int(rng, 0, static_cast<int>(free_parameters.size()) - 1))];
 
-    double old_value = 0.0;
     double new_value = 0.0;
     
     // Generate proposal based on parameter type
     if (parameter == "variation_in") {
-        old_value = variation_in;
-        new_value = uniform_proposal(variation_in, VARIATION_IN_STEP_SIZE);
+        new_value = uniform_proposal(variation_in, step_variation_in);
     } else if (parameter == "variation_out") {
-        old_value = variation_out;
-        new_value = uniform_proposal(variation_out, VARIATION_OUT_STEP_SIZE);
+        new_value = uniform_proposal(variation_out, step_variation_out);
     } else if (parameter == "degree_correction") {
-        old_value = degree_correction;
-        new_value = uniform_proposal(degree_correction, DEGREE_CORRECTION_STEP_SIZE);
+        new_value = uniform_proposal(degree_correction, step_degree_correction);
     } else if (parameter == "density_in") {
-        old_value = density_in;
-        new_value = exponential_proposal(density_in, 1.0, PARAMETER_PROPOSAL_STEP_SIZE);
+        new_value = exponential_proposal(density_in, 1.0, step_density_in);
     } else if (parameter == "density_out") {
-        old_value = density_out;
-        new_value = exponential_proposal(density_out, 1.0, PARAMETER_PROPOSAL_STEP_SIZE);
+        new_value = exponential_proposal(density_out, 1.0, step_density_out);
     } else if (parameter == "individual_depth") {
-        old_value = individual_depth;
+        // scores_fixed: the centred move only (the others rescale the scores).
+        if (scores_fixed || uniform_random(rng) < INDIVIDUAL_DEPTH_CENTRED_PROB) {   // state-independent coin
+            propose_individual_depth_centred();
+            return;
+        }
+        if (INDIVIDUAL_DEPTH_SCALE_MOVE == 1) {
+            propose_individual_depth_residual();
+            return;
+        }
         new_value = half_cauchy_proposal(individual_depth, DEPTH_PRIOR_WIDTH, step_individual_depth);
     } else if (parameter == "group_depth") {
-        old_value = group_depth;
+        // State-independent coin first, so each of the two sigma_G kernels draws
+        // from, and adapts, its own step size: the plain move touches only the
+        // score prior and can step far; the rescale move moves the group means,
+        // which the data constrain.  scores_fixed: the plain move only (the
+        // rescale move moves the group means, i.e. the scores).
+        if (!scores_fixed && uniform_random(rng) < GROUP_DEPTH_RESCALE_PROB) {
+            const double v = half_cauchy_proposal(group_depth, DEPTH_PRIOR_WIDTH, step_group_depth_rescale);
+            propose_group_depth_rescale(v);
+            adapt_step(step_group_depth_rescale, adapt_t_group_depth_rescale, group_depth == v, ADAPT_MAX_STEP_CDF);
+            return;
+        }
         new_value = half_cauchy_proposal(group_depth, DEPTH_PRIOR_WIDTH, step_group_depth);
     } else if (parameter == "ties_parameter") {
-        old_value = ties_parameter;
         new_value = half_cauchy_proposal(ties_parameter, DEPTH_PRIOR_WIDTH, step_ties);  // Must remain positive
     } else {
         return;  // Unknown parameter
     }
-    (void)old_value;
 
-    // Attempt parameter change (includes acceptance logic).  A sigma_G proposal
-    // also carries the group means with probability GROUP_DEPTH_RESCALE_PROB (a
-    // state-independent coin, so the two-kernel mixture stays valid).
-    if (parameter == "group_depth" && uniform_random(rng) < GROUP_DEPTH_RESCALE_PROB)
-        propose_group_depth_rescale(new_value);
-    else
-        change_parameter(parameter, new_value);
+    // Attempt parameter change (includes acceptance logic).  (The sigma_G rescale
+    // move, taken with probability GROUP_DEPTH_RESCALE_PROB, returned above.)
+    change_parameter(parameter, new_value);
 
     if (parameter == "individual_depth")
         adapt_step(step_individual_depth, adapt_t_individual_depth, individual_depth == new_value, ADAPT_MAX_STEP_CDF);
@@ -263,30 +302,37 @@ void MCMC::propose_parameter_move() {
         adapt_step(step_group_depth, adapt_t_group_depth, group_depth == new_value, ADAPT_MAX_STEP_CDF);
     else if (parameter == "ties_parameter")
         adapt_step(step_ties, adapt_t_ties, ties_parameter == new_value, ADAPT_MAX_STEP_CDF);
+    else if (parameter == "density_in")
+        adapt_step(step_density_in, adapt_t_density_in, density_in == new_value, ADAPT_MAX_STEP_CDF);
+    else if (parameter == "density_out")
+        adapt_step(step_density_out, adapt_t_density_out, density_out == new_value, ADAPT_MAX_STEP_CDF);
+    else if (parameter == "variation_in")
+        adapt_step(step_variation_in, adapt_t_variation_in, variation_in == new_value, ADAPT_MAX_STEP_CDF);
+    else if (parameter == "variation_out")
+        adapt_step(step_variation_out, adapt_t_variation_out, variation_out == new_value, ADAPT_MAX_STEP_CDF);
+    else if (parameter == "degree_correction")
+        adapt_step(step_degree_correction, adapt_t_degree_correction, degree_correction == new_value, ADAPT_MAX_STEP_CDF);
 }
 
 /**
  * propose_group_depth_rescale: sigma_G -> sigma_G' (proposed in the CDF space of
- * its half-Cauchy prior, so the prior cancels) with every group's mean scaled
- * score m_r scaled by lambda = sigma_G' / sigma_G about 0; deviations from the
- * group means are unchanged.  The collapsed analogue of a non-centred sigma_G
- * update: the plain sigma_G move holds the group means fixed, so sigma_G can only
- * move as far as the current means allow.  The deterministic map on the q means
- * has Jacobian lambda^q.  O(n + m).
+ * its half-Cauchy prior, so the prior cancels) with every group's mean score m_r
+ * scaled by lambda = sigma_G' / sigma_G about 0; deviations from the group means
+ * are unchanged.  The plain sigma_G move holds the group means fixed, so sigma_G
+ * can only move as far as the current means allow.  The deterministic map on the
+ * q means has Jacobian lambda^q.  Not used with scores_fixed.  O(n + m).
  */
 void MCMC::propose_group_depth_rescale(double new_value) {
     group_depth_proposals++;
     const double gd_old = group_depth, lam = new_value / gd_old;
     const double H_s_old = H_s_G_b_depths, H_A_old = H_Adir_G_A_s_nu;
-    const std::vector<double> ss_old = scaled_scores, sc_old = scores, S_old = group_scaled_score_sums;
+    const std::vector<double> sc_old = scores, S_old = group_score_sums;
     for (int i = 0; i < n; i++) {
         const int r = partition[i];
-        scaled_scores[i] += (lam - 1.0) * S_old[r] / node_counts[r];
-        scores[i] = scaled_scores[i] * individual_depth;
+        scores[i] += (lam - 1.0) * S_old[r] / node_counts[r];
     }
-    // recompute the sums exactly (rescaling the cached sums lets rounding drift)
-    std::fill(group_scaled_score_sums.begin(), group_scaled_score_sums.end(), 0.0);
-    for (int i = 0; i < n; i++) group_scaled_score_sums[partition[i]] += scaled_scores[i];
+    std::fill(group_score_sums.begin(), group_score_sums.end(), 0.0);   // exact, no drift
+    for (int i = 0; i < n; i++) group_score_sums[partition[i]] += scores[i];
     group_depth = new_value;
     H_s_G_b_depths = calculate_H_s_G_b_depths();
     H_Adir_G_A_s_nu = calculate_H_Adir_G_A_s_nu();
@@ -296,9 +342,69 @@ void MCMC::propose_group_depth_rescale(double new_value) {
     if (std::log(uniform_random(rng)) < log_acc) {
         accepted_group_depth_proposals++;
     } else {
-        scaled_scores = ss_old; scores = sc_old; group_scaled_score_sums = S_old;
+        scores = sc_old; group_score_sums = S_old;
         group_depth = gd_old; H_s_G_b_depths = H_s_old; H_Adir_G_A_s_nu = H_A_old;
     }
+}
+
+/**
+ * propose_individual_depth_centred: sigma_I -> sigma_I' (CDF space of its
+ * half-Cauchy prior, so the prior cancels) with the scores held fixed.  The
+ * likelihood depends on the scores only, so it is unchanged; only the score prior
+ * decides, and there is no Jacobian.  The sigma_I counterpart of the plain sigma_G
+ * move (see INDIVIDUAL_DEPTH_CENTRED_PROB).  O(n).
+ */
+void MCMC::propose_individual_depth_centred() {
+    individual_depth_proposals++;
+    const double id_old = individual_depth;
+    const double id_new = half_cauchy_proposal(individual_depth, DEPTH_PRIOR_WIDTH, step_individual_depth_centred);
+    const double H_s_old = H_s_G_b_depths;
+    individual_depth = id_new;
+    H_s_G_b_depths = calculate_H_s_G_b_depths();
+    const bool accepted = std::log(uniform_random(rng)) < -(H_s_G_b_depths - H_s_old);
+    if (accepted) {
+        accepted_individual_depth_proposals++;
+    } else {
+        individual_depth = id_old; H_s_G_b_depths = H_s_old;
+    }
+    adapt_step(step_individual_depth_centred, adapt_t_individual_depth_centred, accepted, ADAPT_MAX_STEP_CDF);
+}
+
+/**
+ * propose_individual_depth_residual: sigma_I -> sigma_I' (CDF space of its
+ * half-Cauchy prior, so the prior cancels) with each score's deviation from its
+ * group's mean scaled by lambda = sigma_I' / sigma_I and the group means (hence the
+ * group score sums) held fixed.  The map acts on the n - q deviations: Jacobian
+ * lambda^(n-q).  The counterpart of propose_group_depth_rescale (group means scaled,
+ * deviations kept).  The scores change, so the direction likelihood is recomputed.
+ * Not used with scores_fixed.  O(n + m).
+ */
+void MCMC::propose_individual_depth_residual() {
+    individual_depth_proposals++;
+    const double id_old = individual_depth;
+    const double id_new = half_cauchy_proposal(individual_depth, DEPTH_PRIOR_WIDTH, step_individual_depth_residual);
+    const double lam = id_new / id_old;
+    const double H_s_old = H_s_G_b_depths, H_A_old = H_Adir_G_A_s_nu;
+    const std::vector<double> sc_old = scores;
+    for (int i = 0; i < n; i++) {
+        const int r = partition[i];
+        const double m = group_score_sums[r] / node_counts[r];
+        scores[i] = m + lam * (scores[i] - m);
+    }
+    individual_depth = id_new;
+    H_s_G_b_depths = calculate_H_s_G_b_depths();
+    H_Adir_G_A_s_nu = calculate_H_Adir_G_A_s_nu();
+    // Only the direction likelihood is tempered (MCMC_core.h).
+    const double log_acc = -((H_s_G_b_depths - H_s_old) + beta * (H_Adir_G_A_s_nu - H_A_old))
+                           + (n - num_groups) * std::log(lam);
+    const bool accepted = std::log(uniform_random(rng)) < log_acc;
+    if (accepted) {
+        accepted_individual_depth_proposals++;
+    } else {
+        individual_depth = id_old; scores = sc_old;
+        H_s_G_b_depths = H_s_old; H_Adir_G_A_s_nu = H_A_old;
+    }
+    adapt_step(step_individual_depth_residual, adapt_t_individual_depth_residual, accepted, ADAPT_MAX_STEP_CDF);
 }
 
 // Robbins-Monro step adaptation (burn-in only): log s += gamma_t (accepted - target).
@@ -310,33 +416,44 @@ void MCMC::adapt_step(double& step, long& t, bool accepted, double max_step) {
     step = std::min(std::max(step, ADAPT_MIN_STEP), max_step);
 }
 
+/**
+ * propose_score_move: update one uniformly chosen node's score s_i.
+ *
+ * Given the other scores, the score prior P(s | b, depths) makes s_i Gaussian with
+ * mean f S_{-i} / (1 - f) and variance sigma_I^2 / (2 (1 - f)), where S_{-i} is the
+ * sum of the other scores in i's group and f = f_r^2 sigma_G^2 / sigma_I^2.  The
+ * proposal is a reflected random walk in the CDF space of that conditional
+ * (gaussian_proposal), which is reversible with respect to it, so the prior
+ * cancels and only the tempered direction likelihood decides.  This needs the CDF
+ * and quantile to be exact inverses (helpers.cpp).  H_Adir is updated over the
+ * node's own edges only; H_s by its node and group terms.  No-op if scores_fixed.
+ */
 void MCMC::propose_score_move() {
+    if (scores_fixed) return;
     score_proposals++;
     if (verbose) {
         print("Proposing score move");
     }
     // Select a random node
     int node = next_int(rng, 0, n - 1);
-    double old_scaled_score = scaled_scores[node];
+    const double old_score = scores[node];
     // Propose new score according to the Gaussian distribution
     // Mean and standard deviation of the s_i dependence of P(s|b,depths):
     double f_normalization = 1/std::sqrt(1 + node_counts[partition[node]]*group_depth*group_depth/(individual_depth*individual_depth));
     double f_combination = f_normalization*f_normalization*group_depth*group_depth/(individual_depth*individual_depth);
-    double proposal_mean = (group_scaled_score_sums[partition[node]] - old_scaled_score)*f_combination/(1 - f_combination);
-    double proposal_variance = 0.5/(1 - f_combination);
+    double proposal_mean = (group_score_sums[partition[node]] - old_score)*f_combination/(1 - f_combination);
+    double proposal_variance = 0.5*individual_depth*individual_depth/(1 - f_combination);
 
     if(verbose){
-        print("Node " + std::to_string(node) + " in group " + std::to_string(partition[node]) + " with old scaled score " + std::to_string(old_scaled_score));
+        print("Node " + std::to_string(node) + " in group " + std::to_string(partition[node]) + " with old score " + std::to_string(old_score));
         print("Proposal mean: " + std::to_string(proposal_mean));
         print("Proposal variance: " + std::to_string(proposal_variance));
     }
 
-    double new_scaled_score = gaussian_proposal(old_scaled_score, proposal_mean, std::sqrt(proposal_variance), step_score);
-    // // Add a Gaussian random variable with the specified variance to the current scaled score
-    // double new_scaled_score = scaled_scores[node] + std::normal_distribution<double>(0, 0.001)(rng);
+    const double new_score = gaussian_proposal(old_score, proposal_mean, std::sqrt(proposal_variance), step_score);
 
     if(verbose){
-        print("Proposed new scaled score: " + std::to_string(new_scaled_score));
+        print("Proposed new score: " + std::to_string(new_score));
     }
 
     // Store old entropy values for acceptance calculation
@@ -344,9 +461,7 @@ void MCMC::propose_score_move() {
     double H_Adir_G_A_s_nu_old = H_Adir_G_A_s_nu;
     
     // H_s_G_b_depths, subtract terms
-    H_s_G_b_depths -= scaled_scores[node]*scaled_scores[node];
-    f_normalization = 1/std::sqrt(1 + node_counts[partition[node]]*group_depth*group_depth/(individual_depth*individual_depth));
-    H_s_G_b_depths += std::log(f_normalization) + f_normalization*f_normalization*group_depth*group_depth*group_scaled_score_sums[partition[node]]*group_scaled_score_sums[partition[node]]/(individual_depth*individual_depth);
+    H_s_G_b_depths -= scores[node]*scores[node]/(individual_depth*individual_depth) + score_prior_group_term(partition[node]);
     
     // H_Adir_G_A_s_nu, subtract terms
     if(verbose){
@@ -375,15 +490,11 @@ void MCMC::propose_score_move() {
     }
 
     // Apply proposed change
-    scores[node] = new_scaled_score * individual_depth;
-    scaled_scores[node] = new_scaled_score;
-    // Adjust the group score sums
-    group_scaled_score_sums[partition[node]] += (new_scaled_score - old_scaled_score);
+    scores[node] = new_score;
+    group_score_sums[partition[node]] += (new_score - old_score);
 
     // H_s_G_b_depths, add terms
-    H_s_G_b_depths += scaled_scores[node]*scaled_scores[node];
-    f_normalization = 1/std::sqrt(1 + node_counts[partition[node]]*group_depth*group_depth/(individual_depth*individual_depth));
-    H_s_G_b_depths -= std::log(f_normalization) + f_normalization*f_normalization*group_depth*group_depth*group_scaled_score_sums[partition[node]]*group_scaled_score_sums[partition[node]]/(individual_depth*individual_depth);
+    H_s_G_b_depths += scores[node]*scores[node]/(individual_depth*individual_depth) + score_prior_group_term(partition[node]);
     
     // H_Adir_G_A_s_nu, add terms
     for(const auto& edge : wins[node]){
@@ -422,9 +533,8 @@ void MCMC::propose_score_move() {
         accepted_score_proposals++;
     } else {
         // Reject: restore old score
-        scaled_scores[node] = old_scaled_score;
-        scores[node] = old_scaled_score * individual_depth;
-        group_scaled_score_sums[partition[node]] -= (new_scaled_score - old_scaled_score);
+        scores[node] = old_score;
+        group_score_sums[partition[node]] -= (new_score - old_score);
 
         H_s_G_b_depths = H_s_G_b_depths_old;
         H_Adir_G_A_s_nu = H_Adir_G_A_s_nu_old;
@@ -433,33 +543,34 @@ void MCMC::propose_score_move() {
 
 /**
  * propose_group_score_move: shift every node's score in group r (a random group
- * if r < 0) by a common offset delta ~ N(0, step_group_score) in scaled-score
- * units.  MCMC_sweep calls it once per group at the end of every sweep.
+ * if r < 0) by a common offset delta ~ sigma_I N(0, step_group_score).  MCMC_sweep calls it once per group at the end of every sweep.
  *
  * This translates a whole group along the between-group (sigma_C) direction.
  * Within-group score differences are invariant under the shift, so the
  * orientation likelihood only changes for edges crossing the group boundary.
  * Both changes are computed BEFORE touching the state, and the state is changed
  * only on acceptance:
- *   score prior, O(1): sum_i (s_i + d)^2 = sum s^2 + 2 d S + n d^2, the group
+ *   score prior, O(1): sum_i (s_i + d)^2 = sum s^2 + 2 d S + n d^2 (over sigma_I^2), the group
  *     normaliser log f_r is unchanged, and S -> S + n d;
  *   direction likelihood: group_cross_dA, one pass over r's cross-group pairs.
  * Accept on the full delta_H (symmetric random walk on delta).
  */
 void MCMC::propose_group_score_move(int r) {
+    if (scores_fixed) return;
     group_score_proposals++;
     if (num_groups <= 1) return;  // no between-group structure to move
     if (r < 0) r = next_int(rng, 0, num_groups - 1);
     if (group_members[r].empty()) return;
-    const double delta = next_normal(rng, step_group_score);
+    const double delta = individual_depth * next_normal(rng, step_group_score);   // symmetric; sigma_I is not moved here
     if (delta == 0.0 || !std::isfinite(delta)) return;
 
     const double nr = static_cast<double>(node_counts[r]);
     const double rho = group_depth * group_depth / (individual_depth * individual_depth);
-    const double S0 = group_scaled_score_sums[r], S1 = S0 + nr * delta;
+    const double S0 = group_score_sums[r], S1 = S0 + nr * delta;
     const double f2 = 1.0 / (1.0 + nr * rho);
-    const double dHs = (2.0 * delta * S0 + nr * delta * delta) - f2 * rho * (S1 * S1 - S0 * S0);
-    const double dA = group_cross_dA(r, delta * individual_depth);
+    const double dHs = ((2.0 * delta * S0 + nr * delta * delta) - f2 * rho * (S1 * S1 - S0 * S0))
+                       / (individual_depth * individual_depth);
+    const double dA = group_cross_dA(r, delta);
 
     // Only the likelihood is tempered; the score prior enters at full weight.
     const double delta_H = beta * dA + dHs;
@@ -467,11 +578,8 @@ void MCMC::propose_group_score_move(int r) {
     adapt_step(step_group_score, adapt_t_group_score, accepted, ADAPT_MAX_STEP_GROUP_SCORE);
     if (accepted) {
         accepted_group_score_proposals++;
-        for (int i : group_members[r]) {
-            scaled_scores[i] += delta;
-            scores[i] = scaled_scores[i] * individual_depth;
-        }
-        group_scaled_score_sums[r] += nr * delta;
+        for (int i : group_members[r]) scores[i] += delta;
+        group_score_sums[r] += nr * delta;
         H_s_G_b_depths += dHs;
         H_Adir_G_A_s_nu += dA;
     }
@@ -533,15 +641,23 @@ double MCMC::group_cross_dA(int r, double d) const {
  * - Handles group deletion (when old group becomes empty)
  * - Uses swap-and-pop for O(1) node removal from groups
  * - Incrementally updates entropies (only recomputes affected terms)
- * 
- * 
+ *
+ * PRECONDITION: every node in `nodes` is in the same group, old_group =
+ * partition[nodes[0]] (not checked).
+ *
+ * Labels after the move: when old_group is emptied, the last group is relabelled
+ * into old_group's slot (swap_groups) and num_groups drops by one.  So a whole
+ * group moved to a NEW group (new_group == num_groups) keeps the label
+ * old_group, and a group merged into the last group ends up labelled old_group.
+ * Callers that track groups across a flip must re-read partition[] afterwards.
+ *
  * @param nodes: Vector of node IDs to move
  * @param new_group: Target group index (may be == num_groups for new group)
  */
 void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     int old_group = partition[nodes[0]];
 
-    // Case 4: self-merge — caller passed new_group == old_group while the group would be
+    // Self-merge: the caller passed new_group == old_group while the group would be
     // emptied. Redirect to the last group so compaction renames it into old_group's slot.
     bool empty_old_group_check = (node_counts[old_group] == static_cast<int>(nodes.size()));
     if (empty_old_group_check && new_group == old_group) {
@@ -602,7 +718,7 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     final_impacted_groups.insert(old_group);
     final_impacted_groups.insert(new_group);
     
-    // Case 5 - empty_old_group with new_group == num_groups (whole group moves
+    // Relabel: empty_old_group with new_group == num_groups (whole group moves
     // to a BRAND-NEW group).  The freshly created group is immediately compacted
     // back into old_group's slot, so this is a pure relabelling no-op: num_groups
     // is unchanged and the nodes end up labelled old_group.  The transient index
@@ -647,7 +763,6 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     double H_M_old = H_M;
     double H_A_G_k_M_b_old = H_A_G_k_M_b;
     double H_W_old = H_W;
-    double H_s_G_b_depths_old = H_s_G_b_depths;
 
     if(verbose){
         // Print the entropies
@@ -757,42 +872,24 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     }
 
     // H_W: remove per-block-pair contributions of affected groups (weighted SBM only)
+    double nonzero_removed = 0.0;  // impacted block pairs with edges, before the move
     if (weighted_SBM) {
-        // H(μ): remove old P(μ) term — depends on q = num_groups, which is
-        // still the pre-proposal value here (Phase 2 hasn't run yet).
-        if (w_total > 0.0) {
-            long long q_old   = static_cast<long long>(num_groups);
-            long long np_old  = q_old * (q_old + 1) / 2;
-            if (np_old > 1)
-                H_W -= static_cast<double>(np_old - 1) * std::log(w_total)
-                       - log_factorial(static_cast<int>(np_old - 1));
-        }
+        H_W -= H_W_totals(nonzero_pairs);
         for (int r : initial_impacted_groups) {
-            // Diagonal (r,r): stored as 2× — halve
-            {
-                int    m  = edge_counts[r][r]   / 2;
-                double mu = weight_counts[r][r] / 2.0;
-                if (m > 0) H_W -= (m - 1) * std::log(mu) - log_factorial(m - 1);
-            }
-            // Off-diagonal: use symmetry factor to avoid double-counting
+            H_W -= H_W_pair(r, r);
+            if (edge_counts[r][r] > 0) nonzero_removed += 1.0;
             for (int s = 0; s < num_groups; s++) {
                 if (s == r) continue;
-                double sym = initial_impacted_groups.count(s) ? 0.5 : 1.0;
-                int    ms  = edge_counts[r][s];
-                double mus = weight_counts[r][s];
-                if (ms > 0) H_W -= sym * ((ms - 1) * std::log(mus) - log_factorial(ms - 1));
+                double sym = initial_impacted_groups.count(s) ? 0.5 : 1.0;  // pairs of two impacted groups are visited twice
+                H_W -= sym * H_W_pair(r, s);
+                if (edge_counts[r][s] > 0) nonzero_removed += sym;
             }
         }
     }
 
     // H(s|b,depths): hierarchy-community entropy
     for(int r: initial_impacted_groups){
-        double f_normalization = 1/std::sqrt(1 + node_counts[r]*group_depth*group_depth/(individual_depth*individual_depth));
-        H_s_G_b_depths += std::log(f_normalization) + f_normalization*f_normalization*group_depth*group_depth*group_scaled_score_sums[r]*group_scaled_score_sums[r]/(individual_depth*individual_depth);
-    }
-
-    for(int r: initial_impacted_groups){
-        node_counts_norm_2 -= std::pow(node_counts[r],2);
+        H_s_G_b_depths -= score_prior_group_term(r);
     }
 
     if(verbose){
@@ -842,8 +939,7 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         // Update partition AFTER edge subtraction so self-loop reads above are correct.
         partition[node] = new_group;
 
-        // Update group_scaled_score_sums: subtract scaled score from old_group
-        group_scaled_score_sums[old_group] -= scaled_scores[node];
+        group_score_sums[old_group] -= scores[node];
 
         // If creating a new group, resize all data structures
         if(new_group == num_groups){
@@ -862,7 +958,7 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
                     row.push_back(0.0);
                 }
             }
-            group_scaled_score_sums.push_back(0.0);
+            group_score_sums.push_back(0.0);
             num_groups += 1;
         }
 
@@ -892,8 +988,7 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
             }
         }
 
-        // Update group_scaled_score_sums: add scaled score to new_group
-        group_scaled_score_sums[new_group] += scaled_scores[node];
+        group_score_sums[new_group] += scores[node];
     }
     
     // If old_group is now empty, compact by moving last group to fill the gap
@@ -918,7 +1013,7 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
             }
             weight_counts_sum.pop_back();
         }
-        group_scaled_score_sums.pop_back();
+        group_score_sums.pop_back();
         num_groups -= 1;
     }
 
@@ -934,13 +1029,8 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
 
     /* === PHASE 3: Add entropy terms from final configuration === */
 
-    // Normalizations
-    for(int r: final_impacted_groups){
-        node_counts_norm_2 += std::pow(node_counts[r],2);
-    }
-
-    // Enforce non-assortative constraint; initialize density_out on first split
-    if(!assortative || (density_out == -1.0 && num_groups > 1)){
+    // Enforce the non-assortative constraint
+    if(!assortative){
         density_out = density_in;
     }
 
@@ -1030,37 +1120,24 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
 
     // H_W: add per-block-pair contributions of affected groups in new configuration (weighted SBM only)
     if (weighted_SBM) {
+        double nonzero_added = 0.0;
         for (int r : final_impacted_groups) {
-            // Diagonal (r,r): stored as 2× — halve
-            {
-                int    m  = edge_counts[r][r]   / 2;
-                double mu = weight_counts[r][r] / 2.0;
-                if (m > 0) H_W += (m - 1) * std::log(mu) - log_factorial(m - 1);
-            }
-            // Off-diagonal: use symmetry factor to avoid double-counting
+            H_W += H_W_pair(r, r);
+            if (edge_counts[r][r] > 0) nonzero_added += 1.0;
             for (int s = 0; s < num_groups; s++) {
                 if (s == r) continue;
                 double sym = final_impacted_groups.count(s) ? 0.5 : 1.0;
-                int    ms  = edge_counts[r][s];
-                double mus = weight_counts[r][s];
-                if (ms > 0) H_W += sym * ((ms - 1) * std::log(mus) - log_factorial(ms - 1));
+                H_W += sym * H_W_pair(r, s);
+                if (edge_counts[r][s] > 0) nonzero_added += sym;
             }
         }
-        // H(μ): add new P(μ) term — num_groups has already been updated in Phase 2
-        // if a group was created or merged.
-        if (w_total > 0.0) {
-            long long q_new  = static_cast<long long>(num_groups);
-            long long np_new = q_new * (q_new + 1) / 2;
-            if (np_new > 1)
-                H_W += static_cast<double>(np_new - 1) * std::log(w_total)
-                       - log_factorial(static_cast<int>(np_new - 1));
-        }
+        nonzero_pairs += static_cast<int>(std::lround(nonzero_added - nonzero_removed));
+        H_W += H_W_totals(nonzero_pairs);
     }
 
     // H(s|b,depths): hierarchy-community entropy with new configuration
     for(int r: final_impacted_groups){
-        double f_normalization = 1/std::sqrt(1 + node_counts[r]*group_depth*group_depth/(individual_depth*individual_depth));
-        H_s_G_b_depths -= std::log(f_normalization) + f_normalization*f_normalization*group_depth*group_depth*group_scaled_score_sums[r]*group_scaled_score_sums[r]/(individual_depth*individual_depth);
+        H_s_G_b_depths += score_prior_group_term(r);
     }
     
     if(verbose){
@@ -1101,6 +1178,9 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
 
 }
 
+// Exchange the labels of groups group1 and group2: members, counts, the rows
+// and columns of edge_counts (and weight_counts), score sums and partition[].
+// No entropy changes -- every term is symmetric under relabelling.
 void MCMC::swap_groups(int group1, int group2) {
     // Swap entire group structures (O(1) pointer swap)
     std::swap(group_members[group1], group_members[group2]);
@@ -1128,7 +1208,7 @@ void MCMC::swap_groups(int group1, int group2) {
     }
 
     // Swap group score sums
-    std::swap(group_scaled_score_sums[group1], group_scaled_score_sums[group2]);
+    std::swap(group_score_sums[group1], group_score_sums[group2]);
 
     // Update partition references for moved nodes
     for(int node: group_members[group1]){

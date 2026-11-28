@@ -16,6 +16,7 @@
 #include <numeric>
 #include <random>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -37,7 +38,7 @@
 // undirected projection of wins+ties, matching Python's
 // nx.community.greedy_modularity_communities + small-community merging.
 // The result gives the same starting communities as Python's _gen_initial_partition
-// (when num_groups is None), so MCMC starts in the same basin as ds.fit().
+// (when num_groups is None), so MCMC starts in the same basin as community_hierarchy.fit().
 // ---------------------------------------------------------------------------
 static std::vector<int> greedy_modularity_partition(
     const std::vector<std::unordered_map<int, double>>& wins_adj,
@@ -305,10 +306,13 @@ std::string result_json(const FitResult& r, bool cancelled) {
 DS_EXPORT const char* ds_last_error() { return last_error.c_str(); }
 
 // Returns a handle > 0, or 0 on error (see ds_last_error).
-// Node ids are 0-based.  wins_weight may be null (defaults to 1.0 per edge).
-// ties_weight may be null (defaults to 1.0).
-// initial_partition / initial_scores may be null.
-// If num_groups <= 0, defaults to min(n, 5) balanced groups.
+// Node ids are 0-based, in [0, num_nodes); an edge wins_from[e] -> wins_to[e]
+// means wins_from[e] beats wins_to[e].  Self-loops are rejected.
+// wins_weight / ties_weight may be null (1.0 per edge); weights must be finite
+// and positive.  initial_partition / initial_scores may be null; if given they
+// must have length num_nodes, and the partition must use every label 0..K-1.
+// num_groups <= 0: K comes from the initial partition (greedy modularity when
+// none is given; min(n, 5) score quantiles if that finds a single group).
 DS_EXPORT int ds_session_create(
     int num_nodes,
     const int* wins_from, const int* wins_to, const double* wins_weight, int num_wins,
@@ -328,6 +332,60 @@ DS_EXPORT int ds_session_create(
 {
     last_error.clear();
     try {
+        if (num_nodes < 1)
+            throw std::invalid_argument("num_nodes must be at least 1");
+        auto check_edges = [&](const char* name, const int* from, const int* to,
+                               const double* weight, int count) {
+            if (count < 0) throw std::invalid_argument(std::string(name) + ": negative edge count");
+            if (count > 0 && (!from || !to))
+                throw std::invalid_argument(std::string(name) + ": missing edge arrays");
+            for (int e = 0; e < count; ++e) {
+                if (from[e] < 0 || from[e] >= num_nodes || to[e] < 0 || to[e] >= num_nodes)
+                    throw std::invalid_argument(
+                        std::string(name) + " edge " + std::to_string(e) + " (" +
+                        std::to_string(from[e]) + ", " + std::to_string(to[e]) +
+                        "): node ids must be in [0, num_nodes = " + std::to_string(num_nodes) + ")");
+                if (from[e] == to[e])
+                    throw std::invalid_argument(
+                        std::string(name) + " edge " + std::to_string(e) +
+                        ": self-loop at node " + std::to_string(from[e]) + " (not supported)");
+                if (weight && !(std::isfinite(weight[e]) && weight[e] > 0.0))
+                    throw std::invalid_argument(
+                        std::string(name) + " edge " + std::to_string(e) +
+                        ": weights must be finite and positive");
+            }
+        };
+        check_edges("wins", wins_from, wins_to, wins_weight, num_wins);
+        check_edges("ties", ties_from, ties_to, ties_weight, num_ties);
+        if (initial_partition && initial_partition_length != num_nodes)
+            throw std::invalid_argument("initial_partition must have length num_nodes");
+        if (initial_scores && initial_scores_length != num_nodes)
+            throw std::invalid_argument("initial_scores must have length num_nodes");
+        if (initial_partition) {
+            std::vector<char> used(static_cast<std::size_t>(num_nodes), 0);
+            int max_label = -1;
+            for (int i = 0; i < num_nodes; ++i) {
+                const int g = initial_partition[i];
+                if (g < 0 || g >= num_nodes)
+                    throw std::invalid_argument("initial_partition labels must be in [0, num_nodes)");
+                used[static_cast<std::size_t>(g)] = 1;
+                max_label = std::max(max_label, g);
+            }
+            for (int g = 0; g <= max_label; ++g)
+                if (!used[static_cast<std::size_t>(g)])
+                    throw std::invalid_argument(
+                        "initial_partition must use every label 0..K-1 (label " +
+                        std::to_string(g) + " is empty)");
+            if (num_groups_fixed && num_groups > 0 && max_label + 1 != num_groups)
+                throw std::invalid_argument(
+                    "initial_partition has " + std::to_string(max_label + 1) +
+                    " groups but num_groups_fixed asks for " + std::to_string(num_groups));
+        }
+        if (initial_scores)
+            for (int i = 0; i < num_nodes; ++i)
+                if (!std::isfinite(initial_scores[i]))
+                    throw std::invalid_argument("initial_scores must be finite");
+
         // Build adjacency maps
         std::vector<std::unordered_map<int, double>> wins_adj(
             static_cast<std::size_t>(num_nodes));
@@ -350,26 +408,21 @@ DS_EXPORT int ds_session_create(
         std::vector<std::unordered_map<int, double>> group_adj;
 
         // ---------------------------------------------------------------
-        // Initial scores — mirrors Python's core.py initialization logic:
+        // Initial scores — mirrors community_hierarchy.fit() (core.py):
         //   - no scores given: generate win-rate scores (_gen_initial_scores)
-        //   - scores given + non-zero RMS: normalize to unit RMS, record id_init
-        //   - scores given + zero RMS: use as-is
+        //   - scores given: used as given; if their RMS is > 1e-6 it is the
+        //     initial individual_depth (id_init), else id is drawn
         // id_init > 0 means we skip the init_rng draw for individual_depth (as
         // fit.cpp does when p.individual_depth_init.has_value() == true).
         // ---------------------------------------------------------------
         std::vector<double> scores;
         double id_init = -1.0;  // -1 = draw id from unif01 below
-        if (initial_scores && initial_scores_length == num_nodes) {
+        if (initial_scores) {
             scores.assign(initial_scores, initial_scores + initial_scores_length);
-            // Normalize to unit RMS, matching Python's score normalization for
-            // user-provided scores (core.py lines 619-628).
             double sum_sq = 0.0;
             for (double s : scores) sum_sq += s * s;
             double rms = std::sqrt(sum_sq / static_cast<double>(scores.size()));
-            if (rms > 1e-6) {
-                for (double& s : scores) s /= rms;
-                id_init = rms;  // initial individual_depth = original score RMS
-            }
+            if (rms > 1e-6) id_init = rms;  // initial individual_depth = score RMS
         } else {
             // Generate win-rate scores from the adjacency, matching Python's
             // _gen_initial_scores: score[i] = (wins - losses) / (wins + losses + ties + eps)
@@ -393,12 +446,12 @@ DS_EXPORT int ds_session_create(
         // Initial partition — if not provided, run greedy modularity on the
         // undirected projection of wins+ties, matching Python's
         // _gen_initial_partition (Clauset-Newman-Moore + small-community merging).
-        // This places MCMC in the same basin as Python's ds.fit(), giving
+        // This places MCMC in the same basin as community_hierarchy.fit(), giving
         // comparable community counts and description-length trajectories.
         // ---------------------------------------------------------------
         int ng = (num_groups > 0) ? num_groups : std::min(num_nodes, 5);
         std::vector<int> partition;
-        if (initial_partition && initial_partition_length == num_nodes) {
+        if (initial_partition) {
             partition.assign(initial_partition, initial_partition + initial_partition_length);
             int max_g = *std::max_element(partition.begin(), partition.end());
             if (!num_groups_fixed) ng = max_g + 1;
@@ -691,9 +744,20 @@ DS_EXPORT int ds_session_coincidence(int handle, double* out) {
         last_error = "call ds_session_finish before ds_session_coincidence";
         return -1;
     }
-    const std::vector<double> m = sess->result->coincidence_matrix();
-    std::copy(m.begin(), m.end(), out);
-    return 0;
+    if (!out) {
+        last_error = "ds_session_coincidence: null output buffer";
+        return -1;
+    }
+    try {
+        const std::vector<double> m = sess->result->coincidence_matrix();
+        std::copy(m.begin(), m.end(), out);
+        return 0;
+    } catch (const std::exception& e) {
+        last_error = e.what();
+    } catch (...) {
+        last_error = "unknown C++ exception in ds_session_coincidence";
+    }
+    return -1;
 }
 
 DS_EXPORT void ds_session_free(int handle) { sessions().erase(handle); }

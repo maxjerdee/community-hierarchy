@@ -50,6 +50,7 @@ Any of them can be fixed through {class}`~community_hierarchy.Config`.
   - Pass `source_high_rank=False` when the target is the winner: for example a citation (being cited) or a friendship nomination (being named).
   - With that flag the scores need no flipping afterwards.
 - **Neutral edges.** An edge with `type="neutral"` is a draw (a tie, or a reciprocated nomination); its direction is ignored.
+  - `hierarchy_model="bradley_terry"` has no draws, so it raises a ValueError on a graph with neutral edges.
   - If any edge has a `type`, every edge must have one, either `"dominant"` or `"neutral"`.
   - Draws count towards the community structure as well as towards the tie rate.
 - **Self-loops** are not allowed: a node cannot interact with itself.

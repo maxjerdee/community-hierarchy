@@ -10,6 +10,8 @@
 #include <stdexcept>
 #include <iostream>
 #include <chrono>
+#include <limits>
+#include <string>
 
 
 /**
@@ -19,22 +21,43 @@
  * Sets up all bookkeeping data structures for efficient entropy calculation updates.
  * 
  * @param wins: Adjacency list for dominant edges (wins[i][j] = weight of dominant edge from i to j)
- * @param ties: Adjacency list for neutral edges (ties[i][j] = weight of neutral edge from i to j)
+ * @param ties: Adjacency list for neutral edges.  An undirected tie must be given in
+ *              BOTH directions with the same weight (ties[i][j] == ties[j][i]).
  * @param group_adj: Optional separate undirected graph driving the communities (two-layer
  *                   mode); empty = the communities are fitted to wins + ties
- * @param partition, partition_fixed: Initial group assignment; fixed = no partition moves
- * @param scores, scores_fixed: Initial hierarchy scores; fixed = no score moves
- * @param num_groups, num_groups_fixed: Initial number of groups; fixed = q never changes
+ * @param partition, partition_fixed: Initial group assignment, labels 0..q-1; fixed = no
+ *                   partition moves
+ * @param scores, scores_fixed: Initial hierarchy scores; fixed = no move changes them
+ *                   (score, group-shift and the score-rescaling depth moves are off)
+ * @param num_groups, num_groups_fixed: q is ALWAYS taken from the partition
+ *                   (max label + 1).  num_groups is only checked: with
+ *                   num_groups_fixed it must equal the partition's q (else
+ *                   std::invalid_argument); otherwise it is ignored.  fixed = q never
+ *                   changes.
  * @param variation_in/out: Overdispersion of within/between-group edge counts
  * @param degree_correction: Degree correction (0 = none, 0.5 = uniform over degree sequences)
  * @param individual_depth, group_depth: spread of scores within groups / of group means
- * @param ties_parameter: frequency of ties in the direction model
+ * @param ties_parameter: frequency of ties in the direction model.  Fixed at 0 means
+ *        plain Bradley-Terry: neutral edges still count in the SBM (H_A_G_b), but are
+ *        left out of the direction likelihood H_Adir_G_A_s_nu, where a tie would have
+ *        probability 0.
  * @param *_fixed: Flags for fixed (not inferred) parameters
  * @param seed: >= 0 reseeds this thread's generator (see globals.h); < 0 leaves
  *        it as is -- fit() seeds it once per chain and builds every tempering
  *        replica with -1, so the replicas share one stream seeded by seed + chain.
  * @param density_in/out_initial: < 0 = estimate from the initial partition
  * @param weighted_SBM: model real-valued edge weights (uniform simplex prior)
+ *
+ * What the weights mean:
+ *   - plain mode: edge MULTIPLICITIES, non-negative integers.  The SBM sees the
+ *     multigraph wins + ties; the direction model counts w_ij wins of i over j.
+ *   - weighted_SBM: the SBM sees the binary graph (one edge per neighbour pair) and
+ *     H_W models the real weights, which must be finite and > 0.
+ *   - two-layer (group_adj non-empty): the SBM sees group_adj as a binary graph;
+ *     wins/ties only drive the scores.  All weights must be finite and > 0.
+ * Self-loops are rejected in every mode (std::invalid_argument).  Peixoto's
+ * convention would store a self-loop as A_ii = 2 x its multiplicity, with a
+ * log A_ii!! term in H_A_G_k_M_b; the direction model has no meaning for i vs i.
  */
 MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins_in,
            const std::vector<std::unordered_map<int, double>>& ties_in,
@@ -78,7 +101,6 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins_in,
       partition_fixed(partition_fixed),
       scores(scores), // Copy initial scores from const reference
       scores_fixed(scores_fixed),
-    scaled_scores(), // Scores divided by the individual depth. MCMC moves are proposed according to these for better ergodicity.
     variation_in(variation_in),  // Copy variation parameters (stored as values)
     variation_out(variation_out),
     degree_correction(degree_correction),
@@ -107,11 +129,10 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins_in,
       node_indices_in_groups(),  // node_indices_in_groups[r][node] = position in group_members[r]
       edge_counts(),  // edge_counts[r][s] = total edge weight from group r to s
       edge_counts_sum(),  // edge_counts_sum[r] = total degree of group r
-      group_scaled_score_sums(), // Sum of squares of scores in each group
+      group_score_sums(), // Sum of the scores in each group
       concentration_in(0.0),  // Negative binomial concentration parameters
       concentration_out(0.0),
       degree_correction_concentration(0.0),
-      node_counts_norm_2(0.0),
       density_in(0.0),
       density_out(0.0),
       time_H_k(0.0),  // Performance profiling timers
@@ -120,12 +141,9 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins_in,
       time_params(0.0),
       time_single_site_proposals(0.0),
       time_parameter_proposals(0.0),
-      total_proposals(0),
-      accepted_proposals(0),
       single_site_proposals(0),
       accepted_single_site_proposals(0),
       parameter_proposals(0),
-      accepted_parameter_proposals(0),
       degree_correction_proposals(0),
       accepted_degree_correction_proposals(0),
       variation_in_proposals(0),
@@ -143,7 +161,54 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins_in,
         throw std::invalid_argument("degree_correction must lie in [0, 1), got " + std::to_string(degree_correction));
 
     // === Initialize graph information ===
-    n = this->partition.size(); // Number of nodes in the graph
+    n = static_cast<int>(this->partition.size()); // Number of nodes in the graph
+    if (n == 0) throw std::invalid_argument("the partition is empty: the network needs at least one node");
+    if (static_cast<int>(wins_in.size()) != n || static_cast<int>(ties_in.size()) != n ||
+        static_cast<int>(scores.size()) != n || (!group_adj.empty() && static_cast<int>(group_adj.size()) != n))
+        throw std::invalid_argument("wins, ties, scores (and group_adj, if given) must have one entry per node of the partition");
+    for (int i = 0; i < n; ++i)
+        if (this->partition[static_cast<std::size_t>(i)] < 0)
+            throw std::invalid_argument("partition labels must be >= 0");
+
+    // Input validation, before anything is built from the edges.
+    //   * node ids in range;
+    //   * no self-loops in any mode: wins and ties count a self-loop differently
+    //     (twice vs once), the binary modes would make e_rr odd, and the direction
+    //     model has no meaning for a node against itself;
+    //   * weights finite; > 0 in weighted_SBM and two-layer mode (a zero weight
+    //     there still counts as one binary edge, and H_W needs log mu > -inf);
+    //     the plain mode's integer check is below, on the combined graph;
+    //   * ties symmetric (each undirected tie given in both directions).
+    two_layer_mode = !group_adj.empty();
+    const bool positive_weights = this->weighted_SBM || two_layer_mode;
+    auto validate = [&](const std::vector<std::unordered_map<int, double>>& adj, const char* name) {
+        for (int i = 0; i < n; ++i) {
+            for (const auto& [j, w] : adj[static_cast<std::size_t>(i)]) {
+                const std::string where = std::string(name) + " edge (" + std::to_string(i) + ", " + std::to_string(j) + ")";
+                if (j < 0 || j >= n)
+                    throw std::invalid_argument(where + ": node id out of range [0, " + std::to_string(n) + ")");
+                if (j == i)
+                    throw std::invalid_argument(where + ": self-loops are not supported");
+                if (!std::isfinite(w))
+                    throw std::invalid_argument(where + " has weight " + std::to_string(w) + "; edge weights must be finite");
+                if (positive_weights && !(w > 0.0))
+                    throw std::invalid_argument(where + " has weight " + std::to_string(w) +
+                        "; with weighted_SBM or a separate group graph every edge weight must be finite and > 0");
+            }
+        }
+    };
+    validate(wins_in, "wins");
+    validate(ties_in, "ties");
+    if (two_layer_mode) validate(group_adj, "group_adj");
+    for (int i = 0; i < n; ++i) {
+        for (const auto& [j, w] : ties_in[static_cast<std::size_t>(i)]) {
+            const auto& back = ties_in[static_cast<std::size_t>(j)];
+            const auto it = back.find(i);
+            if (it == back.end() || it->second != w)
+                throw std::invalid_argument("ties edge (" + std::to_string(i) + ", " + std::to_string(j) +
+                    "): ties must be given in both directions with the same weight");
+        }
+    }
 
     // Built as maps (accumulating duplicate entries), then stored SORTED: the
     // members are summed over, and unordered_map iteration order differs between
@@ -164,7 +229,7 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins_in,
         }
     }
 
-    // Process ties: symmetric edges
+    // Process ties: symmetric edges (both directions are in ties_in)
     for(int i = 0; i < n; i++){
         for(const auto& edge : ties_in[static_cast<std::size_t>(i)]){
             int j = edge.first;
@@ -173,8 +238,6 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins_in,
             // Ties don't contribute to wins/losses asymmetry
         }
     }
-
-    two_layer_mode = !group_adj.empty();
 
     // Freeze every adjacency list into sorted order.
     auto to_sorted = [](const std::vector<std::unordered_map<int, double>>& src, int rows) {
@@ -194,6 +257,39 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins_in,
     losses = to_sorted(losses_map, n);
     neighbors = to_sorted(neighbors_map, n);
     neighbors_com = two_layer_mode ? to_sorted(group_adj, n) : neighbors;
+
+    // Plain Bradley-Terry (ties_parameter fixed at 0): a tie has probability 0, so
+    // neutral edges cannot be outcomes of the direction model.  They stay in
+    // neighbors (hence in the SBM, unless group_adj replaces it) and are dropped
+    // from the direction likelihood only.
+    ties_in_direction_model = !(ties_parameter_fixed && ties_parameter == 0.0);
+    if (!ties_in_direction_model)
+        for (auto& row : ties) row.clear();
+
+    // Constant part of H_Adir_G_A_s_nu: for each unordered pair {i, j} with
+    // outcome counts w_ij, w_ji (and t_ij), the multinomial coefficient
+    // A^dir_ij! / (w_ij! w_ji! t_ij!), A^dir_ij = w_ij + w_ji (+ t_ij).
+    // log_factorial_real: real weights (weighted_SBM) are not truncated.
+    H_Adir_counts_term = 0.0;
+    for (int i = 0; i < n; ++i) {
+        for (const auto& [j, w] : wins[static_cast<std::size_t>(i)]) H_Adir_counts_term += log_factorial_real(w);
+        for (const auto& [j, t] : ties[static_cast<std::size_t>(i)]) if (i < j) H_Adir_counts_term += log_factorial_real(t);
+        // A^dir_ij over the pairs i < j: merge i's sorted wins, losses and ties rows.
+        const auto &W = wins[static_cast<std::size_t>(i)], &Lo = losses[static_cast<std::size_t>(i)],
+                   &T = ties[static_cast<std::size_t>(i)];
+        std::size_t a = 0, b = 0, c = 0;
+        while (a < W.size() || b < Lo.size() || c < T.size()) {
+            int j = std::numeric_limits<int>::max();
+            if (a < W.size()) j = std::min(j, W[a].first);
+            if (b < Lo.size()) j = std::min(j, Lo[b].first);
+            if (c < T.size()) j = std::min(j, T[c].first);
+            double A = 0.0;
+            if (a < W.size() && W[a].first == j) A += W[a++].second;
+            if (b < Lo.size() && Lo[b].first == j) A += Lo[b++].second;
+            if (c < T.size() && T[c].first == j) A += T[c++].second;
+            if (i < j) H_Adir_counts_term -= log_factorial_real(A);
+        }
+    }
 
     if(verbose){
         for(int i = 0; i < n; i++){
@@ -222,83 +318,13 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins_in,
                 double weight = edge.second;
                 print("  Loses to node " + std::to_string(j) + " with weight " + std::to_string(weight));
             }
-            if(i == 96){
-                print(static_cast<int>(neighbors[i].size()));
-                // exit(1);
-            }
         }
     }
 
-    /*
-    Node 108 with weight 2.000000
-    Node 60 with weight 1.000000
-    Node 58 with weight 1.000000
-    Node 56 with weight 3.000000
-    Node 24 with weight 2.000000
-    Node 53 with weight 1.000000
-    Node 23 with weight 2.000000
-    Node 52 with weight 1.000000
-    Node 22 with weight 1.000000
-    Node 51 with weight 8.000000
-    Node 80 with weight 5.000000
-    Node 21 with weight 3.000000
-    Node 76 with weight 1.000000
-    Node 17 with weight 6.000000
-    Node 12 with weight 1.000000
-    Node 41 with weight 2.000000
-    Node 20 with weight 5.000000
-    Node 7 with weight 1.000000
-    Node 19 with weight 1.000000
-    Node 48 with weight 2.000000
-    Node 6 with weight 3.000000
-    Node 16 with weight 1.000000
-    Node 3 with weight 1.000000
-    Node 61 with weight 1.000000
-    Node 2 with weight 2.000000
-    Node 25 with weight 1.000000
-    Node 54 with weight 1.000000
-    Node 26 with weight 2.000000
-    Node 86 with weight 1.000000
-    Node 27 with weight 2.000000
-    Node 28 with weight 1.000000
-    Node 30 with weight 5.000000
-    Node 34 with weight 1.000000
-    Node 38 with weight 1.000000
-    Node 39 with weight 1.000000
-    Node 103 with weight 2.000000
-    Node 44 with weight 3.000000
-    Node 106 with weight 1.000000
-    Node 47 with weight 1.000000
-
-    Node 108 with weight 2.000000
-  Node 60 with weight 1.000000
-  Node 58 with weight 1.000000
-  Node 56 with weight 3.000000
-  Node 24 with weight 2.000000
-  Node 53 with weight 1.000000
-  Node 23 with weight 2.000000
-  Node 52 with weight 1.000000
-  Node 22 with weight 1.000000
-  Node 51 with weight 8.000000
-  Node 80 with weight 5.000000
-  Node 21 with weight 3.000000
-  Node 76 with weight 1.000000
-  Node 17 with weight 6.000000
-  Node 0 with weight 0.000000
-    */
-
-    // weighted_SBM and two-layer mode count every neighbour entry as ONE edge (binary
-    // counts).  A self-loop would then add 1 stub to e_rr instead of 2, making e_rr odd
-    // (and log_factorial2 throws deep inside a sweep).  Reject self-loops up front.
-    if (this->weighted_SBM || this->two_layer_mode) {
-        for (int i = 0; i < n; ++i) {
-            if (find_edge(this->neighbors_com[static_cast<std::size_t>(i)], i) != nullptr) {
-                throw std::invalid_argument(
-                    "self-loop at node " + std::to_string(i) +
-                    ": self-loops are not supported with weighted_SBM or a separate group graph");
-            }
-        }
-    }
+    // Block-informed proposals use binary edge counts unless the caller switches
+    // weighted_proposals on afterwards (weighted_SBM only; see block_move_prob).
+    // Off by default, the same default as FitParams::weighted_proposals.
+    this->weighted_proposals = false;
 
     // Outside weighted_SBM / two-layer mode the weights are edge MULTIPLICITIES:
     // edge_counts truncates them (int +=) while node_degrees rounds them, so a
@@ -352,8 +378,14 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins_in,
     time_params = 0.0;
 
     // === Initialize bookkeeping data structures ===
-    // Determine actual number of groups from partition (may differ from input)
-    num_groups = *std::max_element(this->partition.begin(), this->partition.end()) + 1;
+    // q comes from the partition (max label + 1).  The num_groups argument is
+    // only checked: a fixed q that disagrees with the partition used to be
+    // silently replaced by the partition's q.
+    const int q_partition = *std::max_element(this->partition.begin(), this->partition.end()) + 1;
+    if (num_groups_fixed && num_groups > 0 && num_groups != q_partition)
+        throw std::invalid_argument("num_groups_fixed with num_groups = " + std::to_string(num_groups) +
+            ", but the initial partition has " + std::to_string(q_partition) + " groups");
+    num_groups = q_partition;
     node_counts.resize(num_groups, 0);  // node_counts[r] = number of nodes in group r
     group_members.resize(num_groups);  // group_members[r] = vector of node IDs in group r
     node_indices_in_groups.resize(num_groups);  // Fast lookup: node -> position in group_members
@@ -397,18 +429,20 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins_in,
 }
 
 /**
- * MCMC_sweep: Perform one full MCMC sweep
+ * MCMC_sweep: Perform num_sweeps MCMC sweeps, then check the bookkeeping
  *
  * A sweep consists of n proposal attempts (one per node on average).
  * Each proposal randomly selects a move type weighted by proposal_weights,
- * then accepts/rejects based on Metropolis-Hastings criterion.
+ * then accepts/rejects based on Metropolis-Hastings criterion.  Each sweep then
+ * ends with one group-score shift per group (unless scores_fixed), a
+ * deterministic composition of reversible kernels.  check_state_bookkeeping(true)
+ * runs once at the end.
  *
  * @param beta: Inverse temperature (higher = more selective), defaults to 1.0
  * @param num_sweeps: Number of sweeps to run, defaults to 1
+ * @param merge_split_enabled: include the collective merge/split moves
  */
 void MCMC::MCMC_sweep(double beta, int num_sweeps, bool merge_split_enabled) {
-    auto sweep_start_time = std::chrono::high_resolution_clock::now();
-
     this->beta = beta;
 
     // Set proposal weights.
@@ -468,14 +502,15 @@ void MCMC::MCMC_sweep(double beta, int num_sweeps, bool merge_split_enabled) {
             for (int r = 0; r < num_groups; r++) propose_group_score_move(r);
     }
     check_state_bookkeeping(true);
-
-    auto sweep_end_time = std::chrono::high_resolution_clock::now();
-    auto sweep_duration = std::chrono::duration_cast<std::chrono::milliseconds>(sweep_end_time - sweep_start_time).count();
 }
 
 /**
- * change_parameter: Update a model parameter and recompute affected entropies
- * 
+ * change_parameter: one Metropolis-Hastings step of a continuous parameter
+ *
+ * new_value is a PROPOSAL, drawn by the caller in the CDF space of the
+ * parameter's prior (propose_parameter_move), so the prior cancels and is not in
+ * the acceptance.  The value may be rejected: this is not a setter.
+ *
  * Implements Metropolis-Hastings acceptance:
  * 1. Store old values
  * 2. Update parameter to new_value
@@ -486,7 +521,8 @@ void MCMC::MCMC_sweep(double beta, int num_sweeps, bool merge_split_enabled) {
  * Different parameters affect different entropies:
  * - degree_correction -> H_k (degree sequence)
  * - variation_in, variation_out, density_in, density_out -> H_M (edge counts)
- * - individual_depth -> H_s_G_b_depths and H_Adir_G_A_s_nu (scores = scaled scores x depth)
+ * - individual_depth -> H_s_G_b_depths and H_Adir_G_A_s_nu (every score scales with
+ *   sigma_I); with scores_fixed, H_s_G_b_depths only (the scores are held fixed)
  * - group_depth -> H_s_G_b_depths
  * - ties_parameter -> H_Adir_G_A_s_nu
  * Tempering: only the likelihood terms are multiplied by beta; H_s_G_b_depths is
@@ -588,6 +624,8 @@ void MCMC::change_parameter(const std::string& param_name, double new_value) {
             H_M = H_M_old;
         }
     } else if (param_name == "density_out"){
+        // Non-assortative: density_out is tied to density_in and moves with it.
+        if (!assortative) return;
         double density_out_old = density_out;
         double H_M_old = H_M;
 
@@ -602,38 +640,49 @@ void MCMC::change_parameter(const std::string& param_name, double new_value) {
             density_out = density_out_old;
             H_M = H_M_old;
         }
-    } else if (param_name == "individual_depth"){
+    } else if (param_name == "individual_depth" && scores_fixed){
+        // Scores fixed: the centred kernel (scores held, no Jacobian).  The
+        // likelihood depends on the scores only, so only the untempered score prior
+        // decides.  Same kernel as propose_individual_depth_centred.
         individual_depth_proposals++;
-        double individual_depth_old = individual_depth;
-        double H_s_G_b_depths_old = H_s_G_b_depths;
-        double H_Adir_G_A_s_nu_old = H_Adir_G_A_s_nu;
-
-        // Apply proposed change
+        const double individual_depth_old = individual_depth;
+        const double H_s_G_b_depths_old = H_s_G_b_depths;
         individual_depth = new_value;
-        // Keep the scaled_scores fixed, but update scores accordingly
-        for(int i = 0; i < n; i++){
-            scores[i] = scaled_scores[i] * individual_depth;
-        }
-        H_s_G_b_depths = calculate_H_s_G_b_depths();  // Recalculate affected entropy
-        H_Adir_G_A_s_nu = calculate_H_Adir_G_A_s_nu(); // Recalculate affected entropy
-
-        // Metropolis-Hastings acceptance.  Only the direction likelihood is tempered;
-        // the score prior H_s_G_b_depths enters at full weight (MCMC_core.h).
-        double delta_H = (H_s_G_b_depths - H_s_G_b_depths_old) + beta * (H_Adir_G_A_s_nu - H_Adir_G_A_s_nu_old);
-        double acceptance_prob = std::exp(-delta_H);
-
-        if(uniform_random(rng) < acceptance_prob){
-            // Accept: update total entropies
+        H_s_G_b_depths = calculate_H_s_G_b_depths();
+        if (std::log(uniform_random(rng)) < -(H_s_G_b_depths - H_s_G_b_depths_old)) {
             accepted_individual_depth_proposals++;
         } else {
-            // Reject: restore old values
             individual_depth = individual_depth_old;
             H_s_G_b_depths = H_s_G_b_depths_old;
+        }
+    } else if (param_name == "individual_depth"){
+        // Every score scales with sigma_I: s -> lambda s, lambda = sigma_I' / sigma_I,
+        // a deterministic map on the n scores with Jacobian lambda^n.  (Formerly
+        // "scaled scores s / sigma_I held fixed"; the same kernel.)
+        individual_depth_proposals++;
+        const double individual_depth_old = individual_depth, lam = new_value / individual_depth_old;
+        const double H_s_G_b_depths_old = H_s_G_b_depths;
+        const double H_Adir_G_A_s_nu_old = H_Adir_G_A_s_nu;
+        const std::vector<double> scores_old = scores, sums_old = group_score_sums;
+
+        individual_depth = new_value;
+        for (int i = 0; i < n; i++) scores[i] *= lam;
+        for (auto& S : group_score_sums) S *= lam;
+        H_s_G_b_depths = calculate_H_s_G_b_depths();
+        H_Adir_G_A_s_nu = calculate_H_Adir_G_A_s_nu();
+
+        // Only the direction likelihood is tempered; the score prior H_s_G_b_depths
+        // enters at full weight (MCMC_core.h).  The prior on sigma_I cancels (CDF-space
+        // proposal).
+        const double log_acc = -((H_s_G_b_depths - H_s_G_b_depths_old) + beta * (H_Adir_G_A_s_nu - H_Adir_G_A_s_nu_old))
+                               + n * std::log(lam);
+        if (std::log(uniform_random(rng)) < log_acc) {
+            accepted_individual_depth_proposals++;
+        } else {
+            individual_depth = individual_depth_old;
+            scores = scores_old; group_score_sums = sums_old;
+            H_s_G_b_depths = H_s_G_b_depths_old;
             H_Adir_G_A_s_nu = H_Adir_G_A_s_nu_old;
-            // Restore scores
-            for(int i = 0; i < n; i++){
-                scores[i] = scaled_scores[i] * individual_depth;
-            }
         }
     } else if (param_name == "group_depth"){
         group_depth_proposals++;

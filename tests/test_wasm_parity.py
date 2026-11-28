@@ -278,7 +278,9 @@ class TestInitialDLParity:
 
     def test_dl_matches_reference(self, python_dl):
         """Python DL must match the known-good reference value."""
-        reference = 80.800219
+        # 80.800219 before the multi-edge term was counted once per pair (Peixoto 2017):
+        # the four weight-2 pairs (0,1), (2,3), (4,6), (6,7) had log 2! counted twice.
+        reference = 78.027630
         rel_err = abs(python_dl - reference) / abs(reference)
         assert rel_err < 1e-5, (
             f"Python DL {python_dl:.6f} deviates from reference {reference}"

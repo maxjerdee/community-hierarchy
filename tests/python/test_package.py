@@ -728,16 +728,14 @@ def _wins_ties_from_rows(win_rows: list[list[int]], tie_rows: list[list[int]]):
 
 
 def test_point_eval_entropy_components():
-    """Entropy components for a 3-node directed graph against Mathematica fixture.
+    """Entropy components of a 3-node directed graph against Mathematica.
 
-    Reference: Mathematica HAwinsAtiesscoresbρInρOutλInλOutαNuσIσCParts[
-        Awins, Aties, {1,2,3}, {1,1,2}, 0.6, 0.4, 2, 3, 0.5, 0.6, 1, 2]
-    returns {HAb, HAwinsAtiesGAunscoresν, HscoresGbσIσC, Hν, HσI, HσC}
-           = {17.7264, 6.26974, 6.42043, 1.86013, 1.8985, 2.06102}
-
-    HAb includes H_b + H_k + H_M + H_A_G_k_M_b AND half-Cauchy priors on
-    (ρIn, ρOut, λIn, λOut, α), so HAb > sum of the four stored C++ components.
-    Hν, HσI, HσC are standalone half-Cauchy priors: log(π(w²+x²)/(2w)), w=4.
+    Reference: the "community-hierarchy test fixtures" section of the model
+    notebook (mathematica/sbm_mcmc.nb, reproduction repository), chPointEvalComponents[Awins,
+    Aties, scores, b, rhoIn, rhoOut, cIn, cOut, alpha, nu, sigmaI, sigmaC], with
+    the concentrations cIn, cOut and alpha (the core takes the corresponding
+    variations).  Regenerate with tests/mathematica/generate_fixtures.wls.
+    Hnu, HsigmaI, HsigmaC are the half-Cauchy priors log(pi(w^2+x^2)/(2w)), w = 4.
     """
     in_path  = _DATA_IN  / "wins_ties_3node_point_eval.csv"
     out_path = _DATA_OUT / "wins_ties_3node_point_eval_components.csv"
@@ -767,7 +765,7 @@ def test_point_eval_entropy_components():
         True,                        # assortative (ρIn ≠ ρOut)
         _c2v(c_in),  True,           # variation_in  ← concentration c_in
         _c2v(c_out), True,           # variation_out ← concentration c_out
-        alpha,       True,           # degree_correction (variation)
+        _c2v(alpha), True,           # degree_correction ← concentration alpha
         sigma_i,     True,           # individual_depth σI
         sigma_c,     True,           # group_depth σC
         nu,          True,           # ties_parameter ν
@@ -903,10 +901,9 @@ def test_weighted_SBM_point_eval():
       block (0,1): M_rs=2,   mu_rs=W02+W12 → (2-1)*log(mu_01) - lgamma(2) = log(mu_01)
       → log(W02+W12)
 
-    H(μ) — cost to encode block-pair weight totals on a simplex (Eq. 34):
-      q=2, npairs=q*(q+1)/2=3, w_total=W01+W02+W12
-      → (npairs-1)*log(w_total) - log((npairs-1)!)
-      → 2*log(w_total) - log(2)
+    H(μ) — block-pair weight totals uniform on the simplex of total w, over the
+    block pairs joined by an edge: (0,0) and (0,1), so npairs = 2
+      → (npairs-1)*log(w_total) - log((npairs-1)!) = log(w_total)
     """
     import community_hierarchy.MCMC_core as native
 
@@ -915,9 +912,8 @@ def test_weighted_SBM_point_eval():
     # H(W|A,μ,b): only the active off-diagonal block (M=2)
     h_w_given = math.log(w02 + w12)
 
-    # H(μ): cost of encoding block-pair weight totals (Peixoto 2018 Eq. 34)
-    num_groups_test = 2
-    npairs = num_groups_test * (num_groups_test + 1) // 2  # = 3
+    # H(μ): block-pair weight totals, over the 2 block pairs with edges
+    npairs = 2
     w_total = w01 + w02 + w12
     h_mu = (npairs - 1) * math.log(w_total) - math.lgamma(npairs)  # lgamma(n) = log((n-1)!)
 
@@ -984,3 +980,53 @@ def test_weighted_SBM_produces_nonzero_H_W():
     # H_W is a finite real (DL contribution from weight model)
     assert sdf["H_W"].notna().all(), "H_W must be finite in weighted mode"
     assert (sdf["weighted_SBM"] == True).all()
+
+
+def test_plot_node_properties_options(small_result):
+    """plot_node_properties draws from a Result or a node_properties_df table, with
+    every label mode and the per-node options."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from community_hierarchy import plot_node_properties
+    result = small_result
+    df = result.node_properties_df()
+    groups = sorted(df.group.unique())
+    first = df.node.iloc[0]
+    for src in (result, df):
+        for labels in ("ticks", "ladder", "none"):
+            fig, ax = plot_node_properties(
+                src, labels=labels, flip=True, annotate={first: "x"}, filled={first},
+                palette={g: "C0" for g in groups}, group_labels={g: f"g{g}" for g in groups})
+            assert ax.get_ylabel()
+            plt.close(fig)
+    with pytest.raises(ValueError):
+        plot_node_properties(df, labels="sideways")
+    with pytest.raises(TypeError):
+        plot_node_properties([1, 2, 3])
+
+
+def test_source_high_rank_false_reads_edges_as_target_wins():
+    """Reversing every decided edge and setting source_high_rank=False gives the
+    same fit, draw for draw; draws (neutral edges) are unaffected."""
+    rng = np.random.default_rng(3)
+    G = nx.MultiDiGraph()
+    G.add_nodes_from(range(12))
+    for _ in range(60):
+        u, v = (int(x) for x in rng.choice(12, size=2, replace=False))
+        if u > v:
+            u, v = v, u  # lower label beats higher label, mostly
+        if rng.random() < 0.2:
+            u, v = v, u
+        G.add_edge(u, v, type="neutral" if rng.random() < 0.15 else "dominant")
+    R = nx.MultiDiGraph()
+    R.add_nodes_from(G.nodes())
+    for u, v, d in G.edges(data=True):
+        R.add_edge(*((u, v) if d["type"] == "neutral" else (v, u)), **d)
+
+    kw = dict(samples_per_chain=50, burn_sweeps=20, seed=7, show_progress=False)
+    a = fit(Config(), G, **kw).node_properties_df()
+    b = fit(Config(), R, source_high_rank=False, **kw).node_properties_df()
+    np.testing.assert_allclose(a["score_mean"], b["score_mean"])
+    # node 0 wins most of its matches, so it should sit near the top
+    assert a.set_index("node")["score_mean"].loc[0] > a["score_mean"].median()

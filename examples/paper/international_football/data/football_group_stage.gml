@@ -1291,6 +1291,12 @@ graph [
     in_wc2026 0
     confederation "other"
   ]
+  node [
+    id 215
+    label "Eritrea"
+    in_wc2026 0
+    confederation "other"
+  ]
   edge [
     source 0
     target 1
@@ -6140,6 +6146,18 @@ graph [
     type "dominant"
   ]
   edge [
+    source 73
+    target 123
+    key 0
+    type "dominant"
+  ]
+  edge [
+    source 73
+    target 123
+    key 1
+    type "dominant"
+  ]
+  edge [
     source 74
     target 75
     key 0
@@ -6258,6 +6276,12 @@ graph [
     target 124
     key 0
     type "neutral"
+  ]
+  edge [
+    source 75
+    target 194
+    key 0
+    type "dominant"
   ]
   edge [
     source 76
@@ -7744,6 +7768,12 @@ graph [
   edge [
     source 99
     target 202
+    key 0
+    type "dominant"
+  ]
+  edge [
+    source 99
+    target 199
     key 0
     type "dominant"
   ]
@@ -10176,6 +10206,18 @@ graph [
     target 96
     key 1
     type "neutral"
+  ]
+  edge [
+    source 138
+    target 200
+    key 0
+    type "dominant"
+  ]
+  edge [
+    source 138
+    target 200
+    key 1
+    type "dominant"
   ]
   edge [
     source 139
@@ -13340,6 +13382,12 @@ graph [
     type "neutral"
   ]
   edge [
+    source 194
+    target 75
+    key 0
+    type "dominant"
+  ]
+  edge [
     source 195
     target 199
     key 0
@@ -13385,6 +13433,12 @@ graph [
     source 195
     target 165
     key 1
+    type "neutral"
+  ]
+  edge [
+    source 196
+    target 198
+    key 0
     type "neutral"
   ]
   edge [
@@ -13498,6 +13552,18 @@ graph [
   edge [
     source 198
     target 2
+    key 0
+    type "neutral"
+  ]
+  edge [
+    source 198
+    target 196
+    key 0
+    type "neutral"
+  ]
+  edge [
+    source 199
+    target 99
     key 0
     type "neutral"
   ]
@@ -14021,6 +14087,18 @@ graph [
     source 214
     target 209
     key 0
+    type "dominant"
+  ]
+  edge [
+    source 215
+    target 71
+    key 0
+    type "dominant"
+  ]
+  edge [
+    source 215
+    target 71
+    key 1
     type "dominant"
   ]
 ]
