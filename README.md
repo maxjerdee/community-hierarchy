@@ -23,11 +23,11 @@
 
 **Infer communities, hierarchies, and their connection in directed graphs**
 
-*Maximilian Jerdee, Elizabeth Bruch, Mark Newman*
+*Maximilian Jerdee*
 
 This Python package uses Bayesian inference to identify communities and hierarchies of nodes in a directed network, as well as measure the interaction between those structures.
 
-We model community structure using a stochastic block model, hierarchy structure with a Bradley-Terry model, and their interaction according to our work (link forthcoming).
+We model community structure using a stochastic block model, hierarchy structure with a Bradley-Terry model, and their interaction according to the model of Jerdee, Bruch and Newman (link forthcoming).
 
 ## Installation
 
@@ -120,7 +120,7 @@ ch.write_gml_with_inferences(G, "football_inferred.gml", result)
 
 ```python
 ch.Config(interaction="independent")       # no group term in the scores
-ch.Config(groups_model="traditional_SBM")  # simpler mixing structure (see the docs)
+ch.Config(groups_model="general_ASBM")     # assortative SBM (default: degree-corrected SBM)
 ch.Config(degree_correction=False)
 ch.Config(group_attribute="confederation") # groups fixed to a node attribute
 ch.Config(num_groups=4)                    # fixed number of groups
@@ -136,3 +136,8 @@ Setting a value that the chosen model fixes (for example `group_depth` with
 A JavaScript/WebAssembly build of the sampler is described in
 [`bindings/wasm/README.md`](https://github.com/maxjerdee/community-hierarchy/blob/main/bindings/wasm/README.md).  The scripts that reproduce the
 paper's football and journal examples are in [`examples/paper/`](https://github.com/maxjerdee/community-hierarchy/tree/main/examples/paper).
+
+## Development
+
+Large language models have aided in developing this package. The code has been
+read by the author and is checked against hand-coded replication tests.
