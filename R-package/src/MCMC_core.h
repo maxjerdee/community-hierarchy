@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 
+#include "fit_result.h"  // SampleState
 #include "globals.h"
 
 class MCMC {
@@ -229,6 +230,9 @@ public:
     // state-dependent weight would bias the q-marginal.  No-op when the caller
     // has fixed MERGE_SPLIT_WEIGHT.  See globals.h for the derivation.
     void retune_collective_weight();
+
+    // The current state as a recorded sample of chain chain_id.
+    SampleState snapshot(int chain_id) const;
 
     void MCMC_sweep(double beta = 1.0, int num_sweeps = 1,
                     bool merge_split_enabled = true);  // Perform MCMC sweeps

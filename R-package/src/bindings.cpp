@@ -56,66 +56,36 @@ void progress_line(const char* label, int cur, int total) {
     REprintf("\r%-10s %6d / %d [%3d%%]", label, cur, total, pct);
 }
 
-// The per-sample record of a fit, as R vectors.
+// The samples of a fit as R objects: params (a list of columns, the fields of
+// sample_fields() then sigma_T and ICC), and the partitions and scores as
+// samples x nodes matrices.
 List samples_to_r(const FitResult& res) {
     const auto& ss = res.samples();
-    const int m = static_cast<int>(ss.size());
-    const int n = res.num_nodes();
+    const int m = static_cast<int>(ss.size()), n = res.num_nodes();
     IntegerMatrix partitions(m, n);
     NumericMatrix scores(m, n);
-    IntegerVector chain_id(m), num_groups(m);
-    NumericVector beta(m), density_in(m), density_out(m), variation_in(m), variation_out(m),
-        degree_correction(m), individual_depth(m), group_depth(m), ties_parameter(m), H_A_b(m),
-        H_b(m), H_M(m), H_k(m), H_A_G_k_M_b(m), H_A_G_b(m), H_W(m), H_Adir_G_A_s_nu(m),
-        H_s_G_b_depths(m);
-    LogicalVector two_layer_mode(m), weighted_SBM(m);
-    for (int k = 0; k < m; ++k) {
-        const SampleState& s = ss[k];
+    for (int k = 0; k < m; ++k)
         for (int i = 0; i < n; ++i) {
-            partitions(k, i) = s.partition[i];
-            scores(k, i) = s.scores[i];
+            partitions(k, i) = ss[k].partition[i];
+            scores(k, i) = ss[k].scores[i];
         }
-        chain_id[k] = s.chain_id;
-        beta[k] = s.beta;
-        num_groups[k] = s.num_groups;
-        density_in[k] = s.density_in;
-        density_out[k] = s.density_out;
-        variation_in[k] = s.variation_in;
-        variation_out[k] = s.variation_out;
-        degree_correction[k] = s.degree_correction;
-        individual_depth[k] = s.individual_depth;
-        group_depth[k] = s.group_depth;
-        ties_parameter[k] = s.ties_parameter;
-        H_A_b[k] = s.H_A_b;
-        H_b[k] = s.H_b;
-        H_M[k] = s.H_M;
-        H_k[k] = s.H_k;
-        H_A_G_k_M_b[k] = s.H_A_G_k_M_b;
-        H_A_G_b[k] = s.H_A_G_b;
-        H_W[k] = s.H_W;
-        H_Adir_G_A_s_nu[k] = s.H_Adir_G_A_s_nu;
-        H_s_G_b_depths[k] = s.H_s_G_b_depths;
-        two_layer_mode[k] = s.two_layer_mode;
-        weighted_SBM[k] = s.weighted_SBM;
+    List params;
+    for (const SampleField& f : sample_fields()) {
+        NumericVector col(m);
+        for (int k = 0; k < m; ++k) col[k] = f.get(ss[k]);
+        if (f.type == SampleField::Int)
+            params[f.name] = as<IntegerVector>(col);
+        else if (f.type == SampleField::Bool)
+            params[f.name] = as<LogicalVector>(col);
+        else
+            params[f.name] = col;
     }
-    List params = List::create(
-        _["chain_id"] = chain_id, _["beta"] = beta, _["num_groups"] = num_groups,
-        _["density_in"] = density_in, _["density_out"] = density_out,
-        _["variation_in"] = variation_in, _["variation_out"] = variation_out,
-        _["degree_correction"] = degree_correction, _["individual_depth"] = individual_depth,
-        _["group_depth"] = group_depth, _["ties_parameter"] = ties_parameter, _["H_b"] = H_b,
-        _["H_M"] = H_M, _["H_k"] = H_k, _["H_A_G_k_M_b"] = H_A_G_k_M_b, _["H_W"] = H_W,
-        _["H_A_G_b"] = H_A_G_b, _["H_A_b"] = H_A_b, _["H_Adir_G_A_s_nu"] = H_Adir_G_A_s_nu,
-        _["H_s_G_b_depths"] = H_s_G_b_depths, _["two_layer_mode"] = two_layer_mode,
-        _["weighted_SBM"] = weighted_SBM);
-    // The derived parameters (network_parameters(), fit_result.h).
-    NumericVector sigma_T_(m), icc_(m);
-    for (int k = 0; k < m; ++k) {
-        sigma_T_[k] = sigma_T(ss[k]);
-        icc_[k] = icc(ss[k]);
+    for (const auto& p : network_parameters()) {
+        if (params.containsElementNamed(p.name)) continue;  // sigma_T and ICC
+        NumericVector col(m);
+        for (int k = 0; k < m; ++k) col[k] = p.get(ss[k]);
+        params[p.name] = col;
     }
-    params["sigma_T"] = sigma_T_;
-    params["ICC"] = icc_;
     return List::create(_["params"] = params, _["partitions"] = partitions, _["scores"] = scores);
 }
 
@@ -123,50 +93,19 @@ List samples_to_r(const FitResult& res) {
 FitResult build_result(const List& params, const IntegerMatrix& partitions,
                        const NumericMatrix& scores) {
     const int m = partitions.nrow(), n = partitions.ncol();
-    auto col_d = [&](const char* name) { return as<NumericVector>(params[name]); };
-    IntegerVector chain_id = params["chain_id"], num_groups = params["num_groups"];
-    NumericVector beta = col_d("beta"), density_in = col_d("density_in"),
-                  density_out = col_d("density_out"), variation_in = col_d("variation_in"),
-                  variation_out = col_d("variation_out"),
-                  degree_correction = col_d("degree_correction"),
-                  individual_depth = col_d("individual_depth"), group_depth = col_d("group_depth"),
-                  ties_parameter = col_d("ties_parameter"), H_A_b = col_d("H_A_b"),
-                  H_b = col_d("H_b"), H_M = col_d("H_M"), H_k = col_d("H_k"),
-                  H_A_G_k_M_b = col_d("H_A_G_k_M_b"), H_A_G_b = col_d("H_A_G_b"),
-                  H_W = col_d("H_W"), H_Adir_G_A_s_nu = col_d("H_Adir_G_A_s_nu"),
-                  H_s_G_b_depths = col_d("H_s_G_b_depths");
-    LogicalVector two_layer_mode = params["two_layer_mode"], weighted_SBM = params["weighted_SBM"];
-    std::vector<SampleState> ss(m);
+    std::vector<SampleState> ss(static_cast<std::size_t>(m));
     for (int k = 0; k < m; ++k) {
-        SampleState& s = ss[k];
-        s.partition.resize(n);
-        s.scores.resize(n);
+        ss[k].partition.resize(n);
+        ss[k].scores.resize(n);
         for (int i = 0; i < n; ++i) {
-            s.partition[i] = partitions(k, i);
-            s.scores[i] = scores(k, i);
+            ss[k].partition[i] = partitions(k, i);
+            ss[k].scores[i] = scores(k, i);
         }
-        s.chain_id = chain_id[k];
-        s.beta = beta[k];
-        s.num_groups = num_groups[k];
-        s.density_in = density_in[k];
-        s.density_out = density_out[k];
-        s.variation_in = variation_in[k];
-        s.variation_out = variation_out[k];
-        s.degree_correction = degree_correction[k];
-        s.individual_depth = individual_depth[k];
-        s.group_depth = group_depth[k];
-        s.ties_parameter = ties_parameter[k];
-        s.H_A_b = H_A_b[k];
-        s.H_b = H_b[k];
-        s.H_M = H_M[k];
-        s.H_k = H_k[k];
-        s.H_A_G_k_M_b = H_A_G_k_M_b[k];
-        s.H_A_G_b = H_A_G_b[k];
-        s.H_W = H_W[k];
-        s.H_Adir_G_A_s_nu = H_Adir_G_A_s_nu[k];
-        s.H_s_G_b_depths = H_s_G_b_depths[k];
-        s.two_layer_mode = two_layer_mode[k];
-        s.weighted_SBM = weighted_SBM[k];
+    }
+    for (const SampleField& f : sample_fields()) {
+        if (!params.containsElementNamed(f.name)) continue;
+        const NumericVector col = as<NumericVector>(params[f.name]);
+        for (int k = 0; k < m; ++k) f.set(ss[k], col[k]);
     }
     return FitResult(n, std::move(ss));
 }

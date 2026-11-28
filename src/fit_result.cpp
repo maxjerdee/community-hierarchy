@@ -48,13 +48,53 @@ std::vector<int> FitResult::sort_groups_by_score(const std::vector<int>& partiti
     return out;
 }
 
+#define CH_SAMPLE_FIELD(field, type)                                                      \
+    SampleField {                                                                         \
+        #field, SampleField::type,                                                        \
+            [](const SampleState& s) { return static_cast<double>(s.field); },            \
+            [](SampleState& s, double v) { s.field = static_cast<decltype(s.field)>(v); } \
+    }
+
+const std::vector<SampleField>& sample_fields() {
+    static const std::vector<SampleField> f = {
+        CH_SAMPLE_FIELD(chain_id, Int),
+        CH_SAMPLE_FIELD(beta, Double),
+        CH_SAMPLE_FIELD(num_groups, Int),
+        CH_SAMPLE_FIELD(density_in, Double),
+        CH_SAMPLE_FIELD(density_out, Double),
+        CH_SAMPLE_FIELD(variation_in, Double),
+        CH_SAMPLE_FIELD(variation_out, Double),
+        CH_SAMPLE_FIELD(degree_correction, Double),
+        CH_SAMPLE_FIELD(individual_depth, Double),
+        CH_SAMPLE_FIELD(group_depth, Double),
+        CH_SAMPLE_FIELD(ties_parameter, Double),
+        CH_SAMPLE_FIELD(H_A_b, Double),
+        CH_SAMPLE_FIELD(H_b, Double),
+        CH_SAMPLE_FIELD(H_M, Double),
+        CH_SAMPLE_FIELD(H_k, Double),
+        CH_SAMPLE_FIELD(H_A_G_k_M_b, Double),
+        CH_SAMPLE_FIELD(H_W, Double),
+        CH_SAMPLE_FIELD(H_A_G_b, Double),
+        CH_SAMPLE_FIELD(H_Adir_G_A_s_nu, Double),
+        CH_SAMPLE_FIELD(H_s_G_b_depths, Double),
+        CH_SAMPLE_FIELD(two_layer_mode, Bool),
+        CH_SAMPLE_FIELD(weighted_SBM, Bool),
+    };
+    return f;
+}
+
+#undef CH_SAMPLE_FIELD
+
+double description_length(const SampleState& s) {
+    return s.H_A_b + s.H_Adir_G_A_s_nu + s.H_s_G_b_depths;
+}
+
 int FitResult::best_index() const {
     if (samples_.empty()) return -1;
     int best = 0;
     double best_dl = std::numeric_limits<double>::infinity();
     for (int i = 0; i < static_cast<int>(samples_.size()); ++i) {
-        const auto& s = samples_[i];
-        double dl = s.H_A_b + s.H_Adir_G_A_s_nu + s.H_s_G_b_depths;
+        const double dl = description_length(samples_[i]);
         if (dl < best_dl) {
             best_dl = dl;
             best = i;
@@ -66,8 +106,7 @@ int FitResult::best_index() const {
 double FitResult::mdl_value() const {
     int i = best_index();
     if (i < 0) return std::numeric_limits<double>::quiet_NaN();
-    const auto& s = samples_[i];
-    return s.H_A_b + s.H_Adir_G_A_s_nu + s.H_s_G_b_depths;
+    return description_length(samples_[i]);
 }
 
 std::vector<int> FitResult::mdl_partition() const {

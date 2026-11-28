@@ -49,64 +49,29 @@ public:
     FitResultNative() = default;
     FitResultNative(FitResult r) : FitResult(std::move(r)) {}
 
+    // One row per sample: {i}_group and {i}_score for every node i, the fields of
+    // sample_fields(), then sigma_T and ICC.
     py::object samples_df() const {
         py::module_ pd = py::module_::import("pandas");
-        int ns = static_cast<int>(samples_.size());
-        int n = num_nodes_;
-
-        std::vector<std::string> cols;
-        for (int i = 0; i < n; ++i) cols.push_back(std::to_string(i) + "_group");
-        for (int i = 0; i < n; ++i) cols.push_back(std::to_string(i) + "_score");
-        for (const auto& c :
-             {"num_groups", "density_in", "density_out", "variation_in", "variation_out",
-              "degree_correction", "individual_depth", "group_depth", "ties_parameter", "H_A_b",
-              "H_b", "H_M", "H_k", "H_A_G_k_M_b", "H_A_G_b", "H_Adir_G_A_s_nu", "H_s_G_b_depths",
-              "chain_id", "beta"})
-            cols.push_back(c);
-
+        const std::size_t ns = samples_.size();
         py::dict data;
-        for (int i = 0; i < n; ++i) {
+        for (int i = 0; i < num_nodes_; ++i) {
             std::vector<int> col(ns);
-            for (int s = 0; s < ns; ++s) col[s] = samples_[s].partition[i];
+            for (std::size_t s = 0; s < ns; ++s) col[s] = samples_[s].partition[i];
             data[py::str(std::to_string(i) + "_group")] = py::cast(col);
         }
-        for (int i = 0; i < n; ++i) {
+        for (int i = 0; i < num_nodes_; ++i) {
             std::vector<double> col(ns);
-            for (int s = 0; s < ns; ++s) col[s] = samples_[s].scores[i];
+            for (std::size_t s = 0; s < ns; ++s) col[s] = samples_[s].scores[i];
             data[py::str(std::to_string(i) + "_score")] = py::cast(col);
         }
-
-        auto fill = [&](const char* name, auto getter) {
-            using T = decltype(getter(samples_[0]));
-            std::vector<T> col(ns);
-            for (int s = 0; s < ns; ++s) col[s] = getter(samples_[s]);
-            data[py::str(name)] = py::cast(col);
-        };
-        fill("num_groups", [](const SampleState& s) { return s.num_groups; });
-        fill("density_in", [](const SampleState& s) { return s.density_in; });
-        fill("density_out", [](const SampleState& s) { return s.density_out; });
-        fill("variation_in", [](const SampleState& s) { return s.variation_in; });
-        fill("variation_out", [](const SampleState& s) { return s.variation_out; });
-        fill("degree_correction", [](const SampleState& s) { return s.degree_correction; });
-        fill("individual_depth", [](const SampleState& s) { return s.individual_depth; });
-        fill("group_depth", [](const SampleState& s) { return s.group_depth; });
-        fill("ties_parameter", [](const SampleState& s) { return s.ties_parameter; });
-        fill("H_A_b", [](const SampleState& s) { return s.H_A_b; });
-        fill("H_b", [](const SampleState& s) { return s.H_b; });
-        fill("H_M", [](const SampleState& s) { return s.H_M; });
-        fill("H_k", [](const SampleState& s) { return s.H_k; });
-        fill("H_A_G_k_M_b", [](const SampleState& s) { return s.H_A_G_k_M_b; });
-        fill("H_A_G_b", [](const SampleState& s) { return s.H_A_G_b; });
-        fill("H_Adir_G_A_s_nu", [](const SampleState& s) { return s.H_Adir_G_A_s_nu; });
-        fill("H_s_G_b_depths", [](const SampleState& s) { return s.H_s_G_b_depths; });
-        fill("two_layer_mode", [](const SampleState& s) { return s.two_layer_mode; });
-        fill("weighted_SBM", [](const SampleState& s) { return s.weighted_SBM; });
-        fill("H_W", [](const SampleState& s) { return s.H_W; });
-        fill("sigma_T", [](const SampleState& s) { return sigma_T(s); });
-        fill("ICC", [](const SampleState& s) { return icc(s); });
-        fill("chain_id", [](const SampleState& s) { return s.chain_id; });
-        fill("beta", [](const SampleState& s) { return s.beta; });
-
+        for (const SampleField& f : sample_fields()) data[f.name] = column(f);
+        for (const auto& p : network_parameters()) {
+            if (data.contains(p.name)) continue;  // sigma_T and ICC
+            std::vector<double> col(ns);
+            for (std::size_t s = 0; s < ns; ++s) col[s] = p.get(samples_[s]);
+            data[p.name] = py::cast(col);
+        }
         return pd.attr("DataFrame")(data);
     }
 
@@ -114,7 +79,7 @@ public:
         double mean_k = 0.0, mean_dl = 0.0;
         for (const auto& s : samples_) {
             mean_k += s.num_groups;
-            mean_dl += s.H_A_b + s.H_Adir_G_A_s_nu + s.H_s_G_b_depths;
+            mean_dl += description_length(s);
         }
         int ns = static_cast<int>(samples_.size());
         if (ns > 0) {
@@ -159,75 +124,60 @@ public:
         return np.attr("reshape")(py::cast(flat), py::make_tuple(n, n));
     }
 
+    // Pickling: (num_nodes, [one dict per sample]), keyed by field name, so a
+    // pickle written before a field was added still loads (the field keeps its
+    // default).
     py::tuple getstate() const {
         py::list lst;
         for (const auto& s : samples_) {
             py::dict d;
-            d["chain_id"] = s.chain_id;
-            d["beta"] = s.beta;
             d["partition"] = s.partition;
             d["scores"] = s.scores;
-            d["num_groups"] = s.num_groups;
-            d["density_in"] = s.density_in;
-            d["density_out"] = s.density_out;
-            d["variation_in"] = s.variation_in;
-            d["variation_out"] = s.variation_out;
-            d["degree_correction"] = s.degree_correction;
-            d["individual_depth"] = s.individual_depth;
-            d["group_depth"] = s.group_depth;
-            d["ties_parameter"] = s.ties_parameter;
-            d["H_A_b"] = s.H_A_b;
-            d["H_b"] = s.H_b;
-            d["H_M"] = s.H_M;
-            d["H_k"] = s.H_k;
-            d["H_A_G_k_M_b"] = s.H_A_G_k_M_b;
-            d["H_A_G_b"] = s.H_A_G_b;
-            d["H_Adir_G_A_s_nu"] = s.H_Adir_G_A_s_nu;
-            d["H_s_G_b_depths"] = s.H_s_G_b_depths;
-            d["two_layer_mode"] = s.two_layer_mode;
-            d["weighted_SBM"] = s.weighted_SBM;
-            d["H_W"] = s.H_W;
+            for (const SampleField& f : sample_fields()) d[f.name] = value(f, s);
             lst.append(d);
         }
         return py::make_tuple(num_nodes_, lst);
     }
 
     static FitResultNative setstate(py::tuple state) {
-        int num_nodes = state[0].cast<int>();
-        auto lst = state[1].cast<py::list>();
+        const int num_nodes = state[0].cast<int>();
         std::vector<SampleState> samples;
-        samples.reserve(py::len(lst));
-        for (auto item : lst) {
+        for (auto item : state[1].cast<py::list>()) {
             auto d = item.cast<py::dict>();
             SampleState s;
-            s.chain_id = d["chain_id"].cast<int>();
-            s.beta = d["beta"].cast<double>();
             s.partition = d["partition"].cast<std::vector<int>>();
             s.scores = d["scores"].cast<std::vector<double>>();
-            s.num_groups = d["num_groups"].cast<int>();
-            s.density_in = d["density_in"].cast<double>();
-            s.density_out = d["density_out"].cast<double>();
-            s.variation_in = d["variation_in"].cast<double>();
-            s.variation_out = d["variation_out"].cast<double>();
-            s.degree_correction = d["degree_correction"].cast<double>();
-            s.individual_depth = d["individual_depth"].cast<double>();
-            s.group_depth = d["group_depth"].cast<double>();
-            s.ties_parameter = d["ties_parameter"].cast<double>();
-            s.H_A_b = d["H_A_b"].cast<double>();
-            s.H_b = d["H_b"].cast<double>();
-            s.H_M = d["H_M"].cast<double>();
-            s.H_k = d["H_k"].cast<double>();
-            s.H_A_G_k_M_b = d["H_A_G_k_M_b"].cast<double>();
-            s.H_A_G_b = d["H_A_G_b"].cast<double>();
-            s.H_Adir_G_A_s_nu = d["H_Adir_G_A_s_nu"].cast<double>();
-            s.H_s_G_b_depths = d["H_s_G_b_depths"].cast<double>();
-            s.two_layer_mode =
-                d.contains("two_layer_mode") ? d["two_layer_mode"].cast<bool>() : false;
-            s.weighted_SBM = d.contains("weighted_SBM") ? d["weighted_SBM"].cast<bool>() : false;
-            s.H_W = d.contains("H_W") ? d["H_W"].cast<double>() : 0.0;
+            for (const SampleField& f : sample_fields())
+                if (d.contains(f.name)) f.set(s, d[f.name].cast<double>());
             samples.push_back(std::move(s));
         }
         return FitResultNative(FitResult(num_nodes, std::move(samples)));
+    }
+
+private:
+    // A field as a typed Python value / column (int, float or bool).
+    static py::object value(const SampleField& f, const SampleState& s) {
+        const double v = f.get(s);
+        if (f.type == SampleField::Int) return py::int_(static_cast<long long>(v));
+        if (f.type == SampleField::Bool) return py::bool_(v != 0.0);
+        return py::float_(v);
+    }
+    py::object column(const SampleField& f) const {
+        const std::size_t ns = samples_.size();
+        if (f.type == SampleField::Int) {
+            std::vector<long long> col(ns);
+            for (std::size_t s = 0; s < ns; ++s)
+                col[s] = static_cast<long long>(f.get(samples_[s]));
+            return py::cast(col);
+        }
+        if (f.type == SampleField::Bool) {
+            std::vector<bool> col(ns);
+            for (std::size_t s = 0; s < ns; ++s) col[s] = f.get(samples_[s]) != 0.0;
+            return py::cast(col);
+        }
+        std::vector<double> col(ns);
+        for (std::size_t s = 0; s < ns; ++s) col[s] = f.get(samples_[s]);
+        return py::cast(col);
     }
 };
 

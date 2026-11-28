@@ -14,22 +14,7 @@
 
 FitResult fit(FitParams p) {
     int n = static_cast<int>(p.wins.size());
-    // Default starting state, the same for every binding (initial_state.h).
-    if (p.initial_partition.empty())
-        p.initial_partition =
-            greedy_modularity_partition(p.wins, p.ties, p.group_adj, p.num_groups);
-    if (p.initial_scores.empty()) {
-        p.initial_scores = win_fraction_scores(p.wins, p.ties);
-    } else if (!p.scores_fixed && !p.individual_depth && !p.individual_depth_init) {
-        // Given scores are used as given: start sigma_I at their RMS, on their scale
-        // (it remains free).
-        double ss = 0.0;
-        for (double x : p.initial_scores) ss += x * x;
-        const double rms = p.initial_scores.empty() ? 0.0 : std::sqrt(ss / p.initial_scores.size());
-        if (rms > 1e-6) p.individual_depth_init = rms;
-    }
-    int initial_num_groups =
-        *std::max_element(p.initial_partition.begin(), p.initial_partition.end()) + 1;
+    complete_start(p);  // the default starting state (initial_state.h)
     const int total_samples = p.num_chains * draws_per_chain(p);
     std::atomic<int> completed_warmup{0};
     std::atomic<int> completed_burn{0};
@@ -55,29 +40,8 @@ FitResult fit(FitParams p) {
 
         std::mt19937_64 init_rng(chain_seed * 2654435761ULL);
 
-        for (int ci = 0; ci < p.num_tempering_chains; ++ci) {
-            double vi = p.variation_in.value_or(next_uniform(init_rng));
-            double vo = p.variation_out.value_or(next_uniform(init_rng));
-            double dc = p.degree_correction.value_or(next_uniform(init_rng));
-            double id_ = p.individual_depth.has_value()        ? *p.individual_depth
-                         : p.individual_depth_init.has_value() ? *p.individual_depth_init
-                                                               : next_uniform(init_rng);
-            double gd = p.group_depth.has_value()        ? *p.group_depth
-                        : p.group_depth_init.has_value() ? *p.group_depth_init
-                                                         : next_uniform(init_rng);
-            double tp = p.ties_parameter.value_or(next_uniform(init_rng));
-            int ng = p.num_groups.value_or(initial_num_groups);
-
-            chain_stack.emplace_back(
-                p.wins, p.ties, p.group_adj, p.initial_partition, p.partition_fixed,
-                p.initial_scores, p.scores_fixed, ng,
-                p.num_groups.has_value() || p.num_groups_fixed, p.assortative, vi,
-                p.variation_in.has_value(), vo, p.variation_out.has_value(), dc,
-                p.degree_correction.has_value(), id_, p.individual_depth.has_value(), gd,
-                p.group_depth.has_value(), tp, p.ties_parameter.has_value(),
-                /*seed=*/-1, -1.0, -1.0, p.weighted_SBM);
-            chain_stack.back().weighted_proposals = p.weighted_SBM && p.weighted_proposals;
-        }
+        for (int ci = 0; ci < p.num_tempering_chains; ++ci)
+            chain_stack.push_back(new_chain(p, init_rng));
 
         // Beta schedule: [0, ..., beta] on a log scale; single chain → [beta].
         std::vector<double> betas;
@@ -198,34 +162,8 @@ FitResult fit(FitParams p) {
                 continue;
             }
 
-            // Record the β=1 chain (last in schedule)
-            const MCMC& c = chain_stack[p.num_tempering_chains - 1];
-            SampleState ss;
-            ss.chain_id = chain_id;
-            ss.beta = betas[p.num_tempering_chains - 1];
-            ss.partition = c.partition;
-            ss.scores = c.scores;
-            ss.num_groups = c.num_groups;
-            ss.density_in = c.density_in;
-            ss.density_out = c.density_out;
-            ss.variation_in = c.variation_in;
-            ss.variation_out = c.variation_out;
-            ss.degree_correction = c.degree_correction;
-            ss.individual_depth = c.individual_depth;
-            ss.group_depth = c.group_depth;
-            ss.ties_parameter = c.ties_parameter;
-            ss.H_A_b = c.H_A_b;
-            ss.H_b = c.H_b;
-            ss.H_M = c.H_M;
-            ss.H_k = c.H_k;
-            ss.H_A_G_k_M_b = c.H_A_G_k_M_b;
-            ss.H_A_G_b = c.H_A_G_b;
-            ss.H_Adir_G_A_s_nu = c.H_Adir_G_A_s_nu;
-            ss.H_s_G_b_depths = c.H_s_G_b_depths;
-            ss.two_layer_mode = c.two_layer_mode;
-            ss.weighted_SBM = c.weighted_SBM;
-            ss.H_W = c.H_W;
-            samples.push_back(std::move(ss));
+            // Record the replica at the target beta (last in the schedule).
+            samples.push_back(chain_stack[p.num_tempering_chains - 1].snapshot(chain_id));
 
             int done = completed_samples.fetch_add(1, std::memory_order_relaxed) + 1;
             if (p.on_sample) p.on_sample(done, total_samples);

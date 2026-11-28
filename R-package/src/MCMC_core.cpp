@@ -394,6 +394,35 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins_in,
  * @param num_sweeps: Number of sweeps to run, defaults to 1
  * @param merge_split_enabled: include the collective merge/split moves
  */
+SampleState MCMC::snapshot(int chain_id) const {
+    SampleState s;
+    s.chain_id = chain_id;
+    s.beta = beta;
+    s.partition = partition;
+    s.scores = scores;
+    s.num_groups = num_groups;
+    s.density_in = density_in;
+    s.density_out = density_out;
+    s.variation_in = variation_in;
+    s.variation_out = variation_out;
+    s.degree_correction = degree_correction;
+    s.individual_depth = individual_depth;
+    s.group_depth = group_depth;
+    s.ties_parameter = ties_parameter;
+    s.H_A_b = H_A_b;
+    s.H_b = H_b;
+    s.H_M = H_M;
+    s.H_k = H_k;
+    s.H_A_G_k_M_b = H_A_G_k_M_b;
+    s.H_W = H_W;
+    s.H_A_G_b = H_A_G_b;
+    s.H_Adir_G_A_s_nu = H_Adir_G_A_s_nu;
+    s.H_s_G_b_depths = H_s_G_b_depths;
+    s.two_layer_mode = two_layer_mode;
+    s.weighted_SBM = weighted_SBM;
+    return s;
+}
+
 void MCMC::MCMC_sweep(double beta, int num_sweeps, bool merge_split_enabled) {
     this->beta = beta;
 

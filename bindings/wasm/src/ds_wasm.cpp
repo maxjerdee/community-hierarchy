@@ -24,6 +24,7 @@
 #include "fit_result.h"
 #include "globals.h"
 #include "initial_state.h"
+#include "interactions.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
@@ -83,39 +84,6 @@ void double_array(std::ostringstream& s, const std::vector<double>& v) {
     s << '[';
     for (std::size_t i = 0; i < v.size(); ++i) s << (i ? "," : "") << num(v[i]);
     s << ']';
-}
-
-SampleState capture_sample(const MCMC& c) {
-    SampleState ss;
-    ss.chain_id = 0;
-    ss.beta = 1.0;
-    ss.partition = c.partition;
-    ss.scores = c.scores;
-    ss.num_groups = c.num_groups;
-    ss.density_in = c.density_in;
-    ss.density_out = c.density_out;
-    ss.variation_in = c.variation_in;
-    ss.variation_out = c.variation_out;
-    ss.degree_correction = c.degree_correction;
-    ss.individual_depth = c.individual_depth;
-    ss.group_depth = c.group_depth;
-    ss.ties_parameter = c.ties_parameter;
-    ss.H_A_b = c.H_A_b;
-    ss.H_b = c.H_b;
-    ss.H_M = c.H_M;
-    ss.H_k = c.H_k;
-    ss.H_A_G_k_M_b = c.H_A_G_k_M_b;
-    ss.H_A_G_b = c.H_A_G_b;
-    ss.H_Adir_G_A_s_nu = c.H_Adir_G_A_s_nu;
-    ss.H_s_G_b_depths = c.H_s_G_b_depths;
-    ss.two_layer_mode = c.two_layer_mode;
-    ss.weighted_SBM = c.weighted_SBM;
-    ss.H_W = c.H_W;
-    return ss;
-}
-
-double description_length(const SampleState& s) {
-    return s.H_A_b + s.H_Adir_G_A_s_nu + s.H_s_G_b_depths;
 }
 
 double description_length(const MCMC& c) {
@@ -254,127 +222,53 @@ DS_EXPORT int ds_session_create(int num_nodes, const int* wins_from, const int* 
                 if (!std::isfinite(initial_scores[i]))
                     throw std::invalid_argument("initial_scores must be finite");
 
-        // Build adjacency maps
-        std::vector<std::unordered_map<int, double>> wins_adj(static_cast<std::size_t>(num_nodes));
-        for (int e = 0; e < num_wins; ++e)
-            wins_adj[wins_from[e]][wins_to[e]] += wins_weight ? wins_weight[e] : 1.0;
+        // The fit as the native driver's FitParams, so the starting state and the
+        // starting draws are those of fit() (initial_state.h): a seeded session runs
+        // the chain of a single-chain native fit.
+        std::vector<int> from, to;
+        std::vector<bool> draw;
+        std::vector<double> weight;
+        auto add_edges = [&](const int* u, const int* v, const double* w, int m, bool is_draw) {
+            for (int e = 0; e < m; ++e) {
+                from.push_back(u[e]);
+                to.push_back(v[e]);
+                draw.push_back(is_draw);
+                weight.push_back(w ? w[e] : 1.0);
+            }
+        };
+        add_edges(wins_from, wins_to, wins_weight, num_wins, false);
+        add_edges(ties_from, ties_to, ties_weight, num_ties, true);
+        const Interactions edges =
+            build_interactions(num_nodes, from, to, draw, weight, /*source_high_rank=*/true);
 
-        std::vector<std::unordered_map<int, double>> ties_adj(static_cast<std::size_t>(num_nodes));
-        for (int e = 0; e < num_ties; ++e) {
-            double w = ties_weight ? ties_weight[e] : 1.0;
-            ties_adj[ties_from[e]][ties_to[e]] += w;
-            ties_adj[ties_to[e]][ties_from[e]] += w;
-        }
+        FitParams p;
+        p.wins = edges.wins;
+        p.ties = edges.ties;
+        p.weighted_SBM = weighted_sbm != 0;
+        if (initial_partition)
+            p.initial_partition.assign(initial_partition,
+                                       initial_partition + initial_partition_length);
+        if (initial_scores)
+            p.initial_scores.assign(initial_scores, initial_scores + initial_scores_length);
+        p.assortative = assortative != 0;
+        // A fixed mixing variation (>= 0): the model presets; negative: inferred.
+        if (variation_in_fixed_value >= 0.0) p.variation_in = variation_in_fixed_value;
+        if (variation_out_fixed_value >= 0.0) p.variation_out = variation_out_fixed_value;
+        p.degree_correction = degree_correction_mode == 0 ? 0.0 : 0.5;
+        if (independent_coupling != 0) p.group_depth = 0.0;
+        // No neutral edges: plain Bradley-Terry, ties_parameter fixed at 0 -- what
+        // the Python and R front ends resolve an omitted hierarchy_model to.
+        if (!edges.has_neutral) p.ties_parameter = 0.0;
+        if (num_groups_fixed && num_groups > 0) p.num_groups = num_groups;
+        p.num_groups_fixed = num_groups_fixed != 0;
+        complete_start(p);
 
-        // Empty group_adj = single-layer mode (community structure from wins+ties).
-        // Must be genuinely empty (size 0) — MCMC_core checks !group_adj.empty() to
-        // detect two-layer mode, so a vector pre-sized to num_nodes (even with all
-        // empty inner maps) would incorrectly activate two-layer mode and make
-        // neighbors_com empty, collapsing m=0 and zeroing H_M/H_k/H_A_G_k_M_b.
-        std::vector<std::unordered_map<int, double>> group_adj;
-
-        // ---------------------------------------------------------------
-        // Initial scores — mirrors community_hierarchy.fit() (core.py):
-        //   - no scores given: win fractions (win_fraction_scores, initial_state.h)
-        //   - scores given: used as given; if their RMS is > 1e-6 it is the
-        //     initial individual_depth (id_init), else id is drawn
-        // id_init > 0 means we skip the init_rng draw for individual_depth (as
-        // fit.cpp does when p.individual_depth_init.has_value() == true).
-        // ---------------------------------------------------------------
-        std::vector<double> scores;
-        double id_init = -1.0;  // -1 = draw id from init_rng below
-        if (initial_scores) {
-            scores.assign(initial_scores, initial_scores + initial_scores_length);
-            double sum_sq = 0.0;
-            for (double s : scores) sum_sq += s * s;
-            double rms = std::sqrt(sum_sq / static_cast<double>(scores.size()));
-            if (rms > 1e-6) id_init = rms;  // initial individual_depth = score RMS
-        } else {
-            // The default starting scores of every binding (initial_state.h).
-            scores = win_fraction_scores(wins_adj, ties_adj);
-        }
-
-        // ---------------------------------------------------------------
-        // Initial partition: the default of every binding (initial_state.h),
-        // greedy modularity, with num_groups groups when they are fixed.
-        // ---------------------------------------------------------------
-        std::vector<int> partition;
-        if (initial_partition) {
-            partition.assign(initial_partition, initial_partition + initial_partition_length);
-        } else {
-            std::optional<int> k;
-            if (num_groups_fixed && num_groups > 0) k = num_groups;
-            partition = greedy_modularity_partition(wins_adj, ties_adj, {}, k);
-        }
-        int ng = *std::max_element(partition.begin(), partition.end()) + 1;
-        if (num_groups_fixed && num_groups > 0) ng = num_groups;
-
-        // ---------------------------------------------------------------
-        // Seed and draw continuous parameters — exactly as fit.cpp does for
-        // a single chain (chain_id = 0):
-        //   rng.seed(seed)                           — shared move generator
-        //   init_rng = mt19937_64(seed * 2654435761) — parameter initializer
-        //   vi, vo ~ next_uniform(init_rng)
-        //   dc = 0.5 (fixed -- p.degree_correction.has_value() == true, BUT
-        //              C++ evaluates value_or's argument eagerly, so fit.cpp
-        //              always consumes one draw for dc even when it's fixed.
-        //              We must do the same to keep subsequent draws aligned.)
-        //   id ~ next_uniform(init_rng) OR id_init (when score normalization set it,
-        //              matching p.individual_depth_init.has_value() == true)
-        //   gd, tp ~ next_uniform(init_rng)
-        // next_uniform (rng.h), not std::uniform_real_distribution, whose draws
-        // differ between libstdc++ and libc++.
-        // ---------------------------------------------------------------
         rng.seed(static_cast<std::mt19937::result_type>(seed));
         std::mt19937_64 init_rng(static_cast<std::uint64_t>(seed) * 2654435761ULL);
-        double vi = next_uniform(init_rng);
-        double vo = next_uniform(init_rng);
-        // A fixed mixing variation (>= 0) replaces the drawn start and is not
-        // sampled -- the model presets (simple 0.5/0.5, hybrid 0.5/0, planted
-        // 0/0, traditional 0.5/0.5), as Python's Config sets them. Negative:
-        // inferred (general). The draws above happen regardless, as fit.cpp's
-        // value_or makes them, so seeded runs stay in step with Python.
-        const bool vi_fixed = variation_in_fixed_value >= 0.0;
-        const bool vo_fixed = variation_out_fixed_value >= 0.0;
-        if (vi_fixed) vi = variation_in_fixed_value;
-        if (vo_fixed) vo = variation_out_fixed_value;
-        (void)next_uniform(
-            init_rng);  // mirrors fit.cpp: degree_correction.value_or(next_uniform(...)) is eager
-        // degree_correction_mode: 0 = fixed at 0 (no DC), 1 = fixed at 0.5 (default)
-        const double dc = (degree_correction_mode == 0) ? 0.0 : 0.5;
-        double id = (id_init > 0.0) ? id_init : next_uniform(init_rng);
-        // independent_coupling: when set, group_depth is fixed at 0.0 (hierarchy
-        // decoupled from communities — mirrors Python Config(interaction='independent')).
-        //
-        // fit.cpp uses a ternary for gd: p.group_depth.has_value() ? *p.group_depth : next_uniform(...)
-        // Unlike value_or, the ternary is lazy — the draw is skipped when the value is explicit.
-        // So independent mode consumes NO draw for gd, and tp becomes draw5 instead of draw6.
-        // Coupled mode (no explicit group_depth) consumes draw5 → gd, draw6 → tp.
-        const bool gd_fixed = independent_coupling != 0;
-        double gd = gd_fixed ? 0.0 : next_uniform(init_rng);
-        double tp = next_uniform(init_rng);  // drawn regardless, as fit.cpp's value_or does
-        // No neutral edges: ties are not an outcome the data could record, so the
-        // model is plain Bradley-Terry with ties_parameter fixed at 0 -- what the
-        // Python front end resolves an omitted hierarchy_model to (core.fit). It
-        // used to be fitted here unconditionally.
-        double tie_weight = 0.0;
-        for (int e = 0; e < num_ties; ++e) tie_weight += ties_weight ? ties_weight[e] : 1.0;
-        const bool ties_fixed = !(tie_weight > 0.0);
-        if (ties_fixed) tp = 0.0;
 
         const int handle = next_handle++;
         DsSession& sess = sessions()[handle];
-        sess.mcmc = std::make_unique<MCMC>(
-            wins_adj, ties_adj, group_adj, partition, /*partition_fixed=*/false, scores,
-            /*scores_fixed=*/false, ng, /*num_groups_fixed=*/num_groups_fixed != 0,
-            /*assortative=*/assortative != 0, vi, /*variation_in_fixed=*/vi_fixed, vo,
-            /*variation_out_fixed=*/vo_fixed, dc, /*degree_correction_fixed=*/true, id,
-            /*individual_depth_fixed=*/false, gd, /*group_depth_fixed=*/gd_fixed, tp,
-            /*ties_parameter_fixed=*/ties_fixed,
-            /*seed=*/-1,  // rng already seeded above
-            /*density_in_initial=*/-1.0,
-            /*density_out_initial=*/-1.0,
-            /*weighted_SBM=*/weighted_sbm != 0);
+        sess.mcmc = std::make_unique<MCMC>(new_chain(p, init_rng));
 
         sess.mcmc->retune_collective_weight();  // from the initial partition
         sess.mcmc->adapting = burn_sweeps > 0;  // step sizes adapt in burn-in only, as in fit()
@@ -418,7 +312,7 @@ DS_EXPORT int ds_session_step(int handle, int max_sweeps) {
                 }
             } else if (sess->phase == Phase::SAMPLE) {
                 sess->mcmc->MCMC_sweep(1.0, sess->sweeps_per_sample, sess->merge_split_enabled);
-                sess->samples_collected.push_back(capture_sample(*sess->mcmc));
+                sess->samples_collected.push_back(sess->mcmc->snapshot(0));
                 sess->samples_done++;
                 if (sess->samples_done >= sess->samples_total) {
                     sess->phase = Phase::DONE;

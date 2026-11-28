@@ -27,6 +27,24 @@ struct SampleState {
     double H_W = 0.0;
 };
 
+// The scalar fields of a SampleState (everything but partition and scores), in
+// the order of the bindings' sample tables, each read and written as a double.
+// The bindings loop over this list to copy samples to and from Python and R, so a
+// new field is added here and in SampleState, and nowhere else.
+struct SampleField {
+    enum Type { Int, Double, Bool };
+    const char* name;
+    Type type;
+    double (*get)(const SampleState&);
+    void (*set)(SampleState&, double);
+};
+const std::vector<SampleField>& sample_fields();
+
+// The description length of a sample, in nats: H_A_b + H_Adir_G_A_s_nu +
+// H_s_G_b_depths, minus the log joint probability of the network, the partition
+// and the scores given the continuous parameters.
+double description_length(const SampleState& s);
+
 // Return type for network_properties(): one row per parameter.
 struct NetworkPropertiesResult {
     std::vector<std::string> parameter;
