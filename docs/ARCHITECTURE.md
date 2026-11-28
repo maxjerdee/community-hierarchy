@@ -11,15 +11,33 @@ the sampler.
 | Python API | `python/community_hierarchy/src/community_hierarchy/`: `config.py`, `fitting.py`, `result.py` | `Config` and its checks; `fit()`; `Result` (summaries) |
 | Python input and output | `.../checks.py`, `.../plots.py`, `.../gml.py` | argument and edge checks, node attributes; plots; GML output |
 | R API | `R-package/` | `ch_config()`, `ch_fit()`, summaries; a copy of `src/` (`tools/sync_r_core.py`) |
-| binding | `bindings/python/bindings.cpp` | pybind11: `fit_backend`, `FitResult`, and the raw `MCMC` class |
-| model presets | `src/model_presets.{h,cpp}` | named presets + explicit values → sampler parameters, and their checks (every binding) |
-| starting state | `src/initial_state.{h,cpp}`, `src/modularity.{h,cpp}` | default partition (greedy modularity, `modularity`) and scores (win fractions), used by `fit()` when none are given |
-| driver | `src/fit.{h,cpp}` | chains (threads), parallel tempering, burn-in, sampling, timeout/abort, progress callbacks |
+| bindings | `bindings/python/bindings.cpp`, `R-package/src/bindings.cpp`, `bindings/wasm/src/ds_wasm.cpp` | pybind11 (`fit_backend`, `FitResult`, and the raw `MCMC` class), Rcpp, and the WebAssembly session API |
+| interactions | `src/interactions.{h,cpp}` | wins and draws (and the group layer) from an edge list |
+| model presets | `src/model_presets.{h,cpp}` | named presets + explicit values → sampler parameters (the bindings check the choice) |
+| starting state | `src/initial_state.{h,cpp}`, `src/modularity.{h,cpp}` | default partition (greedy modularity) and scores (win fractions), and a chain's starting draws (`complete_start`, `new_chain`), shared by `fit()` and wasm |
+| driver | `src/fit.{h,cpp}` | `ChainRun`: chains (threads), parallel tempering, parameter warm-up, warm-up, sampling, timeout/abort, progress callbacks |
 | model + moves | `src/MCMC_core.{h,cpp}`, `src/MCMC_proposals.cpp`, `src/MCMC_merge_split.cpp` | the state, every move, `change_parameter` |
 | energies | `src/MCMC_bookkeeping.cpp` | from-scratch computation of every term; `check_state_bookkeeping` |
 | helpers | `src/helpers.{h,cpp}`, `src/globals.{h,cpp}` | special functions, prior-CDF proposals, per-thread RNG, merge/split tuning |
 | results | `src/fit_result.{h,cpp}` | samples, consensus, coincidence matrix, summaries |
+| diagnostics | `src/diagnostics.{h,cpp}` | bulk and tail ESS and R-hat (ports of ArviZ's) |
 | cross-validation | `src/loo.{h,cpp}` | PSIS (a port of ArviZ's) and leave-one-out of the edge directions (`direction_loo_df()` in Python, `direction_loo()` in R) |
+
+## Reading order
+
+1. `docs/model.md`, then the model table below: what the description-length terms are.
+2. `src/fit.h`, `src/fit.cpp`: what a fit does, from `FitParams` to `FitResult`.
+3. `src/initial_state.h`, `src/modularity.h`: where a chain starts.
+4. `src/MCMC_core.h`: the state, and the declaration of every move and term.
+5. `src/MCMC_bookkeeping.cpp`: each term computed from scratch (`calculate_H_*`),
+   and `check_state_bookkeeping`, which compares the cached terms with these.
+6. `src/MCMC_proposals.cpp`, then `src/MCMC_merge_split.cpp`: the moves, and
+   `flip_nodes`, the incremental update every partition move goes through.
+7. `src/MCMC_core.cpp`: the constructor, `MCMC_sweep` and the parameter moves.
+8. `src/fit_result.h`, `src/diagnostics.h`, `src/loo.h`: the summaries of the samples.
+9. A binding: `python/community_hierarchy/src/community_hierarchy/fitting.py` and
+   `bindings/python/bindings.cpp`, or `R-package/R/fit.R` and
+   `R-package/src/bindings.cpp`.
 
 ## The model (the energy the sampler targets)
 
@@ -38,6 +56,11 @@ the end of every sweep (`check_state_bookkeeping`, which throws on mismatch):
 | `H_A_G_b` | `H_M + H_k + H_A_G_k_M_b (+ H_W)`: the undirected network given b | |
 | `H_Adir_G_A_s_nu` | edge directions given scores: Bradley–Terry with ties (a tie ∝ `ties_parameter·e^{(s_i+s_j)/2}`) | s, ties_parameter |
 | `H_s_G_b_depths` | score prior given the partition: `s_i = c_r + ε_i`, group means `c_r` integrated out | s, b, individual_depth, group_depth |
+
+`H_A_b = H_A_G_b + H_b`, and the description length of a sample is
+`H_A_b + H_Adir_G_A_s_nu + H_s_G_b_depths` (`description_length`, `fit_result.h`).
+Each term is computed from scratch by `MCMC::calculate_<term>`
+(`MCMC_bookkeeping.cpp`) and updated incrementally by the moves.
 
 The undirected network is `wins + ties`, or, in **two-layer mode**
 (`group_graph=`), a separate undirected graph drives the communities while
@@ -87,7 +110,7 @@ is reversible with respect to `exp(-H_s_G_b_depths)`). It is documented at
 
 With `scores_fixed` only kernel (1) of each depth is used, so no move changes a score.
 
-Each kernel has its own step size. Steps adapt during burn-in only (Robbins–Monro
+Each kernel has its own step size. Steps adapt during warm-up only (Robbins–Monro
 on the log step towards acceptance 0.44) and are frozen for sampling.
 
 Priors on parameters: variations and degree correction Uniform(0,1); densities
@@ -101,8 +124,8 @@ half-Cauchy(4).
   objects on its own thread, so chains are independent and runs are
   reproducible from `seed`.
 - Parallel tempering (`num_tempering_chains = K > 1`): K replicas per chain on
-  a geometric β ladder from `beta/(K-1)` to `beta`, plus β = 0; adjacent swaps
-  after every sample; the β = `beta` replica is recorded. The chain's thread
+  a geometric β ladder from `beta/(K-1)` to `beta`, plus β = 0 (`beta_ladder`);
+  adjacent swaps after every iteration; the β = `beta` replica is recorded. The chain's thread
   generator is seeded once with `seed + chain`; replicas are built with seed −1
   (no reseed) and share that stream.
 - Starting partition: unless `initial_partition` is given, every chain starts
@@ -112,8 +135,10 @@ half-Cauchy(4).
   regime. Since 0.6.0 it is computed in C++ with exact (integer) modularity
   gains; 0.5.0 and earlier used networkx, whose order among equal gains and
   equal-sized groups differs, so seeded fits from the default start differ.
-- `num_param_warmup`: sweeps with partition and scores frozen, letting the
-  continuous parameters settle first.
+- `num_param_warmup`: iterations with partition and scores frozen, letting the
+  continuous parameters settle first.  Then `num_warmup` iterations, during
+  which the step sizes adapt and the collective-move weight is retuned, and
+  `num_samples` iterations, every `num_thin`-th recorded.
 - `timeout` (seconds, default 60) stops a fit early, **with fewer samples than
   requested**. Raise it for long runs.
 
