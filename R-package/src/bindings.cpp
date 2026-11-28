@@ -187,11 +187,11 @@ List ch_fit_native(int n, IntegerVector from, IntegerVector to, LogicalVector dr
     p.weighted_proposals = as<bool>(opts["weighted_proposals"]);
 
     p.num_chains = as<int>(opts["num_chains"]);
-    p.samples_per_chain = as<int>(opts["samples_per_chain"]);
+    p.num_samples = as<int>(opts["num_samples"]);
+    p.num_warmup = as<int>(opts["num_warmup"]);
+    p.num_thin = as<int>(opts["num_thin"]);
     p.sweeps_per_sample = as<int>(opts["sweeps_per_sample"]);
-    p.burn_sweeps = as<int>(opts["burn_sweeps"]);
-    p.param_warmup_sweeps = as<int>(opts["param_warmup_sweeps"]);
-    p.thinning = as<int>(opts["thinning"]);
+    p.num_param_warmup = as<int>(opts["num_param_warmup"]);
     p.beta = as<double>(opts["beta"]);
     p.num_tempering_chains = as<int>(opts["num_tempering_chains"]);
     p.merge_split_enabled = as<bool>(opts["merge_split_enabled"]);
@@ -209,8 +209,8 @@ List ch_fit_native(int n, IntegerVector from, IntegerVector to, LogicalVector dr
         p.on_burn_in = [&](int c, int) { burn_done.store(c, std::memory_order_relaxed); };
         p.on_sample = [&](int c, int) { sample_done.store(c, std::memory_order_relaxed); };
     }
-    const int warm_total = p.num_chains * (p.param_warmup_sweeps + p.burn_sweeps);
-    const int sample_total = p.num_chains * p.samples_per_chain;
+    const int warm_total = p.num_chains * (p.num_param_warmup + p.num_warmup);
+    const int sample_total = p.num_chains * draws_per_chain(p);
 
     std::future<FitResult> job = std::async(std::launch::async,
                                             [params = std::move(p)]() mutable {

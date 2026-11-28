@@ -38,16 +38,17 @@ struct FitParams {
     std::optional<int>    num_groups;
     bool                  num_groups_fixed = false;
 
+    // Run lengths, named as in PyStan.  One iteration is sweeps_per_sample sweeps.
     int    num_chains           = 1;
-    int    samples_per_chain    = 1000;
+    int    num_samples          = 1000;  // sampling iterations per chain
+    int    num_thin             = 1;     // record every num_thin-th: ceil(num_samples / num_thin) draws
+    int    num_warmup           = 500;   // warm-up iterations; step sizes adapt here only
     int    sweeps_per_sample    = 10;
-    int    burn_sweeps          = 500;
-    // Number of additional sweeps at the start of burn-in with partition and
-    // scores fixed, so that continuous parameters (variation_in/out,
-    // degree_correction, individual_depth, group_depth, ties_parameter)
-    // can equilibrate to the initial partition before the partition is free.
-    int    param_warmup_sweeps  = 0;
-    int    thinning             = 1;
+    // Iterations before warm-up with the partition and scores fixed, so that the
+    // continuous parameters (variation_in/out, degree_correction,
+    // individual_depth, group_depth, ties_parameter) settle on the initial
+    // partition before it is free to move.
+    int    num_param_warmup     = 0;
     double beta                 = 1.0;
     // Collective merge/split moves (Peixoto arXiv:2003.07070).
     // ON by default: without them single-site MCMC can converge silently to the
@@ -65,9 +66,9 @@ struct FitParams {
 
     // Optional callbacks for progress reporting (all thread-safe).
     // Each receives (completed, total) where total = num_chains × phase_length.
-    std::function<void(int, int)> on_warmup;   // called once per sweep per chain (param warmup)
-    std::function<void(int, int)> on_burn_in;  // called once per sweep per chain (burn-in)
-    std::function<void(int, int)> on_sample;   // called once per recorded sample per chain
+    std::function<void(int, int)> on_warmup;   // once per iteration per chain (parameter warm-up)
+    std::function<void(int, int)> on_burn_in;  // once per iteration per chain (warm-up)
+    std::function<void(int, int)> on_sample;   // once per recorded draw per chain
 
     // Optional pointer to an external abort flag. When the flag is set, fit()
     // exits cleanly at the next loop boundary (warmup / burn-in / sampling).
@@ -75,6 +76,9 @@ struct FitParams {
     // monitoring thread, and for checking the flag after fit() returns.
     std::atomic<bool>* abort_flag = nullptr;
 };
+
+// Draws recorded per chain: ceil(num_samples / num_thin).
+inline int draws_per_chain(const FitParams& p) { return (p.num_samples + p.num_thin - 1) / p.num_thin; }
 
 // Run parallel-tempered MCMC and return the collected samples.
 FitResult fit(FitParams params);

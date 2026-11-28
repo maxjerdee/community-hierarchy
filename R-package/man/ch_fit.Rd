@@ -11,11 +11,11 @@ ch_fit(
   group_graph = NULL,
   source_high_rank = TRUE,
   num_chains = 1,
-  samples_per_chain = 1000,
+  num_samples = 1000,
+  num_warmup = 500,
+  num_thin = 1,
   sweeps_per_sample = 10,
-  burn_sweeps = 500,
-  param_warmup_sweeps = 0,
-  thinning = 1,
+  num_param_warmup = 0,
   beta = 1,
   num_tempering_chains = 1,
   merge_split_enabled = TRUE,
@@ -59,20 +59,17 @@ the source wins (a sports result, a dominance interaction).  \code{FALSE}: the
 target wins (a citation of v by u, a friendship nomination of v by u).
 Either way, higher scores mean higher rank.}
 
-\item{num_chains}{Independent chains, run in parallel threads.}
+\item{num_chains, num_samples, num_warmup, num_thin}{The run, named as in
+PyStan.  One iteration is \code{sweeps_per_sample} sweeps.  Each of \code{num_chains}
+independent chains (run in parallel threads) runs \code{num_warmup} warm-up
+iterations, during which the proposal step sizes adapt, then \code{num_samples}
+sampling iterations, recording the state after every \code{num_thin}-th:
+\code{ceiling(num_samples / num_thin)} draws per chain.}
 
-\item{samples_per_chain}{Samples recorded per chain.}
+\item{sweeps_per_sample}{Sweeps (one proposal per node each) per iteration.}
 
-\item{sweeps_per_sample}{Sweeps (one proposal per node each) between samples.}
-
-\item{burn_sweeps}{Burn-in length per chain, in units of \code{sweeps_per_sample}
-sweeps.  Step sizes adapt during burn-in and are then frozen.}
-
-\item{param_warmup_sweeps}{Blocks of \code{sweeps_per_sample} sweeps before burn-in
-with the partition and scores frozen, so that the continuous parameters
-settle first.}
-
-\item{thinning}{Record every \code{thinning}-th block of \code{sweeps_per_sample} sweeps.}
+\item{num_param_warmup}{Iterations before warm-up with the partition and
+scores frozen, so that the continuous parameters settle first.}
 
 \item{beta}{Inverse temperature of the likelihood (0 = prior, 1 = posterior).}
 
@@ -122,7 +119,7 @@ directed network by Markov chain Monte Carlo.
 games <- data.frame(winner = c("a", "a", "b", "c"), loser = c("b", "c", "c", "d"),
                     type = c("dominant", "dominant", "dominant", "neutral"),
                     weight = c(1, 1, 1, 2))
-fit <- ch_fit(games, num_chains = 1, samples_per_chain = 50, burn_sweeps = 20,
+fit <- ch_fit(games, num_chains = 1, num_samples = 50, num_warmup = 20,
               seed = 1, show_progress = FALSE)
 network_properties(fit)
 node_properties(fit)

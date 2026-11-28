@@ -18,10 +18,10 @@ def _graph() -> nx.DiGraph:
 
 
 def _dl_trace(seed: int = 7, **kwargs) -> np.ndarray:
-    args = dict(num_chains=4, samples_per_chain=20, sweeps_per_sample=2, burn_sweeps=10,
+    args = dict(num_chains=4, num_samples=20, sweeps_per_sample=2, num_warmup=10,
                 seed=seed, show_progress=False)
     args.update(kwargs)
-    return np.asarray(fit(Config(), _graph(), **args).samples_df()["H_A_b"], dtype=float)
+    return np.asarray(fit(Config(), _graph(), **args).to_frame()["H_A_b"], dtype=float)
 
 
 # ---------------------------------------------------------------------------
@@ -52,14 +52,14 @@ def test_non_integer_weights_are_rejected(bad):
     u, v = next(iter(G.edges()))
     G[u][v]["weight"] = bad
     with pytest.raises(ValueError, match="positive integer"):
-        fit(Config(), G, num_samples=2, burn_sweeps=1, show_progress=False)
+        fit(Config(), G, num_samples=2, num_warmup=1, show_progress=False)
 
 
 def test_weighted_sbm_still_accepts_real_weights():
     G = _graph()
     for i, (u, v) in enumerate(G.edges()):
         G[u][v]["weight"] = 0.5 + 0.25 * (i % 3)
-    result = fit(Config(weighted_SBM=True), G, num_samples=2, burn_sweeps=1, show_progress=False)
+    result = fit(Config(weighted_SBM=True), G, num_samples=2, num_warmup=1, show_progress=False)
     assert np.isfinite(result.mdl_value)
 
 
@@ -82,8 +82,8 @@ def test_degree_correction_is_a_binary_switch(flag, expected):
     """The flag alone sets degree correction, for every model preset."""
     for model in ("traditional_SBM", "general_ASBM"):
         result = fit(Config(groups_model=model, degree_correction=flag), _graph(),
-                     num_samples=3, burn_sweeps=1, show_progress=False)
-        assert np.all(result.samples_df()["degree_correction"] == expected), model
+                     num_samples=3, num_warmup=1, show_progress=False)
+        assert np.all(result.to_frame()["degree_correction"] == expected), model
 
 
 @pytest.mark.parametrize("value", [0.5, None, "inferred"])
@@ -105,7 +105,7 @@ def test_self_loops_rejected_in_binary_count_modes():
     u = next(iter(G.nodes()))
     G.add_edge(u, u)          # untyped, like the rest of _graph()
     with pytest.raises(ValueError, match="self-loop"):
-        fit(Config(weighted_SBM=True), G, num_samples=2, burn_sweeps=1, show_progress=False)
+        fit(Config(weighted_SBM=True), G, num_samples=2, num_warmup=1, show_progress=False)
 
 
 # ---------------------------------------------------------------------------
@@ -195,8 +195,8 @@ def _binder_loss(p, C):
 
 def test_consensus_refinement_lowers_loss_and_keeps_group_count():
     G = nx.gnp_random_graph(40, 0.12, seed=4, directed=True)
-    r = fit(Config(), G, num_chains=2, samples_per_chain=30, sweeps_per_sample=2,
-            burn_sweeps=50, seed=3, show_progress=False)
+    r = fit(Config(), G, num_chains=2, num_samples=30, sweeps_per_sample=2,
+            num_warmup=50, seed=3, show_progress=False)
     C = np.asarray(r.coincidence_matrix())
     raw = r.consensus_partition("binder", refine=False)
     ref = r.consensus_partition("binder")
@@ -217,8 +217,8 @@ def test_consensus_refinement_lowers_loss_and_keeps_group_count():
 # Bradley-Terry (chickens: ~1.6x) in independent mode.
 # ---------------------------------------------------------------------------
 def _ties(G: nx.DiGraph, **cfg) -> float:
-    r = fit(Config(interaction="independent", **cfg), G, samples_per_chain=50,
-            sweeps_per_sample=2, burn_sweeps=20, seed=3, show_progress=False)
+    r = fit(Config(interaction="independent", **cfg), G, num_samples=50,
+            sweeps_per_sample=2, num_warmup=20, seed=3, show_progress=False)
     p = r.network_properties_df().set_index("parameter")["mean"]
     return float(p["ties_parameter"])
 
@@ -259,13 +259,13 @@ def _overlap(c, b):
 
 def _small_fit():
     G = nx.gnp_random_graph(40, 0.12, seed=4, directed=True)
-    return fit(Config(), G, num_chains=2, samples_per_chain=40, sweeps_per_sample=2,
-               burn_sweeps=50, seed=3, show_progress=False)
+    return fit(Config(), G, num_chains=2, num_samples=40, sweeps_per_sample=2,
+               num_warmup=50, seed=3, show_progress=False)
 
 
 def test_consensus_methods_group_counts():
     r = _small_fit()
-    K = int(r.samples_df()["num_groups"].mode().min())
+    K = int(r.to_frame()["num_groups"].mode().min())
     moc = r.consensus_partition()                       # default is unrestricted MOC
     assert list(moc) == list(r.consensus_partition("MOC"))   # case-insensitive, deterministic
     assert len(set(r.consensus_partition("moc_modal_k"))) == K
@@ -279,7 +279,7 @@ def test_moc_overlap_no_worse_than_its_starts():
     no worse than theirs: for "moc_modal_k" the first modal-K sample, for "moc"
     the one-group partition, the first sample and the "moc_modal_k" consensus."""
     r = _small_fit()
-    df = r.samples_df()
+    df = r.to_frame()
     P = df[[f"{v}_group" for v in r._node_order]].values
     K = int(df["num_groups"].mode().min())
     total = lambda c: sum(_overlap(c, p) for p in P)
@@ -313,8 +313,8 @@ def test_unrestricted_moc_recovers_planted_partition():
 
 def test_consensus_thinning_floor_and_ess():
     G = nx.gnp_random_graph(40, 0.12, seed=4, directed=True)
-    r = fit(Config(), G, num_chains=2, samples_per_chain=200, sweeps_per_sample=1,
-            burn_sweeps=20, seed=5, show_progress=False)
+    r = fit(Config(), G, num_chains=2, num_samples=200, sweeps_per_sample=1,
+            num_warmup=20, seed=5, show_progress=False)
     T = r._native.num_samples
     assert len(r._native.consensus_sample_indices(1000)) == T       # fewer than floor: all
     assert len(r._native.consensus_sample_indices(0)) == T          # 0 disables thinning
@@ -329,7 +329,7 @@ def test_consensus_thinning_floor_and_ess():
             import arviz as az
     except ImportError:
         return
-    df = r.samples_df()
+    df = r.to_frame()
     L = df.groupby("chain_id").size().min()
     x = np.stack([g["H_A_b"].values[:L] for _, g in df.groupby("chain_id")])
     assert abs(ess - float(az.ess(x, method="bulk"))) <= 0.02 * float(az.ess(x, method="bulk")) + 1
@@ -340,7 +340,7 @@ def test_consensus_thinning_floor_and_ess():
 # input handling and GML output.
 # ---------------------------------------------------------------------------
 
-_QUICK = dict(num_samples=2, burn_sweeps=1, sweeps_per_sample=1, show_progress=False, seed=1)
+_QUICK = dict(num_samples=2, num_warmup=1, sweeps_per_sample=1, show_progress=False, seed=1)
 
 
 def _typed_graph() -> nx.DiGraph:
@@ -395,11 +395,11 @@ def test_config_repr_omits_unset_fields():
     ("kwargs", "name"),
     [
         (dict(num_chains=0), "num_chains"),
-        (dict(samples_per_chain=0, num_samples=None), "samples_per_chain"),
+        (dict(num_samples=0), "num_samples"),
         (dict(sweeps_per_sample=-1), "sweeps_per_sample"),
-        (dict(thinning=0), "thinning"),
-        (dict(burn_sweeps=-1), "burn_sweeps"),
-        (dict(param_warmup_sweeps=-1), "param_warmup_sweeps"),
+        (dict(num_thin=0), "num_thin"),
+        (dict(num_warmup=-1), "num_warmup"),
+        (dict(num_param_warmup=-1), "num_param_warmup"),
         (dict(seed=-1), "seed"),
     ],
 )

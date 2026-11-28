@@ -112,7 +112,7 @@ half-Cauchy(4).
   regime. Since 0.6.0 it is computed in C++ with exact (integer) modularity
   gains; 0.5.0 and earlier used networkx, whose order among equal gains and
   equal-sized groups differs, so seeded fits from the default start differ.
-- `param_warmup_sweeps`: sweeps with partition and scores frozen, letting the
+- `num_param_warmup`: sweeps with partition and scores frozen, letting the
   continuous parameters settle first.
 - `timeout` (seconds, default 60) stops a fit early, **with fewer samples than
   requested**. Raise it for long runs.

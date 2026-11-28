@@ -30,7 +30,7 @@ FitResult fit(FitParams p) {
     }
     int initial_num_groups = *std::max_element(p.initial_partition.begin(),
                                                p.initial_partition.end()) + 1;
-    const int total_samples = p.num_chains * p.samples_per_chain;
+    const int total_samples = p.num_chains * draws_per_chain(p);
     std::atomic<int> completed_warmup{0};
     std::atomic<int> completed_burn{0};
     std::atomic<int> completed_samples{0};
@@ -138,17 +138,17 @@ FitResult fit(FitParams p) {
         // parameters (variation_in/out, degree_correction, individual_depth,
         // group_depth, ties_parameter) can reach their conditional posterior
         // before the partition is free to move.
-        if (p.param_warmup_sweeps > 0) {
+        if (p.num_param_warmup > 0) {
             for (int ci = 0; ci < p.num_tempering_chains; ++ci) {
                 chain_stack[ci].partition_fixed = true;
                 chain_stack[ci].scores_fixed    = true;
             }
-            for (int b = 0; b < p.param_warmup_sweeps && elapsed() < p.timeout && !aborted(); ++b) {
+            for (int b = 0; b < p.num_param_warmup && elapsed() < p.timeout && !aborted(); ++b) {
                 for (int ci = 0; ci < p.num_tempering_chains; ++ci)
                     chain_stack[ci].MCMC_sweep(betas[ci], p.sweeps_per_sample, p.merge_split_enabled);
                 if (p.on_warmup) {
                     int done = completed_warmup.fetch_add(1, std::memory_order_relaxed) + 1;
-                    p.on_warmup(done, p.num_chains * p.param_warmup_sweeps);
+                    p.on_warmup(done, p.num_chains * p.num_param_warmup);
                 }
             }
             for (int ci = 0; ci < p.num_tempering_chains; ++ci) {
@@ -181,15 +181,15 @@ FitResult fit(FitParams p) {
         // frozen for sampling, so the sampling kernel is fixed and exact.
         for (auto& c : chain_stack) c.adapting = true;
 
-        // Burn-in: burn_sweeps iterations of sweeps_per_sample sweeps each.
-        for (int b = 0; b < p.burn_sweeps && elapsed() < p.timeout && !aborted(); ++b) {
+        // Warm-up: num_warmup iterations of sweeps_per_sample sweeps each.
+        for (int b = 0; b < p.num_warmup && elapsed() < p.timeout && !aborted(); ++b) {
             for (int ci = 0; ci < p.num_tempering_chains; ++ci)
                 chain_stack[ci].MCMC_sweep(betas[ci], p.sweeps_per_sample, p.merge_split_enabled);
             do_swaps();
             retune();                                    // adapt, then freeze at sampling
             if (p.on_burn_in) {
                 int done = completed_burn.fetch_add(1, std::memory_order_relaxed) + 1;
-                p.on_burn_in(done, p.num_chains * p.burn_sweeps);
+                p.on_burn_in(done, p.num_chains * p.num_warmup);
             }
         }
 
@@ -197,11 +197,16 @@ FitResult fit(FitParams p) {
 
         // Sampling
         std::vector<SampleState> samples;
-        samples.reserve(static_cast<std::size_t>(p.samples_per_chain));
+        samples.reserve(static_cast<std::size_t>(draws_per_chain(p)));
 
-        for (int s = 0; s < p.samples_per_chain && elapsed() < p.timeout && !aborted(); ++s) {
+        // Sampling: num_samples iterations; the draw of every num_thin-th is recorded.
+        for (int it = 0; it < p.num_samples && elapsed() < p.timeout && !aborted(); ++it) {
             for (int ci = 0; ci < p.num_tempering_chains; ++ci)
                 chain_stack[ci].MCMC_sweep(betas[ci], p.sweeps_per_sample, p.merge_split_enabled);
+            if (it % p.num_thin != 0) {
+                do_swaps();
+                continue;
+            }
 
             // Record the β=1 chain (last in schedule)
             const MCMC& c = chain_stack[p.num_tempering_chains - 1];
@@ -234,11 +239,6 @@ FitResult fit(FitParams p) {
 
             int done = completed_samples.fetch_add(1, std::memory_order_relaxed) + 1;
             if (p.on_sample) p.on_sample(done, total_samples);
-
-            // Thinning sweeps between recorded samples
-            for (int t = 1; t < p.thinning; ++t)
-                for (int ci = 0; ci < p.num_tempering_chains; ++ci)
-                    chain_stack[ci].MCMC_sweep(betas[ci], p.sweeps_per_sample, p.merge_split_enabled);
 
             do_swaps();
         }

@@ -33,7 +33,7 @@ const m = await load();
 const run = m.fit(
   wins,
   ties,
-  { num_nodes: N, burn_sweeps: 1000, samples: 500, sweeps_per_sample: 10, seed: 42 },
+  { num_nodes: N, num_warmup: 500, num_samples: 500, sweeps_per_sample: 10, seed: 42 },
   { onProgress(p) { console.log(p.fraction.toFixed(2)); } }
 );
 
@@ -80,7 +80,7 @@ errors found by the core (a self-loop, a bad `initialPartition`) reject
 | Option | Default | Description |
 |--------|---------|-------------|
 | `num_nodes` | max id + 1 | Number of nodes |
-| `num_groups` | unset | Without `num_groups_fixed`, only a fallback: used when no `initialPartition` is given and greedy modularity finds a single group (then `min(n, 5)` score quantiles if unset). With `num_groups_fixed`: the fixed K |
+| `num_groups` | unset | With `num_groups_fixed`: the fixed K (the default start then has K groups); otherwise unused |
 | `num_groups_fixed` | false | Hold K fixed (at `num_groups`, or at the K of `initialPartition`) |
 | `assortative` | false | Separate densities for edges within and between groups |
 | `degree_correction_mode` | 1 | 1: degree correction (fixed at 0.5, a uniform prior over degree sequences); 0: none |
@@ -88,10 +88,10 @@ errors found by the core (a self-loop, a bad `initialPartition`) reject
 | `independent_coupling` | 0 | 1: `group_depth` fixed at 0 (scores independent of the groups) |
 | `variation_in`, `variation_out` | 0.5 | Fixed mixing variation in [0, 1]; negative = inferred. With `assortative: false`, the default is the degree-corrected SBM (`traditional_SBM`) |
 | `merge_split_enabled` | true | Collective merge/split moves |
-| `burn_sweeps` | 1000 | Burn-in, in units of `sweeps_per_sample` sweeps |
-| `samples` | 1000 | Samples to record |
-| `sweeps_per_sample` | 1 | MCMC sweeps between recorded samples (0: record the starting state) |
-| `seed` | 0 | RNG seed |
+| `num_warmup` | 500 | Warm-up iterations (step sizes adapt); one iteration is `sweeps_per_sample` sweeps |
+| `num_samples` | 1000 | Sampling iterations, each recorded |
+| `sweeps_per_sample` | 10 | MCMC sweeps per iteration (0: record the starting state) |
+| `seed` | random | RNG seed |
 | `initialPartition` | greedy modularity | Starting labels: length `num_nodes`, using every label 0..K-1 |
 | `initialScores` | win rates | Starting scores: length `num_nodes`, used as given; their RMS is the starting `individual_depth` |
 
@@ -100,24 +100,19 @@ fixed at 0 (plain Bradley-Terry) otherwise.
 
 ### Differences from the Python `fit()`
 
-The model and the C++ core are the same; the wrapper is smaller and several
-defaults differ:
+The model, the C++ core and the defaults are the same; the wrapper is smaller:
 
 | | Python `fit(Config(), G, ...)` | wasm `m.fit(wins, ties, options)` |
 |---|---|---|
 | input | NetworkX graph; direction read via `source_high_rank` | edge lists; a win `[u, v]` always means u beats v |
-| burn-in | `burn_sweeps=500` | **`burn_sweeps: 1000`** |
-| sweeps per sample | `sweeps_per_sample=10` | **`sweeps_per_sample: 1`** |
-| seed | random | **0** |
-| samples | `samples_per_chain=1000` | `samples: 1000` |
-| number of groups | `Config(num_groups=k)` fixes K | `num_groups` is a fallback unless `num_groups_fixed` |
+| number of groups | `Config(num_groups=k)` fixes K | `num_groups` with `num_groups_fixed: true` |
 | degree correction | `Config(degree_correction=True/False)` | `degree_correction_mode: 1/0` |
 | weighted SBM | `Config(weighted_SBM=True)` | `weighted_sbm: 1` |
 | independent model | `Config(interaction="independent")` | `independent_coupling: 1` |
 | mixing presets | `Config(groups_model=..., mixing_variation=...)` | `variation_in` / `variation_out` values |
 | hierarchy model | `Config(hierarchy_model=...)` | automatic: draws are modelled iff there are tie edges |
 | chains | `num_chains`, `num_tempering_chains`, `timeout` | one chain, no tempering, no timeout (use `cancel()`) |
-| not available | | `group_graph` (two-layer mode), `group_attribute` / `hierarchy_attribute`, fixed depths or ties parameter, `weighted_proposals`, `param_warmup_sweeps`, `thinning`, `beta` |
+| not available | | `group_graph` (two-layer mode), `group_attribute` / `hierarchy_attribute`, fixed depths or ties parameter, `weighted_proposals`, `num_param_warmup`, `num_thin`, `beta` |
 | summaries | `Result` methods (HDIs, ICC, `node_properties_df`, ...) | the arrays above; summarise `samples` yourself |
 
 Given the same seed, options and explicit starting state, a single-chain

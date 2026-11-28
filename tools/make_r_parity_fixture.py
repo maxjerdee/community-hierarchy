@@ -16,16 +16,16 @@ pd.DataFrame(rows, columns=["from", "to", "type", "weight"]).to_csv(f"{out}/pari
 p0 = [0] * 6 + [1] * 6
 s0 = [round(0.1 * i - 0.5, 2) for i in range(12)]
 pd.DataFrame({"node": nodes, "p0": p0, "s0": s0}).to_csv(f"{out}/parity_init.csv", index=False)
-res = ch.fit(ch.Config(), G, num_chains=2, samples_per_chain=40, burn_sweeps=10, seed=11,
+res = ch.fit(ch.Config(), G, num_chains=2, num_samples=40, num_warmup=10, seed=11,
              initial_partition=p0, initial_scores=s0, show_progress=False, timeout=600)
 cols = ["chain_id", "num_groups", "individual_depth", "group_depth", "ties_parameter",
         "H_A_b", "H_Adir_G_A_s_nu", "H_s_G_b_depths"]
-res.samples_df()[cols].to_csv(f"{out}/parity_samples.csv", index=False, float_format="%.17g")
+res.to_frame()[cols].to_csv(f"{out}/parity_samples.csv", index=False, float_format="%.17g")
 # The default start (greedy modularity and win fractions, in the C++ core since 0.6.0).
-res = ch.fit(ch.Config(), G, num_chains=2, samples_per_chain=40, burn_sweeps=10, seed=13,
+res = ch.fit(ch.Config(), G, num_chains=2, num_samples=40, num_warmup=10, seed=13,
              show_progress=False, timeout=600)
-res.samples_df()[cols].to_csv(f"{out}/parity_default_samples.csv", index=False,
+res.to_frame()[cols].to_csv(f"{out}/parity_default_samples.csv", index=False,
                               float_format="%.17g")
 # Leave-one-out cross-validation of the directions of that fit (C++ core, src/loo.h).
 res.direction_loo_df().to_csv(f"{out}/parity_loo.csv", index=False, float_format="%.17g")
-print("community_hierarchy", ch.__version__, len(res.samples_df()), "samples")
+print("community_hierarchy", ch.__version__, len(res.to_frame()), "samples")

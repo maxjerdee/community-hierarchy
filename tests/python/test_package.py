@@ -114,10 +114,10 @@ def test_fit_bad_graph_type():
         fit(config, "not_a_graph")  # type: ignore[arg-type]
 
 
-def test_result_samples_df_shape(small_result):
+def test_result_to_frame_shape(small_result):
     result = small_result
     G = _small_graph()
-    df = result.samples_df()
+    df = result.to_frame()
     assert len(df) > 0
     for node in G.nodes():
         assert f"{node}_group" in df.columns
@@ -130,7 +130,7 @@ def test_result_samples_df_shape(small_result):
 def test_result_mdl_value(small_result):
     result = small_result
     assert isinstance(result.mdl_value, float)
-    df = result.samples_df()
+    df = result.to_frame()
     total_dl = df["H_A_b"] + df["H_Adir_G_A_s_nu"] + df["H_s_G_b_depths"]
     assert result.mdl_value == pytest.approx(float(total_dl.min()))
 
@@ -162,30 +162,6 @@ def test_result_score_stds_shape(small_result):
     assert np.all(s >= 0)
 
 
-def test_result_parameter_df_params(small_result):
-    result = small_result
-    with pytest.warns(DeprecationWarning, match="network_properties_df"):
-        net_df = result.parameter_df
-    expected = {
-        "num_groups", "density_in", "density_out", "variation_in",
-        "variation_out", "degree_correction",
-        "individual_depth", "group_depth", "ties_parameter",
-    }
-    assert set(net_df["parameter"]) == expected
-    assert "mean" in net_df.columns
-    assert "std" in net_df.columns
-
-
-def test_result_scores_df_shape(small_result):
-    result = small_result
-    G = _small_graph()
-    with pytest.warns(DeprecationWarning, match="node_properties_df"):
-        scores_df = result.scores_df
-    assert list(scores_df.columns) == ["node", "mean", "std"]
-    assert len(scores_df) == G.number_of_nodes()
-    assert set(scores_df["node"]) == set(G.nodes())
-
-
 def test_result_consensus_partition_shape(small_result):
     result = small_result
     G = _small_graph()
@@ -202,17 +178,6 @@ def test_result_coincidence_matrix_shape(small_result):
     n = G.number_of_nodes()
     assert cm.shape == (n, n)
     np.testing.assert_allclose(np.diag(cm), np.ones(n))
-
-
-def test_result_summary_keys(small_result):
-    result = small_result
-    with pytest.warns(DeprecationWarning, match="mdl_value"):
-        s = result.summary
-    assert "num_samples" in s
-    assert "mean_num_groups" in s
-    assert "mdl_value" in s
-    assert s["num_samples"] > 0
-    assert s["mdl_value"] == result.mdl_value
 
 
 # ---------------------------------------------------------------------------
@@ -242,23 +207,25 @@ def test_result_network_properties_df_prob():
     assert icc90["hdi_hi"] - icc90["hdi_lo"] >= icc50["hdi_hi"] - icc50["hdi_lo"]
 
 
-def test_result_network_properties_df_agrees_with_old():
-    """network_properties_df means must match those from the deprecated parameter_df."""
+def test_result_network_properties_df_agrees_with_draws():
+    """network_properties_df means are the means of the draws."""
     G = _small_graph()
     result = fit(Config(), G, num_samples=20, timeout=10.0)
-    npdf = result.network_properties_df()
-    with pytest.warns(DeprecationWarning):
-        old = result.parameter_df
-    base_params = [
-        "num_groups", "density_in", "density_out", "variation_in",
-        "variation_out", "degree_correction", "individual_depth",
-        "group_depth", "ties_parameter",
-    ]
-    for p in base_params:
-        new_mean = npdf[npdf["parameter"] == p]["mean"].iloc[0]
-        old_mean = old[old["parameter"] == p]["mean"].iloc[0]
-        np.testing.assert_allclose(new_mean, old_mean, rtol=1e-9,
-                                   err_msg=f"mean mismatch for {p}")
+    npdf = result.network_properties_df().set_index("parameter")
+    for p in ("num_groups", "density_in", "density_out", "variation_in", "variation_out",
+              "degree_correction", "individual_depth", "group_depth", "ties_parameter",
+              "sigma_T", "ICC"):
+        np.testing.assert_allclose(npdf.loc[p, "mean"], result[p].mean(), rtol=1e-9)
+
+
+def test_result_getitem_shapes(small_result):
+    result = small_result
+    n, d = _small_graph().number_of_nodes(), len(result.to_frame())
+    assert result["scores"].shape == (n, d)
+    assert result["groups"].shape == (n, d)
+    assert result["individual_depth"].shape == (d,)
+    with pytest.raises(KeyError):
+        result["nope"]
 
 
 def test_result_node_properties_df_columns(small_result):
@@ -333,7 +300,7 @@ def _make_fake_native_result(G):
 
 
 def test_fit_forwards_seed_and_chains_to_backend(monkeypatch):
-    """fit() must pass seed, num_chains, burn_sweeps, samples_per_chain to backend."""
+    """fit() must pass seed, num_chains, num_warmup, num_samples to backend."""
     import community_hierarchy.core as core_mod
 
     captured = {}
@@ -346,11 +313,11 @@ def test_fit_forwards_seed_and_chains_to_backend(monkeypatch):
     monkeypatch.setattr(core_mod, "_fit_backend", _recording_backend)
 
     G = _small_graph()
-    fit(Config(), G, num_chains=2, samples_per_chain=5, burn_sweeps=10, seed=99, timeout=30.0)
+    fit(Config(), G, num_chains=2, num_samples=5, num_warmup=10, seed=99, timeout=30.0)
 
     assert captured["num_chains"] == 2
-    assert captured["samples_per_chain"] == 5
-    assert captured["burn_sweeps"] == 10
+    assert captured["num_samples"] == 5
+    assert captured["num_warmup"] == 10
     assert captured["seed"] == 99
 
 
@@ -400,14 +367,14 @@ def test_planted_partition_fit_runs():
         Config(groups_model="planted_partition", interaction="coupled"),
         G,
         num_samples=20,
-        burn_sweeps=50,
+        num_warmup=50,
         initial_partition=init_p,
         seed=7,
         timeout=20.0,
     )
     assert isinstance(result, Result)
     assert np.isfinite(result.mdl_value)
-    df = result.samples_df()
+    df = result.to_frame()
     assert len(df) > 0
     assert "num_groups" in df.columns
 
@@ -422,12 +389,12 @@ def test_planted_partition_q_is_not_always_one():
         Config(groups_model="planted_partition", interaction="coupled"),
         G,
         num_samples=200,
-        burn_sweeps=500,
+        num_warmup=500,
         initial_partition=init_p,
         seed=42,
         timeout=30.0,
     )
-    df = result.samples_df()
+    df = result.to_frame()
     mean_q = df["num_groups"].mean()
     if mean_q <= 1.0:
         # Retry with longer run and different seed
@@ -437,12 +404,12 @@ def test_planted_partition_q_is_not_always_one():
             Config(groups_model="planted_partition", interaction="coupled"),
             G,
             num_samples=500,
-            burn_sweeps=1000,
+            num_warmup=1000,
             initial_partition=init_p2,
             seed=9999,
             timeout=60.0,
         )
-        df = result.samples_df()
+        df = result.to_frame()
         mean_q = df["num_groups"].mean()
     # Should explore more than trivial q=1; any mean > 1 is acceptable
     assert mean_q > 1.0, f"planted_partition collapsed to q=1 (mean_q={mean_q:.2f})"
@@ -463,7 +430,7 @@ def test_groups_model_smoke(groups_model):
     G = _small_graph()
     result = fit(
         Config(groups_model=groups_model),
-        G, num_samples=10, burn_sweeps=20, seed=0, timeout=20.0,
+        G, num_samples=10, num_warmup=20, seed=0, timeout=20.0,
     )
     assert np.isfinite(result.mdl_value)
 
@@ -537,7 +504,7 @@ def test_wins_ties_3node_coincidence():
     assert max_abs_diff < 0.05, f"Coincidence matrix mismatch (max_abs_diff={max_abs_diff:.6f})"
 
 
-def _tempering_coincidence(seed, num_chains, samples_per_chain, timeout):
+def _tempering_coincidence(seed, num_chains, num_samples, timeout):
     from community_hierarchy.MCMC_core import fit_backend
     n = 3
     wins_adj = [{1: 1.0, 2: 1.0}, {2: 1.0}, {}]
@@ -550,8 +517,8 @@ def _tempering_coincidence(seed, num_chains, samples_per_chain, timeout):
         individual_depth=1.0, group_depth=2.0,
         variation_in=vi, variation_out=vi, degree_correction=vi,
         ties_parameter=1.0,
-        num_chains=num_chains, samples_per_chain=samples_per_chain,
-        burn_sweeps=50, sweeps_per_sample=500,
+        num_chains=num_chains, num_samples=num_samples,
+        num_warmup=50, sweeps_per_sample=500,
         num_tempering_chains=2, seed=seed, timeout=timeout,
     )
     df = r.samples_df()
@@ -582,12 +549,12 @@ def test_tempering_swap_uses_full_energy():
     expected = pd.read_csv(_DATA_OUT / "wins_ties_3node_coincidence.csv",
                            header=None).to_numpy(dtype=float)
 
-    coin, ns = _tempering_coincidence(seed=0, num_chains=4, samples_per_chain=2000, timeout=60.0)
+    coin, ns = _tempering_coincidence(seed=0, num_chains=4, num_samples=2000, timeout=60.0)
     max_diff = np.max(np.abs(coin - expected))
 
     if max_diff >= 0.050:
         # Retry with 4× more samples in case of statistical bad luck.
-        coin, ns = _tempering_coincidence(seed=1, num_chains=16, samples_per_chain=2000, timeout=240.0)
+        coin, ns = _tempering_coincidence(seed=1, num_chains=16, num_samples=2000, timeout=240.0)
         max_diff = np.max(np.abs(coin - expected))
 
     assert max_diff < 0.050, (
@@ -818,7 +785,7 @@ def ranked_result():
     G = _ranked_graph()
     return fit(
         Config(hierarchy_model="bradley_terry_ties"),
-        G, num_chains=2, samples_per_chain=100, seed=0, timeout=30.0, show_progress=False,
+        G, num_chains=2, num_samples=100, seed=0, timeout=30.0, show_progress=False,
     )
 
 
@@ -843,7 +810,7 @@ def test_direction_probabilities_agrees_with_samples(ranked_result):
     Uses the same numerically stable shift as the C++ implementation to avoid
     exp overflow on samples with large score magnitudes.
     """
-    samp = ranked_result.samples_df()
+    samp = ranked_result.to_frame()
     for ties_allowed in (True, False):
         p_cpp = ranked_result.direction_probabilities("A", "D", ties_allowed=ties_allowed)
         sa = samp["A_score"].values
@@ -944,13 +911,13 @@ def test_weighted_SBM_unweighted_unchanged():
     config_plain    = ch.Config(groups_model="general_ASBM")
     config_weighted = ch.Config(groups_model="general_ASBM", weighted_SBM=False)
 
-    r1 = ch.fit(config_plain,    G, num_chains=1, samples_per_chain=50, burn_sweeps=50, seed=7)
-    r2 = ch.fit(config_weighted, G, num_chains=1, samples_per_chain=50, burn_sweeps=50, seed=7)
+    r1 = ch.fit(config_plain,    G, num_chains=1, num_samples=50, num_warmup=50, seed=7)
+    r2 = ch.fit(config_weighted, G, num_chains=1, num_samples=50, num_warmup=50, seed=7)
 
     # Identical seeds → identical MDL
     assert r1.mdl_value == pytest.approx(r2.mdl_value, rel=1e-6)
-    sdf1 = r1.samples_df()
-    sdf2 = r2.samples_df()
+    sdf1 = r1.to_frame()
+    sdf2 = r2.to_frame()
     assert (sdf1["H_W"] == 0.0).all()
     assert (sdf2["H_W"] == 0.0).all()
 
@@ -967,8 +934,8 @@ def test_weighted_SBM_produces_nonzero_H_W():
     G.add_edge("C", "A", weight=0.8)
 
     config = ch.Config(groups_model="general_ASBM", weighted_SBM=True)
-    r = ch.fit(config, G, num_chains=1, samples_per_chain=50, burn_sweeps=50, seed=42)
-    sdf = r.samples_df()
+    r = ch.fit(config, G, num_chains=1, num_samples=50, num_warmup=50, seed=42)
+    sdf = r.to_frame()
     # H_W is a finite real (DL contribution from weight model)
     assert sdf["H_W"].notna().all(), "H_W must be finite in weighted mode"
     assert (sdf["weighted_SBM"] == True).all()
@@ -1016,9 +983,17 @@ def test_source_high_rank_false_reads_edges_as_target_wins():
     for u, v, d in G.edges(data=True):
         R.add_edge(*((u, v) if d["type"] == "neutral" else (v, u)), **d)
 
-    kw = dict(samples_per_chain=50, burn_sweeps=20, seed=7, show_progress=False)
+    kw = dict(num_samples=50, num_warmup=20, seed=7, show_progress=False)
     a = fit(Config(), G, **kw).node_properties_df()
     b = fit(Config(), R, source_high_rank=False, **kw).node_properties_df()
     np.testing.assert_allclose(a["score_mean"], b["score_mean"])
     # node 0 wins most of its matches, so it should sit near the top
     assert a.set_index("node")["score_mean"].loc[0] > a["score_mean"].median()
+
+
+def test_num_thin_keeps_every_kth_iteration_as_in_stan():
+    # As in PyStan: num_samples iterations, ceil(num_samples / num_thin) draws per chain.
+    G = _small_graph()
+    r = fit(Config(), G, num_chains=2, num_samples=9, num_thin=4, num_warmup=2, seed=1,
+            show_progress=False)
+    assert len(r.to_frame()) == 2 * 3

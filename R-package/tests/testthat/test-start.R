@@ -7,7 +7,7 @@ test_that("a seeded fit from the default start gives the Python package's sample
                    colClasses = c("character", "integer", "numeric"))
   py <- read.csv(test_path("fixtures", "parity_default_samples.csv"))
   fit <- ch_fit(e, vertices = data.frame(name = init$node), num_chains = 2,
-                samples_per_chain = 40, burn_sweeps = 10, seed = 13, show_progress = FALSE,
+                num_samples = 40, num_warmup = 10, seed = 13, show_progress = FALSE,
                 timeout = 600)
   r <- samples(fit)
   for (col in setdiff(names(py), "chain_id")) {

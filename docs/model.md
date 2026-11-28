@@ -114,9 +114,9 @@ It then sorts nodes into groups by degree, and so by status, which inflates the 
   - optional parallel tempering (`num_tempering_chains`).
 - **Running chains.** `num_chains` independent chains run in parallel threads.
 - **Burn-in.**
-  - `burn_sweeps` sweeps (each one proposal per node) are discarded.
+  - `num_warmup` sweeps (each one proposal per node) are discarded.
   - During burn-in the step sizes adapt towards an acceptance rate of 0.44; they are then frozen.
-  - After burn-in, each chain records `samples_per_chain` samples, `sweeps_per_sample` sweeps apart.
+  - After burn-in, each chain records `num_samples` samples, `sweeps_per_sample` sweeps apart.
 - **Checking convergence.**
   - Use several chains.
   - Compare their summaries: `samples_df()` has a `chain_id` column.

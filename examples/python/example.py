@@ -15,8 +15,8 @@ result = ch.fit(
     ch.Config(),          # draws are modelled because G has neutral edges
     G,
     num_chains=2,
-    samples_per_chain=300,
-    burn_sweeps=100,
+    num_samples=300,
+    num_warmup=100,
     seed=1,
     timeout=300,
     show_progress=True,
@@ -43,7 +43,7 @@ print(f"\nMDL value: {result.mdl_value:.3f}")
 
 # Full per-sample DataFrame — only materialise when raw samples are needed
 # (e.g. convergence diagnostics, joint distributions).
-samples_df = result.samples_df()
+samples_df = result.to_frame()
 
 # Node properties plot — scores ranked within each inferred community
 fig_a, _ = ch.plot_node_properties(result)

@@ -25,15 +25,15 @@
 #'   the source wins (a sports result, a dominance interaction).  `FALSE`: the
 #'   target wins (a citation of v by u, a friendship nomination of v by u).
 #'   Either way, higher scores mean higher rank.
-#' @param num_chains Independent chains, run in parallel threads.
-#' @param samples_per_chain Samples recorded per chain.
-#' @param sweeps_per_sample Sweeps (one proposal per node each) between samples.
-#' @param burn_sweeps Burn-in length per chain, in units of `sweeps_per_sample`
-#'   sweeps.  Step sizes adapt during burn-in and are then frozen.
-#' @param param_warmup_sweeps Blocks of `sweeps_per_sample` sweeps before burn-in
-#'   with the partition and scores frozen, so that the continuous parameters
-#'   settle first.
-#' @param thinning Record every `thinning`-th block of `sweeps_per_sample` sweeps.
+#' @param num_chains,num_samples,num_warmup,num_thin The run, named as in
+#'   PyStan.  One iteration is `sweeps_per_sample` sweeps.  Each of `num_chains`
+#'   independent chains (run in parallel threads) runs `num_warmup` warm-up
+#'   iterations, during which the proposal step sizes adapt, then `num_samples`
+#'   sampling iterations, recording the state after every `num_thin`-th:
+#'   `ceiling(num_samples / num_thin)` draws per chain.
+#' @param sweeps_per_sample Sweeps (one proposal per node each) per iteration.
+#' @param num_param_warmup Iterations before warm-up with the partition and
+#'   scores frozen, so that the continuous parameters settle first.
 #' @param beta Inverse temperature of the likelihood (0 = prior, 1 = posterior).
 #' @param num_tempering_chains Parallel-tempering replicas per chain; only the
 #'   `beta` replica is recorded.
@@ -67,15 +67,15 @@
 #' games <- data.frame(winner = c("a", "a", "b", "c"), loser = c("b", "c", "c", "d"),
 #'                     type = c("dominant", "dominant", "dominant", "neutral"),
 #'                     weight = c(1, 1, 1, 2))
-#' fit <- ch_fit(games, num_chains = 1, samples_per_chain = 50, burn_sweeps = 20,
+#' fit <- ch_fit(games, num_chains = 1, num_samples = 50, num_warmup = 20,
 #'               seed = 1, show_progress = FALSE)
 #' network_properties(fit)
 #' node_properties(fit)
 #' @export
 ch_fit <- function(G, config = ch_config(), vertices = NULL, group_graph = NULL,
-                   source_high_rank = TRUE, num_chains = 1, samples_per_chain = 1000,
-                   sweeps_per_sample = 10, burn_sweeps = 500, param_warmup_sweeps = 0,
-                   thinning = 1, beta = 1, num_tempering_chains = 1,
+                   source_high_rank = TRUE, num_chains = 1, num_samples = 1000,
+                   num_warmup = 500, num_thin = 1, sweeps_per_sample = 10,
+                   num_param_warmup = 0, beta = 1, num_tempering_chains = 1,
                    merge_split_enabled = TRUE, initial_partition = NULL,
                    initial_scores = NULL, initial_individual_depth = NULL,
                    initial_group_depth = NULL, num_groups_fixed = FALSE, seed = NULL,
@@ -93,11 +93,11 @@ ch_fit <- function(G, config = ch_config(), vertices = NULL, group_graph = NULL,
   }
   run <- list(
     num_chains = check_count(num_chains, "num_chains", 1),
-    samples_per_chain = check_count(samples_per_chain, "samples_per_chain", 1),
+    num_samples = check_count(num_samples, "num_samples", 1),
+    num_warmup = check_count(num_warmup, "num_warmup", 0),
+    num_thin = check_count(num_thin, "num_thin", 1),
     sweeps_per_sample = check_count(sweeps_per_sample, "sweeps_per_sample", 0),
-    burn_sweeps = check_count(burn_sweeps, "burn_sweeps", 0),
-    param_warmup_sweeps = check_count(param_warmup_sweeps, "param_warmup_sweeps", 0),
-    thinning = check_count(thinning, "thinning", 1),
+    num_param_warmup = check_count(num_param_warmup, "num_param_warmup", 0),
     num_tempering_chains = check_count(num_tempering_chains, "num_tempering_chains", 1)
   )
   if (!(is_number(beta) && beta >= 0)) stop("beta must be a number >= 0.", call. = FALSE)
@@ -180,13 +180,13 @@ ch_fit <- function(G, config = ch_config(), vertices = NULL, group_graph = NULL,
   native <- new.env(parent = emptyenv())
   native$handle <- out$native
 
-  expected <- run$num_chains * run$samples_per_chain
+  expected <- run$num_chains * ceiling(run$num_samples / run$num_thin)
   recorded <- nrow(out$partitions)
   if (recorded == 0) {
     warning(sprintf(paste0(
       "The %gs timeout expired during burn-in, before a single sample was recorded. ",
-      "The result is NOT a fit. Pass a larger timeout or reduce burn_sweeps / ",
-      "samples_per_chain."), timeout), call. = FALSE)
+      "The result is NOT a fit. Pass a larger timeout or reduce num_warmup / ",
+      "num_samples."), timeout), call. = FALSE)
   } else if (recorded < expected) {
     warning(sprintf(paste0(
       "The %gs timeout expired after %d of %d samples. The result is based only on ",

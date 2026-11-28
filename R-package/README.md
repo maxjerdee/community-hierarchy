@@ -42,7 +42,7 @@ The model and its options are documented at
 |---|---|
 | `fit(Config(...), G, ...)` | `ch_fit(G, ch_config(...), ...)` |
 | groups numbered from 0 | groups numbered from 1 |
-| `result.samples_df()` | `samples(fit)`, `samples(fit, "scores")`, `samples(fit, "groups")` |
+| `result.to_frame()` | `samples(fit)`, `samples(fit, "scores")`, `samples(fit, "groups")` |
 | `direction_probabilities` keys `a_to_b`, `b_to_a` | names `a_wins`, `b_wins` |
 | default seed from numpy | default seed from R's generator (`set.seed()` makes it repeatable) |
 

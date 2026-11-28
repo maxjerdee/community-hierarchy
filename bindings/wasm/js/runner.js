@@ -51,7 +51,7 @@ function peekCurrent(core, handle) {
  * @param core   the instantiated wasm module
  * @param job    { numNodes, winsFrom, winsTo, winsWeight, tiesFrom, tiesTo, tiesWeight,
  *                 options: { assortative, num_groups, num_groups_fixed,
- *                            merge_split_enabled, burn_sweeps, samples,
+ *                            merge_split_enabled, num_warmup, num_samples,
  *                            sweeps_per_sample, seed },
  *                 initialPartition: Int32Array|null,
  *                 initialScores: Float64Array|null }
@@ -100,10 +100,12 @@ export async function runFit(core, job, { onProgress, isCancelled } = {}) {
       o.num_groups     ?? 0,
       o.num_groups_fixed ? 1 : 0,
       o.merge_split_enabled !== false ? 1 : 0,
-      o.burn_sweeps    ?? 1000,
-      o.samples        ?? 1000,
-      o.sweeps_per_sample ?? 1,
-      o.seed           ?? 0,
+      // Run lengths and seed as in the Python and R fit(): PyStan's names, one
+      // iteration = sweeps_per_sample sweeps, a random seed unless given.
+      o.num_warmup     ?? 500,
+      o.num_samples    ?? 1000,
+      o.sweeps_per_sample ?? 10,
+      o.seed           ?? Math.floor(Math.random() * 2 ** 30),
       partPtr, partLen,
       scoresPtr, scLen,
       // degree_correction_mode: 0 = no DC (fixed at 0), 1 = DC fixed at 0.5 (default)

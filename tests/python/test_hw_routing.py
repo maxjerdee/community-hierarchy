@@ -51,7 +51,7 @@ def test_neutral_edge_routing():
 
     cfg = ch.Config(group_attribute="group", weighted_SBM=True, degree_correction=True)
     r = ch.fit(cfg, G, num_samples=5, seed=42, show_progress=False)
-    sdf = r.samples_df()
+    sdf = r.to_frame()
     HW_api = sdf["H_W"].mean()
 
     # Via MCMC constructor (group_adj path, binary weights)
@@ -76,7 +76,7 @@ def test_neutral_edge_routing():
     for nd in G2.nodes(): G2.nodes[nd]["group"] = [0,1,1][nd]
     r2 = ch.fit(ch.Config(group_attribute="group", weighted_SBM=True, degree_correction=True),
                 G2, num_samples=5, seed=42, show_progress=False)
-    sdf2 = r2.samples_df()
+    sdf2 = r2.to_frame()
     HW_api2 = sdf2["H_W"].mean()
 
     mcmc2 = native.MCMC(wins=[{} for _ in range(3)], ties=[{} for _ in range(3)],

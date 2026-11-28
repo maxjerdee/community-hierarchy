@@ -6,7 +6,7 @@ test_that("a seeded fit gives the same samples as the Python package", {
                    colClasses = c("character", "integer", "numeric"))
   py <- read.csv(test_path("fixtures", "parity_samples.csv"))
   fit <- ch_fit(e, vertices = data.frame(name = init$node), num_chains = 2,
-                samples_per_chain = 40, burn_sweeps = 10, seed = 11,
+                num_samples = 40, num_warmup = 10, seed = 11,
                 initial_partition = init$p0, initial_scores = init$s0,
                 show_progress = FALSE, timeout = 600)
   r <- samples(fit)
@@ -26,7 +26,7 @@ test_that("direction_loo() gives the Python package's leave-one-out", {
                  colClasses = c("character", "character", "logical", "numeric", "numeric",
                                 "numeric", "numeric"))
   fit <- ch_fit(e, vertices = data.frame(name = init$node), num_chains = 2,
-                samples_per_chain = 40, burn_sweeps = 10, seed = 13,
+                num_samples = 40, num_warmup = 10, seed = 13,
                 show_progress = FALSE, timeout = 600)
   r <- direction_loo(fit)
   expect_equal(r$winner, py$winner)

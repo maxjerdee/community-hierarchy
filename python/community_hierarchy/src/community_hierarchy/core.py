@@ -377,63 +377,6 @@ class Result:
         in ``G.nodes()`` order."""
         return np.asarray(self._native.score_stds(), dtype=float)
 
-    @property
-    def scores_df(self) -> pd.DataFrame:
-        """Posterior hierarchy scores per node: columns ``node``, ``mean``, ``std``.
-
-        .. deprecated::
-            Use :meth:`node_properties_df` instead, which also includes the
-            community partition and group mean score.
-        """
-        warnings.warn(
-            "scores_df is deprecated. Use node_properties_df() instead, "
-            "which includes the partition and group_score_mean.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return pd.DataFrame({
-            "node": list(self._node_order),
-            "mean": np.asarray(self._native.score_means(), dtype=float),
-            "std": np.asarray(self._native.score_stds(), dtype=float),
-        })
-
-    @property
-    def parameter_df(self) -> pd.DataFrame:
-        """Posterior summary of network-level parameters (mean + std only).
-
-        .. deprecated::
-            Use :meth:`network_properties_df` instead, which also includes
-            HDI credible intervals and ICC / sigma_T.
-        """
-        warnings.warn(
-            "parameter_df is deprecated. Use network_properties_df() instead, "
-            "which adds hdi_lo/hdi_hi and includes ICC and sigma_T.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        means = self._native.parameter_means()
-        stds = self._native.parameter_stds()
-        parameters = [
-            "num_groups",
-            "density_in",
-            "density_out",
-            "variation_in",
-            "variation_out",
-            "degree_correction",
-            "individual_depth",
-            "group_depth",
-            "ties_parameter",
-        ]
-        return pd.DataFrame({
-            "parameter": parameters,
-            "mean": [means[p] for p in parameters],
-            "std": [stds[p] for p in parameters],
-        })
-
-    # ------------------------------------------------------------------
-    # New posterior-summary methods
-    # ------------------------------------------------------------------
-
     def network_properties_df(self, prob: float = 0.90) -> pd.DataFrame:
         """Posterior summary of network-level parameters with HDI credible intervals.
 
@@ -465,7 +408,7 @@ class Result:
         Notes
         -----
         Computed entirely in C++ without materialising the full
-        ``samples_df()``; efficient even for large networks.
+        ``to_frame()``; efficient even for large networks.
 
         Examples
         --------
@@ -566,8 +509,9 @@ class Result:
         """
         return np.asarray(self._native.coincidence_matrix(), dtype=float)
 
-    def samples_df(self) -> pd.DataFrame:
-        """All recorded samples, one row per sample (chains concatenated).
+    def to_frame(self) -> pd.DataFrame:
+        """All recorded draws, one row per draw (chains concatenated), as
+        PyStan's ``fit.to_frame()``.
 
         Returns
         -------
@@ -596,6 +540,27 @@ class Result:
             rename[f"{i}_group"] = f"{node}_group"
             rename[f"{i}_score"] = f"{node}_score"
         return df.rename(columns=rename)
+
+    def __getitem__(self, name: str) -> np.ndarray:
+        """The draws of one quantity, as PyStan's ``fit[name]``: the last axis
+        runs over the draws (chains concatenated, as in :meth:`to_frame`).
+
+        ``"scores"`` and ``"groups"`` give arrays of shape (n_nodes, n_draws),
+        nodes in ``G.nodes()`` order; the groups are the sampler's own labels,
+        not aligned across draws (see :meth:`consensus_partition`).  Any other
+        column of :meth:`to_frame` (a network parameter such as
+        ``"individual_depth"``, or a description-length term) gives shape
+        (n_draws,).
+        """
+        df = self._native.samples_df()
+        n = len(self._node_order)
+        if name in ("scores", "groups"):
+            suffix = "_score" if name == "scores" else "_group"
+            return df[[f"{i}{suffix}" for i in range(n)]].to_numpy().T
+        if name not in df.columns or name.endswith(("_score", "_group")):
+            raise KeyError(f"{name!r} is not a quantity of the fit; use 'scores', 'groups' or a "
+                           "column of to_frame().")
+        return df[name].to_numpy()
 
     def diagnostics_df(self) -> pd.DataFrame:
         """MCMC convergence diagnostics (Vehtari et al. 2021), as ArviZ's
@@ -687,24 +652,6 @@ class Result:
             draw=np.asarray(e["draw"], dtype=bool), weight=np.asarray(e["weight"], dtype=float),
             elpd=r["elpd"], pareto_k=r["pareto_k"], p_win=r["p_win"]))
 
-    def summary_df(self, prob: float = 0.90) -> pd.DataFrame:
-        """Posterior summary of network-level parameters with HDI credible intervals.
-
-        .. deprecated::
-            Use :meth:`network_properties_df` instead. It returns the same
-            information computed in C++ (faster), adds ``std``, and drops
-            the ``median`` column.
-        """
-        warnings.warn(
-            "summary_df() is deprecated. Use network_properties_df() instead — "
-            "same content, computed in C++ without materialising samples_df(), "
-            "with std added and median dropped.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.network_properties_df(prob=prob)
-
-
     def direction_probabilities(self, node_a, node_b, ties_allowed: bool = True) -> dict[str, float]:
         """Posterior-predictive probabilities of the outcome of a new
         interaction between ``node_a`` and ``node_b``.
@@ -746,22 +693,6 @@ class Result:
             return {"a_to_b": probs[0], "tie": probs[1], "b_to_a": probs[2]}
         return {"a_to_b": probs[0], "b_to_a": probs[1]}
 
-    @property
-    def summary(self) -> dict:
-        """High-level summary dict.
-
-        .. deprecated::
-            Use ``result.mdl_value``, ``result.network_properties_df()``, or
-            ``result._native.num_samples`` directly.
-        """
-        warnings.warn(
-            "summary is deprecated. Use result.mdl_value and "
-            "network_properties_df() to access this information.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return dict(self._native.summary())
-
     def __getstate__(self) -> dict:
         return {"native": self._native, "node_order": self._node_order, "config": self._config,
                 "interactions": self._interactions}
@@ -773,7 +704,7 @@ class Result:
         self._interactions = state.get("interactions")   # absent in results pickled by 0.5
 
     def __repr__(self) -> str:
-        s = dict(self._native.summary())  # bypass DeprecationWarning
+        s = dict(self._native.summary())
         n = len(self._node_order)
         return (
             f"community_hierarchy.Result("
@@ -792,11 +723,11 @@ def fit(
     group_graph: Optional[nx.Graph] = None,
     source_high_rank: bool = True,
     num_chains: int = 1,
-    samples_per_chain: int = 1000,
+    num_samples: int = 1000,
+    num_warmup: int = 500,
+    num_thin: int = 1,
     sweeps_per_sample: int = 10,
-    burn_sweeps: int = 500,
-    param_warmup_sweeps: int = 0,
-    thinning: int = 1,
+    num_param_warmup: int = 0,
     beta: float = 1.0,
     num_tempering_chains: int = 1,
     merge_split_enabled: bool = True,
@@ -806,11 +737,8 @@ def fit(
     initial_group_depth: Optional[float] = None,
     num_groups_fixed: bool = False,
     seed: Optional[int] = None,
-    no_cache: bool = False,
     timeout: float = 60.0,
     show_progress: bool = True,
-    # Legacy aliases
-    num_samples: Optional[int] = None,
 ) -> Result:
     """Sample the posterior of the community and hierarchy model for a directed graph.
 
@@ -841,27 +769,21 @@ def fit(
         or a dominance interaction).  False: the target wins, v ranks above u
         (a citation of v by u, an unreciprocated nomination of v by u).
         Either way higher scores mean higher rank.
-    num_chains : int
-        Independent chains, run in parallel threads (>= 1).  Default 1.
-    samples_per_chain : int
-        Samples recorded per chain (>= 1).  Default 1000.
+    num_chains, num_samples, num_warmup, num_thin : int
+        The run, named as in PyStan.  One iteration is ``sweeps_per_sample``
+        sweeps (a sweep is n proposals).  Each of ``num_chains`` independent
+        chains (>= 1, run in parallel threads; default 1) runs ``num_warmup``
+        warm-up iterations (>= 0, default 500), during which the proposal step
+        sizes adapt, then ``num_samples`` sampling iterations (>= 1, default
+        1000), recording the state after every ``num_thin``-th (>= 1, default
+        1): ``ceil(num_samples / num_thin)`` draws per chain.
     sweeps_per_sample : int
-        MCMC sweeps (n proposals each) between recorded samples.  Default 10.
-        0 records the starting state without moving it (with
-        ``burn_sweeps=0``: evaluates the description length of a given
-        ``initial_partition`` / ``initial_scores``).
-    burn_sweeps : int
-        Burn-in length per chain (>= 0), in units of ``sweeps_per_sample``
-        sweeps: the burn-in is ``burn_sweeps * sweeps_per_sample`` sweeps
-        (5000 with the defaults).  Proposal step sizes adapt during burn-in
-        and are then frozen.  Default 500.
-    param_warmup_sweeps : int
-        Before burn-in, this many blocks of ``sweeps_per_sample`` sweeps with
-        the partition and scores frozen, so the continuous parameters settle
-        first (>= 0).  Default 0.
-    thinning : int
-        Record every ``thinning``-th block: ``sweeps_per_sample * thinning``
-        sweeps between samples (>= 1).  Default 1.
+        Sweeps per iteration (>= 0).  Default 10.  0 records the starting state
+        without moving it (with ``num_warmup=0``: evaluates the description
+        length of a given ``initial_partition`` / ``initial_scores``).
+    num_param_warmup : int
+        Iterations before warm-up with the partition and scores frozen, so
+        the continuous parameters settle first (>= 0).  Default 0.
     beta : float
         Inverse temperature of the data likelihood (0 = prior, 1 =
         posterior; >= 0).  Default 1.0.
@@ -894,16 +816,12 @@ def fit(
     seed : int, optional
         Random seed in [0, 2**30); chain c uses ``seed + c``.  Default: drawn
         from numpy's global generator.
-    no_cache : bool
-        Ignored; kept for backward compatibility.
     timeout : float
         Wall-clock limit in seconds (> 0).  When it expires the fit stops and
         returns the samples recorded so far, with a ``RuntimeWarning``.
         Default 60.0.
     show_progress : bool
         Print progress (warm-up and sampling) to stderr.  Default True.
-    num_samples : int, optional
-        Legacy alias for ``samples_per_chain``.
 
     Returns
     -------
@@ -916,8 +834,6 @@ def fit(
     KeyboardInterrupt
         If interrupted with Ctrl+C.
     """
-    if num_samples is not None:
-        samples_per_chain = num_samples
     if not isinstance(config, Config):
         raise TypeError("config must be an instance of Config")
     if not isinstance(G, nx.Graph):
@@ -932,11 +848,11 @@ def fit(
         initial_group_depth=initial_group_depth,
         seed=seed,
         num_chains=num_chains,
-        samples_per_chain=samples_per_chain,
+        num_samples=num_samples,
+        num_warmup=num_warmup,
+        num_thin=num_thin,
         sweeps_per_sample=sweeps_per_sample,
-        burn_sweeps=burn_sweeps,
-        param_warmup_sweeps=param_warmup_sweeps,
-        thinning=thinning,
+        num_param_warmup=num_param_warmup,
         beta=beta,
         num_tempering_chains=num_tempering_chains,
         timeout=timeout,
@@ -1030,11 +946,11 @@ def fit(
         num_groups=None if num_groups is None else int(num_groups),
         num_groups_fixed=bool(num_groups_fixed),
         num_chains=int(num_chains),
-        samples_per_chain=int(samples_per_chain),
+        num_samples=int(num_samples),
+        num_thin=int(num_thin),
+        num_warmup=int(num_warmup),
+        num_param_warmup=int(num_param_warmup),
         sweeps_per_sample=int(sweeps_per_sample),
-        burn_sweeps=int(burn_sweeps),
-        param_warmup_sweeps=int(param_warmup_sweeps),
-        thinning=int(thinning),
         beta=float(beta),
         num_tempering_chains=int(num_tempering_chains),
         merge_split_enabled=bool(merge_split_enabled),
@@ -1051,7 +967,7 @@ def fit(
     # zero-sample result is built from nothing and comes back looking like a
     # converged fit: one group, every score exactly 0.0. That has to be said
     # out loud rather than left for the caller to notice.
-    expected_samples = int(num_chains) * int(samples_per_chain)
+    expected_samples = int(num_chains) * -(-int(num_samples) // int(num_thin))
     recorded_samples = int(getattr(native_result, "num_samples", expected_samples))
     if recorded_samples < expected_samples:
         if recorded_samples == 0:
@@ -1059,7 +975,7 @@ def fit(
                 f"community_hierarchy: the {timeout:g}s timeout expired during burn-in, "
                 f"before a single sample was recorded. The returned result is NOT a fit: "
                 f"it will show one group and all-zero scores. Pass a larger timeout= "
-                f"(it defaults to 60s) or reduce burn_sweeps/samples_per_chain.",
+                f"(it defaults to 60s) or reduce num_warmup/num_samples.",
                 RuntimeWarning,
                 stacklevel=2,
             )

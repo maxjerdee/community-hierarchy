@@ -99,7 +99,7 @@ def loo(result, G):
     draw = np.array([d["type"] == "neutral" for *_, d in edges])
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        s = result.samples_df()
+        s = result.to_frame()
     sa, sb = s[[f"{n}_score" for n in a]].to_numpy(), s[[f"{n}_score" for n in b]].to_numpy()
     log_nu = np.log(s["ties_parameter"].to_numpy())[:, None]
     log_z = np.logaddexp(np.logaddexp(sa, sb), log_nu + (sa + sb) / 2)

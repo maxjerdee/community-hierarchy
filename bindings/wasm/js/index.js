@@ -154,7 +154,7 @@ export async function load(config = {}) {
      * @param ties    undirected tie edges: [[u, v], ...] or {from, to, weight?}
      *                pass [] or null for no ties
      * @param options { num_nodes?, num_groups?, num_groups_fixed?, assortative?,
-     *                  merge_split_enabled?, burn_sweeps?, samples?,
+     *                  merge_split_enabled?, num_warmup?, num_samples?,
      *                  sweeps_per_sample?, seed?, degree_correction_mode?,
      *                  weighted_sbm?, independent_coupling?, variation_in?,
      *                  variation_out?,

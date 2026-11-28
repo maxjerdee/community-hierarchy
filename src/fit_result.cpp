@@ -531,39 +531,6 @@ double icc(const SampleState& s) {
     return t > 0.0 ? s.group_depth * s.group_depth / (t * t) : 0.0;
 }
 
-std::map<std::string, double> FitResult::parameter_means() const {
-    int ns = static_cast<int>(samples_.size());
-    std::map<std::string, double> means;
-    for (const auto& [name, get] : network_parameters()) {
-        double sum = 0.0;
-        if (ns > 0) {
-            for (const auto& s : samples_) sum += get(s);
-            sum /= ns;
-        }
-        means[name] = sum;
-    }
-    return means;
-}
-
-std::map<std::string, double> FitResult::parameter_stds() const {
-    int ns = static_cast<int>(samples_.size());
-    auto means = parameter_means();
-    std::map<std::string, double> stds;
-    for (const auto& [name, get] : network_parameters()) {
-        double var = 0.0;
-        if (ns > 1) {
-            double m = means[name];
-            for (const auto& s : samples_) {
-                double d = get(s) - m;
-                var += d * d;
-            }
-            var /= (ns - 1);
-        }
-        stds[name] = std::sqrt(var);
-    }
-    return stds;
-}
-
 // ---------------------------------------------------------------------------
 // HDI helper
 // ---------------------------------------------------------------------------

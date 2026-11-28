@@ -24,7 +24,7 @@ def _graph(seed=3, n=12, m=40):
 
 
 def _fit(G, **kw):
-    kw = dict(num_chains=2, samples_per_chain=200, burn_sweeps=20, seed=5,
+    kw = dict(num_chains=2, num_samples=200, num_warmup=20, seed=5,
               show_progress=False, timeout=600) | kw
     return ch.fit(ch.Config(), G, **kw)
 
@@ -37,7 +37,7 @@ def test_fixed_scores_give_the_plain_log_likelihood():
     nx.set_node_attributes(G, s, "s")
     nu = 0.7
     res = ch.fit(ch.Config(hierarchy_attribute="s", ties_parameter=nu), G, num_chains=1,
-                 samples_per_chain=30, burn_sweeps=2, seed=1, show_progress=False)
+                 num_samples=30, num_warmup=2, seed=1, show_progress=False)
     d = res.direction_loo_df()
     assert len(d) == G.number_of_edges()
     for row, (u, v, e) in zip(d.itertuples(), G.edges(data=True)):
@@ -84,7 +84,7 @@ def test_direction_loo_matches_arviz_loo():
     G = _graph()
     res = _fit(G)
     d = res.direction_loo_df()
-    s = res.samples_df()
+    s = res.to_frame()
     sa = s[[f"{n}_score" for n in d.winner]].to_numpy()
     sb = s[[f"{n}_score" for n in d.loser]].to_numpy()
     log_nu = np.log(s["ties_parameter"].to_numpy())[:, None]

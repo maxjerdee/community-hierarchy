@@ -23,14 +23,14 @@ test_that("a seed makes a fit repeatable, and set.seed() does without one", {
   expect_identical(quick(games())$scores, quick(games())$scores)
   run <- function() {
     set.seed(5)
-    ch_fit(games(), num_chains = 1, samples_per_chain = 10, burn_sweeps = 2,
+    ch_fit(games(), num_chains = 1, num_samples = 10, num_warmup = 2,
            show_progress = FALSE)$scores
   }
   expect_identical(run(), run())
 })
 
 test_that("several chains are numbered from 1", {
-  fit <- ch_fit(games(), num_chains = 2, samples_per_chain = 10, burn_sweeps = 2, seed = 3,
+  fit <- ch_fit(games(), num_chains = 2, num_samples = 10, num_warmup = 2, seed = 3,
                 show_progress = FALSE)
   expect_equal(sort(unique(samples(fit)$chain_id)), 1:2)
 })
@@ -91,13 +91,13 @@ test_that("invalid input is rejected", {
 
 test_that("a timeout warns and keeps the samples so far", {
   expect_warning(
-    ch_fit(games(), num_chains = 1, samples_per_chain = 1e6, burn_sweeps = 0, seed = 1,
+    ch_fit(games(), num_chains = 1, num_samples = 1e6, num_warmup = 0, seed = 1,
            timeout = 0.2, show_progress = FALSE),
     "timeout expired")
 })
 
 test_that("diagnostics() reports every parameter and every node", {
-  fit <- ch_fit(games(), num_chains = 2, samples_per_chain = 40, burn_sweeps = 5, seed = 3,
+  fit <- ch_fit(games(), num_chains = 2, num_samples = 40, num_warmup = 5, seed = 3,
                 show_progress = FALSE)
   d <- diagnostics(fit)
   expect_equal(d$quantity, c(network_properties(fit)$parameter, "H_A_b"))

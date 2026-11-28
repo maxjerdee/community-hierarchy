@@ -467,8 +467,6 @@ PYBIND11_MODULE(MCMC_core, m) {
         .def("coincidence_matrix",  &FitResultNative::coincidence_matrix_numpy)
         .def("score_means",         &FitResultNative::score_means)
         .def("score_stds",          &FitResultNative::score_stds)
-        .def("parameter_means",     &FitResultNative::parameter_means)
-        .def("parameter_stds",      &FitResultNative::parameter_stds)
         .def("direction_probabilities", &FitResultNative::direction_probabilities,
              py::arg("node_a"), py::arg("node_b"), py::arg("ties_allowed") = true)
         .def("direction_loo", [](const FitResultNative& self, std::vector<int> a, std::vector<int> b,
@@ -533,11 +531,11 @@ PYBIND11_MODULE(MCMC_core, m) {
         py::object num_groups_py,
         bool   num_groups_fixed,
         int    num_chains,
-        int    samples_per_chain,
+        int    num_samples,
+        int    num_thin,
+        int    num_warmup,
+        int    num_param_warmup,
         int    sweeps_per_sample,
-        int    burn_sweeps,
-        int    param_warmup_sweeps,
-        int    thinning,
         double beta,
         int    num_tempering_chains,
         bool   merge_split_enabled,
@@ -574,11 +572,11 @@ PYBIND11_MODULE(MCMC_core, m) {
         params.num_groups           = to_opt_i(num_groups_py);
         params.num_groups_fixed     = num_groups_fixed;
         params.num_chains           = num_chains;
-        params.samples_per_chain    = samples_per_chain;
+        params.num_samples          = num_samples;
+        params.num_thin             = num_thin;
+        params.num_warmup           = num_warmup;
+        params.num_param_warmup     = num_param_warmup;
         params.sweeps_per_sample    = sweeps_per_sample;
-        params.burn_sweeps          = burn_sweeps;
-        params.param_warmup_sweeps  = param_warmup_sweeps;
-        params.thinning             = thinning;
         params.beta                 = beta;
         params.num_tempering_chains = num_tempering_chains;
         params.merge_split_enabled  = merge_split_enabled;
@@ -618,9 +616,9 @@ PYBIND11_MODULE(MCMC_core, m) {
                 cv.notify_one();
             };
 
-            const int warmup_total = num_chains * param_warmup_sweeps;
-            const int burn_total   = num_chains * burn_sweeps;
-            const int sample_total = num_chains * samples_per_chain;
+            const int warmup_total = num_chains * num_param_warmup;
+            const int burn_total   = num_chains * num_warmup;
+            const int sample_total = num_chains * draws_per_chain(params);
 
             progress_thread = std::thread([&, warmup_total, burn_total, sample_total]() {
                 auto emit = [](const char* label, int cur, int total) {
@@ -723,11 +721,11 @@ PYBIND11_MODULE(MCMC_core, m) {
     py::arg("num_groups")                = py::none(),
     py::arg("num_groups_fixed")          = false,
     py::arg("num_chains")                = 1,
-    py::arg("samples_per_chain")         = 1000,
+    py::arg("num_samples")               = 1000,
+    py::arg("num_thin")                  = 1,
+    py::arg("num_warmup")                = 500,
+    py::arg("num_param_warmup")          = 0,
     py::arg("sweeps_per_sample")         = 10,
-    py::arg("burn_sweeps")               = 500,
-    py::arg("param_warmup_sweeps")       = 0,
-    py::arg("thinning")                  = 1,
     py::arg("beta")                      = 1.0,
     py::arg("num_tempering_chains")      = 1,
     py::arg("merge_split_enabled")       = true,

@@ -30,13 +30,13 @@ HERE = Path(__file__).parent
 
 # Quick check (about a minute): 4 temperatures.
 SUFFIX = "_quick"                  # writes results/*_quick.csv
-SETTINGS = dict(num_chains=4, samples_per_chain=200, sweeps_per_sample=10,
-                burn_sweeps=50, num_tempering_chains=4, seed=1, timeout=180)
+SETTINGS = dict(num_chains=4, num_samples=200, sweeps_per_sample=10,
+                num_warmup=50, num_tempering_chains=4, seed=1, timeout=180)
 
 # Figure reproduction: the run behind results/ and the paper figure.
 # SUFFIX = ""                     # writes results/*.csv (committed)
-# SETTINGS = dict(num_chains=4, samples_per_chain=5000, sweeps_per_sample=10,
-#                 burn_sweeps=1000,         # x sweeps_per_sample = 10,000 sweeps of burn-in
+# SETTINGS = dict(num_chains=4, num_samples=5000, sweeps_per_sample=10,
+#                 num_warmup=1000,         # x sweeps_per_sample = 10,000 sweeps of burn-in
 #                 num_tempering_chains=8,   # 8 temperatures per chain
 #                 seed=1, timeout=36000)
 

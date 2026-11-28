@@ -93,8 +93,6 @@ public:
     std::vector<double> score_means() const;
     std::vector<double> score_stds() const;
     std::vector<double> direction_probabilities(int node_a, int node_b, bool ties_allowed = true) const;
-    std::map<std::string, double> parameter_means() const;
-    std::map<std::string, double> parameter_stds() const;
 
     // New posterior-summary methods (C++ core; language wrappers convert to DataFrames).
     NetworkPropertiesResult network_properties(double prob = 0.90) const;

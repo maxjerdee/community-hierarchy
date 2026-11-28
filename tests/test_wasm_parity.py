@@ -16,7 +16,7 @@ Three classes of regression are tested:
    zeroing H_M/H_k/H_A_G_k_M_b).
 
 3. TestConvergence
-   Runs a short fit (burn=50, samples=10) with merge_split enabled on both
+   Runs a short fit (burn=50, num_samples=10) with merge_split enabled on both
    backends.  Asserts WASM's MDL value is EXACTLY Python's (both RNG draws
    and container iteration order are now portable across libc++/libstdc++ --
    see src/rng.h -- so a seeded run is fully pinned; this used to be a loose
@@ -172,9 +172,9 @@ class TestParameterDraws:
         return wasm_fit(WINS, TIES, {
             "num_nodes": N,
             "seed": SEED,
-            "burn_sweeps": 0,
+            "num_warmup": 0,
             "sweeps_per_sample": 0,
-            "samples": 1,
+            "num_samples": 1,
             "assortative": True,
             "variation_in": -1,     # inferred: general_ASBM
             "variation_out": -1,
@@ -188,7 +188,7 @@ class TestParameterDraws:
         result = ch.fit(
             ch.Config(groups_model="general_ASBM"), G,
             num_samples=1, seed=SEED,
-            burn_sweeps=0, sweeps_per_sample=0,
+            num_warmup=0, sweeps_per_sample=0,
             merge_split_enabled=False,
         )
         npdf = result.network_properties_df()
@@ -244,9 +244,9 @@ class TestInitialDLParity:
 
     _COMMON_OPTS = dict(
         seed=SEED,
-        burn_sweeps=0,
+        num_warmup=0,
         sweeps_per_sample=0,
-        samples=1,
+        num_samples=1,
         assortative=True,
         variation_in=-1,      # inferred: general_ASBM
         variation_out=-1,
@@ -261,14 +261,14 @@ class TestInitialDLParity:
         result = ch.fit(
             ch.Config(groups_model="general_ASBM"), G,
             num_samples=1, seed=SEED,
-            burn_sweeps=0, sweeps_per_sample=0,
+            num_warmup=0, sweeps_per_sample=0,
             merge_split_enabled=False,
             initial_partition=PARTITION,
             initial_scores=SCORES_NORMED,
         )
-        return result.samples_df()["H_A_b"].iloc[0] \
-             + result.samples_df()["H_Adir_G_A_s_nu"].iloc[0] \
-             + result.samples_df()["H_s_G_b_depths"].iloc[0]
+        return result.to_frame()["H_A_b"].iloc[0] \
+             + result.to_frame()["H_Adir_G_A_s_nu"].iloc[0] \
+             + result.to_frame()["H_s_G_b_depths"].iloc[0]
 
     @pytest.fixture(scope="class")
     def wasm_dl(self):
@@ -331,7 +331,7 @@ class TestConvergence:
         return ch.fit(
             ch.Config(groups_model="general_ASBM"), G,
             num_samples=10, seed=SEED,
-            burn_sweeps=50, sweeps_per_sample=1,
+            num_warmup=50, sweeps_per_sample=1,
             merge_split_enabled=True,
         )
 
@@ -344,8 +344,8 @@ class TestConvergence:
         return wasm_fit(WINS, TIES, {
             "num_nodes": N,
             "seed": SEED,
-            "burn_sweeps": 50,
-            "samples": 10,
+            "num_warmup": 50,
+            "num_samples": 10,
             "sweeps_per_sample": 1,
             "assortative": True,
             "variation_in": -1,     # inferred: general_ASBM
@@ -398,8 +398,8 @@ class TestConvergence:
 
 class TestConvergenceMultiSweep(TestConvergence):
     """As TestConvergence with sweeps_per_sample = 3, which pins the burn-in
-    semantics: both backends burn in for burn_sweeps * sweeps_per_sample sweeps
-    (the wasm driver once ran burn_sweeps sweeps, which sweeps_per_sample = 1
+    semantics: both backends burn in for num_warmup * sweeps_per_sample sweeps
+    (the wasm driver once ran num_warmup sweeps, which sweeps_per_sample = 1
     could not detect)."""
 
     @pytest.fixture(scope="class")
@@ -409,7 +409,7 @@ class TestConvergenceMultiSweep(TestConvergence):
         return ch.fit(
             ch.Config(groups_model="general_ASBM"), G,
             num_samples=10, seed=SEED,
-            burn_sweeps=20, sweeps_per_sample=3,
+            num_warmup=20, sweeps_per_sample=3,
             merge_split_enabled=True,
         )
 
@@ -418,8 +418,8 @@ class TestConvergenceMultiSweep(TestConvergence):
         return wasm_fit(WINS, TIES, {
             "num_nodes": N,
             "seed": SEED,
-            "burn_sweeps": 20,
-            "samples": 10,
+            "num_warmup": 20,
+            "num_samples": 10,
             "sweeps_per_sample": 3,
             "assortative": True,
             "variation_in": -1,     # inferred: general_ASBM
@@ -451,7 +451,7 @@ class TestIndependentCoupling:
         return ch.fit(
             ch.Config(groups_model="general_ASBM", interaction="independent"), G,
             num_samples=10, seed=SEED,
-            burn_sweeps=50, sweeps_per_sample=1,
+            num_warmup=50, sweeps_per_sample=1,
             merge_split_enabled=True,
         )
 
@@ -460,8 +460,8 @@ class TestIndependentCoupling:
         return wasm_fit(WINS, TIES, {
             "num_nodes": N,
             "seed": SEED,
-            "burn_sweeps": 50,
-            "samples": 10,
+            "num_warmup": 50,
+            "num_samples": 10,
             "sweeps_per_sample": 1,
             "assortative": True,
             "variation_in": -1,     # inferred: general_ASBM
@@ -471,7 +471,7 @@ class TestIndependentCoupling:
         })
 
     def test_python_group_depth_is_zero(self, python_result):
-        df = python_result.samples_df()
+        df = python_result.to_frame()
         assert "group_depth" in df.columns, "samples_df() must expose group_depth"
         for i, gd in enumerate(df["group_depth"]):
             assert gd == pytest.approx(0.0, abs=1e-12), \
@@ -551,9 +551,9 @@ PRESETS = {
 def test_wasm_preset_mdl_matches_python(model):
     import community_hierarchy as ch
     py = ch.fit(ch.Config(groups_model=model), _build_nx_graph(), num_samples=10, seed=SEED,
-                burn_sweeps=50, sweeps_per_sample=1, merge_split_enabled=True)
+                num_warmup=50, sweeps_per_sample=1, merge_split_enabled=True)
     wasm = wasm_fit(WINS, TIES, {
-        "num_nodes": N, "seed": SEED, "burn_sweeps": 50, "samples": 10,
+        "num_nodes": N, "seed": SEED, "num_warmup": 50, "num_samples": 10,
         "sweeps_per_sample": 1, "merge_split_enabled": True, **PRESETS[model],
     })
     assert math.isfinite(wasm["mdlValue"])

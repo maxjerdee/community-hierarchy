@@ -29,8 +29,8 @@ test("basic fit returns correct structure", async () => {
     num_nodes: NUM_NODES,
     num_groups: 4,
     assortative: true,
-    burn_sweeps: 200,
-    samples: 50,
+    num_warmup: 200,
+    num_samples: 50,
     sweeps_per_sample: 5,
     seed: 42,
   });
@@ -79,8 +79,8 @@ test("recovers two planted groups", async () => {
     num_groups: 2,
     num_groups_fixed: true,
     assortative: true,
-    burn_sweeps: 300,
-    samples: 100,
+    num_warmup: 300,
+    num_samples: 100,
     sweeps_per_sample: 5,
     seed: 7,
   }).result;
@@ -93,7 +93,7 @@ test("recovers two planted groups", async () => {
 });
 
 test("same seed produces same result", async () => {
-  const opts = { num_nodes: NUM_NODES, num_groups: 3, burn_sweeps: 50, samples: 20, sweeps_per_sample: 2, seed: 99 };
+  const opts = { num_nodes: NUM_NODES, num_groups: 3, num_warmup: 50, num_samples: 20, sweeps_per_sample: 2, seed: 99 };
   const a = await m.fit(wins, [], opts).result;
   const b = await m.fit(wins, [], opts).result;
   assert.deepEqual([...a.mdlPartition], [...b.mdlPartition]);
@@ -105,7 +105,7 @@ test("cancel returns a partial result", async () => {
   let run;
   let seen = 0;
   run = m.fit(wins, [], {
-    num_nodes: NUM_NODES, num_groups: 3, burn_sweeps: 0, samples: 100000, sweeps_per_sample: 1, seed: 1,
+    num_nodes: NUM_NODES, num_groups: 3, num_warmup: 0, num_samples: 100000, sweeps_per_sample: 1, seed: 1,
   }, {
     onProgress: (p) => { if (p.samplesDone > 0 && seen++ === 0) run.cancel(); },
   });
@@ -118,7 +118,7 @@ test("cancel returns a partial result", async () => {
 test("progress callbacks have correct structure", async () => {
   const progress = [];
   const run = m.fit(wins, [], {
-    num_nodes: NUM_NODES, num_groups: 2, burn_sweeps: 100, samples: 30, sweeps_per_sample: 2, seed: 5,
+    num_nodes: NUM_NODES, num_groups: 2, num_warmup: 100, num_samples: 30, sweeps_per_sample: 2, seed: 5,
   }, { onProgress: (p) => progress.push(p) });
   await run.result;
   assert.ok(progress.length > 0);
@@ -140,7 +140,7 @@ test("progress callbacks have correct structure", async () => {
 test("num_groups_fixed prevents group count from changing", async () => {
   const r = await m.fit(wins, [], {
     num_nodes: NUM_NODES, num_groups: 4, num_groups_fixed: true,
-    burn_sweeps: 100, samples: 30, sweeps_per_sample: 2, seed: 11,
+    num_warmup: 100, num_samples: 30, sweeps_per_sample: 2, seed: 11,
   }).result;
   for (const s of r.samples) {
     assert.equal(s.numGroups, 4, "num_groups_fixed=true should keep K constant");
@@ -151,7 +151,7 @@ test("tie edges are accepted", async () => {
   // Add symmetric tie edges between the two communities
   const tieEdges = [[0, 8], [1, 9], [2, 10]];
   const r = await m.fit(wins, tieEdges, {
-    num_nodes: NUM_NODES, num_groups: 2, burn_sweeps: 100, samples: 20, sweeps_per_sample: 2, seed: 3,
+    num_nodes: NUM_NODES, num_groups: 2, num_warmup: 100, num_samples: 20, sweeps_per_sample: 2, seed: 3,
   }).result;
   assert.equal(r.numNodes, NUM_NODES);
   assert.ok(Number.isFinite(r.mdlValue));
@@ -160,7 +160,7 @@ test("tie edges are accepted", async () => {
 test("wins point from winner to loser", async () => {
   // 0 beats everyone, everyone beats 3.
   const w = [[0, 1], [0, 2], [0, 3], [1, 3], [2, 3], [0, 1], [0, 2], [1, 3], [2, 3]];
-  const r = await m.fit(w, [], { burn_sweeps: 50, samples: 50, sweeps_per_sample: 2, seed: 1 }).result;
+  const r = await m.fit(w, [], { num_warmup: 50, num_samples: 50, sweeps_per_sample: 2, seed: 1 }).result;
   assert.ok(r.scoreMeans[0] > r.scoreMeans[3], "the source of a win must score higher");
 });
 
@@ -173,19 +173,19 @@ test("out-of-range node ids are rejected", () => {
 
 test("the core rejects bad edges and partitions", async () => {
   // Bypass index.js: the worker hands these straight to ds_session_create.
-  await assert.rejects(m.fit([[0, 0], [0, 1]], [], { burn_sweeps: 1, samples: 1 }).result, /self-loop/);
+  await assert.rejects(m.fit([[0, 0], [0, 1]], [], { num_warmup: 1, num_samples: 1 }).result, /self-loop/);
   await assert.rejects(
-    m.fit([[0, 1], [1, 2]], [], { burn_sweeps: 1, samples: 1, initialPartition: [0, 5, 5] }).result,
+    m.fit([[0, 1], [1, 2]], [], { num_warmup: 1, num_samples: 1, initialPartition: [0, 5, 5] }).result,
     /every label|labels must be/);
   await assert.rejects(
-    m.fit([[0, 1], [1, 2]], [], { burn_sweeps: 1, samples: 1, initialPartition: [0, 1] }).result,
+    m.fit([[0, 1], [1, 2]], [], { num_warmup: 1, num_samples: 1, initialPartition: [0, 1] }).result,
     /length num_nodes/);
 });
 
 test("initial scores are used as given", async () => {
   const s = [3, 0, 0, -3];
   const r = await m.fit([[0, 1], [1, 2], [2, 3]], [], {
-    burn_sweeps: 0, samples: 1, sweeps_per_sample: 0, seed: 1, initialScores: s,
+    num_warmup: 0, num_samples: 1, sweeps_per_sample: 0, seed: 1, initialScores: s,
   }).result;
   // Zero sweeps: the one recorded sample is the starting state (Python does
   // not rescale user scores either; it starts individual_depth at their RMS).

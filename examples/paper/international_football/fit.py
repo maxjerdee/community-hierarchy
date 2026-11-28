@@ -26,14 +26,14 @@ HERE = Path(__file__).parent
 
 # Quick check (under a minute for both models).
 SUFFIX = "_quick"                  # writes results/*_quick.csv
-SETTINGS = dict(num_chains=4, samples_per_chain=300, sweeps_per_sample=10,
-                burn_sweeps=100, seed=1, timeout=120)
+SETTINGS = dict(num_chains=4, num_samples=300, sweeps_per_sample=10,
+                num_warmup=100, seed=1, timeout=120)
 
 # Figure reproduction: the run behind results/, the paper figures and the MCMC table
 # (4 chains x 1,000 burn-in + 5,000 recorded samples, 10 sweeps per sample).
 # SUFFIX = ""                     # writes results/*.csv (committed)
-# SETTINGS = dict(num_chains=4, samples_per_chain=5000, sweeps_per_sample=10,
-#                 burn_sweeps=1000,         # x sweeps_per_sample = 10,000 sweeps of burn-in
+# SETTINGS = dict(num_chains=4, num_samples=5000, sweeps_per_sample=10,
+#                 num_warmup=1000,         # x sweeps_per_sample = 10,000 sweeps of burn-in
 #                 seed=1, timeout=36000)
 
 OUT = HERE / "results"

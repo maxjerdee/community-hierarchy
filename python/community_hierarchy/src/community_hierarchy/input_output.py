@@ -119,11 +119,11 @@ def _check_fit_arguments(
     initial_group_depth: Optional[float],
     seed: Optional[int],
     num_chains: int,
-    samples_per_chain: int,
+    num_samples: int,
+    num_warmup: int,
+    num_thin: int,
     sweeps_per_sample: int,
-    burn_sweeps: int,
-    param_warmup_sweeps: int,
-    thinning: int,
+    num_param_warmup: int,
     beta: float,
     num_tempering_chains: int,
     timeout: float,
@@ -187,14 +187,14 @@ def _check_fit_arguments(
 
     for name, val, minimum in (
         ("num_chains", num_chains, 1),
-        ("samples_per_chain", samples_per_chain, 1),
+        ("num_samples", num_samples, 1),
         # 0 is allowed: every sample is then the starting state, which is how the
         # description length of a given state is evaluated (tests/test_wasm_parity.py).
         ("sweeps_per_sample", sweeps_per_sample, 0),
-        ("thinning", thinning, 1),
+        ("num_thin", num_thin, 1),
         ("num_tempering_chains", num_tempering_chains, 1),
-        ("burn_sweeps", burn_sweeps, 0),
-        ("param_warmup_sweeps", param_warmup_sweeps, 0),
+        ("num_warmup", num_warmup, 0),
+        ("num_param_warmup", num_param_warmup, 0),
     ):
         if not _is_int(val) or val < minimum:
             raise ValueError(f"{name} must be an integer >= {minimum}, got {val!r}.")
@@ -757,7 +757,7 @@ def plot_MCMC_entropy(
     if not isinstance(result, Result):
         raise TypeError("result must be a community_hierarchy.Result instance.")
 
-    samples_df = result.samples_df()
+    samples_df = result.to_frame()
     if ax is None:
         fig, ax = plt.subplots(figsize=(10, 6))
     else:

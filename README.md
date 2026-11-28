@@ -80,8 +80,8 @@ result = ch.fit(
     ch.Config(),            # coupled model, degree-corrected SBM, ties modelled
     G,
     num_chains=4,           # independent chains, run in parallel
-    samples_per_chain=1000,
-    burn_sweeps=1000,
+    num_samples=1000,
+    num_warmup=1000,
     seed=1,
     timeout=600,            # seconds; returns the samples collected so far
 )
@@ -100,7 +100,7 @@ print(nodes.sort_values("score_mean", ascending=False).head())
 p = result.direction_probabilities("Spain", "Morocco")
 # {"a_to_b": P(Spain beats Morocco), "tie": ..., "b_to_a": ...}
 
-samples = result.samples_df()                # every sample, with chain_id
+samples = result.to_frame()                # every sample, with chain_id
 ```
 
 `ICC` is the fraction of the variance in scores explained by the groups, and
