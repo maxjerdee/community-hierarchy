@@ -60,5 +60,5 @@ Rscript -e 'Rcpp::compileAttributes("R-package"); roxygen2::roxygenise("R-packag
 R CMD build R-package && R CMD check --as-cran communityhierarchy_*.tar.gz
 ```
 
-`tests/python/test_r_core_sync.py` fails if the copy is out of date.  The parity
+`tests/python/test_build.py` fails if the copy is out of date.  The parity
 fixture in `tests/testthat/fixtures/` is made by `tools/make_r_parity_fixture.py`.

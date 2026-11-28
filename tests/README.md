@@ -50,10 +50,24 @@ and does not change it.
 ## Python tests
 
 ```bash
-pytest tests/python -q
+pytest tests/python -q                     # everything
+pytest tests/python -q -m "not statistical"  # without the slow sampling checks
 ```
 
-`tests/python/test_regressions.py` has one test per bug fixed in the 2026-09
-review.
+| file | what it tests |
+|---|---|
+| `test_config.py` | `Config`: the model choices, their checks, and how they resolve for a graph |
+| `test_input.py` | the input of `fit()`: the graph, its edges and attributes, the run arguments |
+| `test_fit.py` | running `fit()`: seeds, chains, tempering, thinning, what reaches the C++ core |
+| `test_results.py` | `Result`: draws, summaries, partition estimates, direction probabilities, plots, GML |
+| `test_loo.py` | leave-one-out cross-validation of the directions, against ArviZ |
+| `test_weighted.py` | the weighted SBM's H_W against analytic and Mathematica values |
+| `test_exactness.py` | the core energies and partition kernels against the exact posterior of a 6-node network |
+| `test_reference_values.py` | Mathematica's entropy components, and the planted-partition, coincidence, tempering and prior checks |
+| `test_build.py` | the installed version, imports, and that every compiled copy of the core is current |
+
+`helpers.py` holds the graphs and settings the files share, and `conftest.py` the
+shared fits.  `tests/test_wasm_parity.py` checks that a seeded wasm session runs the
+native chain.
 
 See `docs/ARCHITECTURE.md` for how each test maps to a property of the sampler.

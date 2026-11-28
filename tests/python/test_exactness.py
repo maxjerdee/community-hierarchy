@@ -19,14 +19,12 @@ fails when the estimate is more than 5 standard errors from the exact value.
 from __future__ import annotations
 
 import math
-
 from pathlib import Path
 
+import community_hierarchy.MCMC_core as native
 import numpy as np
 import pandas as pd
 import pytest
-
-import community_hierarchy.MCMC_core as native
 
 
 def _c2v(concentration: float) -> float:

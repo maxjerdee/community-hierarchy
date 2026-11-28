@@ -1,4 +1,5 @@
-/* The MCMC state and moves of the community_hierarchy model (see docs/ARCHITECTURE.md). */
+/* The MCMC state and moves of the community_hierarchy model.  The description-length
+ * terms (the H_* members) are listed in docs/ARCHITECTURE.md, "The model". */
 
 #ifndef MCMC_CORE_H
 #define MCMC_CORE_H

@@ -153,10 +153,9 @@ half-Cauchy(4).
 | single-site and merge/split agree at β = 1 | `tests/merge_split_test.cpp` §3 |
 | constructor validation, DL vs exact stub-matching enumeration, `scores_fixed`, quantile accuracy and the score proposal's Hastings ratio, plain Bradley–Terry with neutral edges | `tests/mcmc_core_test.cpp` |
 | weighted-SBM bookkeeping (H_W, weight counts) after many flips and sweeps, also two-layer | `tests/weighted_bookkeeping_test.cpp` |
-| core energies, and the partition kernels, against Mathematica's exact posterior of a 6-node network (203 partitions), unweighted and weighted | `tests/python/test_sampler_exactness.py` |
-| entropy components against Mathematica at one point | `tests/python/test_package.py::test_point_eval_entropy_components` |
-| Python API, presets, reference values | `tests/python/` |
-| fixed bugs | `tests/python/test_regressions.py` |
+| core energies, and the partition kernels, against Mathematica's exact posterior of a 6-node network (203 partitions), unweighted and weighted | `tests/python/test_exactness.py` |
+| entropy components against Mathematica at one point | `tests/python/test_reference_values.py::test_point_eval_entropy_components` |
+| Python API, presets, input checks, summaries | `tests/python/` (see `tests/README.md`) |
 
 ## Known open issues
 

@@ -1,38 +1,270 @@
-"""
-Exact fixture tests for the weighted SBM description length.
+"""The weighted SBM (weighted_SBM=True): the H_W term against analytic and Mathematica values, and its routing through fit()."""
 
-The full H_W formula (Peixoto 2018, flat model) is:
-
-  H_W = H(W|A,μ,b) + H(μ)
-
-where
-  H(W|A,μ,b) = Σ_{rs: M_rs>0} [(M_rs−1)·log(μ_rs) − log((M_rs−1)!)]
-
-is -log P(W|A,μ,b) for the per-block-pair uniform simplex model, and
-
-  H(μ) = (Q − 1)·log(w) − log((Q − 1)!),   Q = #{r ≤ s : M_rs > 0}
-
-is -log P(μ), the totals of the Q block pairs joined by an edge drawn
-uniformly from the simplex of fixed total w.  Block pairs with no edges
-carry no weight and are not counted, which keeps H_W differences between
-partitions independent of the unit of weight.
-
-H_W is ADDED to the total description length (H_A_G_b += H_W), so
-more-negative H_W = better fit = lower description length.
-
-These tests check:
-  (a) H_W equals the analytically derived value for a concrete graph
-  (b) H_A_G_b is correctly composed (H_A_G_b = H_k + H_M + H_A + H_W)
-
-All expected values are computed analytically from the formula above to avoid
-circular testing against the same implementation.
-"""
+from __future__ import annotations
 
 import math
+
+import community_hierarchy as ch
 import community_hierarchy.MCMC_core as native
+import networkx as nx
+import pytest
 
 
-# ---------------------------------------------------------------------------
+# Weighted SBM
+def test_weighted_SBM_point_eval():
+    """Numerical ground truth for H_W on a 3-node, 2-group binary graph.
+
+    Graph: nodes {0,1} in group 0, node {2} in group 1.
+      W[0,1] = 1.97558  (within group 0)
+      W[0,2] = 1.13873  (between groups)
+      W[1,2] = 2.77927  (between groups)
+    group_adj encodes W as the SBM graph; A is binary (one edge per pair).
+
+    H_W = H(W|A,μ,b) + H(μ)  (full description length, Peixoto 2018 Eq. 33+34)
+
+    H(W|A,μ,b) — per-block uniform-simplex cost:
+      block (0,0): M_rr/2=1, mu_rr/2=W01  → (1-1)*log(W01) - lgamma(1) = 0
+      block (0,1): M_rs=2,   mu_rs=W02+W12 → (2-1)*log(mu_01) - lgamma(2) = log(mu_01)
+      → log(W02+W12)
+
+    H(μ) — block-pair weight totals uniform on the simplex of total w, over the
+    block pairs joined by an edge: (0,0) and (0,1), so npairs = 2
+      → (npairs-1)*log(w_total) - log((npairs-1)!) = log(w_total)
+    """
+    import community_hierarchy.MCMC_core as native
+
+    w01, w02, w12 = 1.97558, 1.13873, 2.77927
+
+    # H(W|A,μ,b): only the active off-diagonal block (M=2)
+    h_w_given = math.log(w02 + w12)
+
+    # H(μ): block-pair weight totals, over the 2 block pairs with edges
+    npairs = 2
+    w_total = w01 + w02 + w12
+    h_mu = (npairs - 1) * math.log(w_total) - math.lgamma(npairs)  # lgamma(n) = log((n-1)!)
+
+    expected = h_w_given + h_mu
+
+    n = 3
+    wins = [{} for _ in range(n)]
+    wins[0][1] = 1.0
+    wins[0][2] = 1.0
+    wins[1][2] = 1.0
+
+    group_adj = [{} for _ in range(n)]
+    group_adj[0][1] = w01
+    group_adj[1][0] = w01
+    group_adj[0][2] = w02
+    group_adj[2][0] = w02
+    group_adj[1][2] = w12
+    group_adj[2][1] = w12
+
+    mcmc = native.MCMC(
+        wins=wins,
+        ties=[{} for _ in range(n)],
+        group_adj=group_adj,
+        partition=[0, 0, 1],
+        scores=[0.0, 0.0, 0.0],
+        num_groups=2,
+        seed=0,
+        weighted_SBM=True,
+    )
+
+    assert abs(mcmc.H_W - expected) < 1e-6, f"H_W = {mcmc.H_W:.6f}, expected = {expected:.6f}"
+
+
+def test_weighted_SBM_unweighted_unchanged():
+    """weighted_SBM=False (default) must give identical results to the old code path."""
+    G = nx.DiGraph()
+    G.add_edge("A", "B", weight=3)
+    G.add_edge("B", "C", weight=2)
+    G.add_edge("A", "C", weight=1)
+
+    config_plain = ch.Config(groups_model="general_ASBM")
+    config_weighted = ch.Config(groups_model="general_ASBM", weighted_SBM=False)
+
+    r1 = ch.fit(config_plain, G, num_chains=1, num_samples=50, num_warmup=50, seed=7)
+    r2 = ch.fit(config_weighted, G, num_chains=1, num_samples=50, num_warmup=50, seed=7)
+
+    # Identical seeds → identical MDL
+    assert r1.mdl_value == pytest.approx(r2.mdl_value, rel=1e-6)
+    sdf1 = r1.to_frame()
+    sdf2 = r2.to_frame()
+    assert (sdf1["H_W"] == 0.0).all()
+    assert (sdf2["H_W"] == 0.0).all()
+
+
+def test_weighted_SBM_produces_nonzero_H_W():
+    """With weighted_SBM=True, H_W is recorded and is non-negative.
+    H_W=0 is valid when all block pairs have m_rs=1 (simplex contributes 0).
+    H_W>0 (DL cost) or H_W<0 (DL benefit) when m_rs>1 in some block pair.
+    """
+    G = nx.DiGraph()
+    G.add_edge("A", "B", weight=3.5)
+    G.add_edge("B", "C", weight=2.1)
+    G.add_edge("A", "C", weight=1.7)
+    G.add_edge("C", "A", weight=0.8)
+
+    config = ch.Config(groups_model="general_ASBM", weighted_SBM=True)
+    r = ch.fit(config, G, num_chains=1, num_samples=50, num_warmup=50, seed=42)
+    sdf = r.to_frame()
+    # H_W is a finite real (DL contribution from weight model)
+    assert sdf["H_W"].notna().all(), "H_W must be finite in weighted mode"
+    assert (sdf["weighted_SBM"] == True).all()
+
+
+w01, w02, w12 = 1.97558, 1.13873, 2.77927
+
+
+w_total = w01 + w02 + w12
+
+
+def expected_HW(partition):
+    """Binary Peixoto H_W for the 3-node graph with given partition."""
+    # Partition {0,0,1}: μ_00=w01, μ_01=w02+w12; M_00=1 (halved), M_01=2
+    # Partition {0,1,1}: μ_00=0, μ_01=w01+w02, μ_11=w12; M_01=2, M_11=1 (halved)
+    K = 3
+    w = w01 + w02 + w12
+    h = (K - 1) * math.log(w) - math.lgamma(K)
+    # Build weight sums per block pair from undirected perspective
+    edges = [(0, 1, w01), (0, 2, w02), (1, 2, w12)]
+    mu = {}
+    M = {}
+    for u, v, wt in edges:
+        r, s = sorted([partition[u], partition[v]])
+        k = (r, s)
+        mu[k] = mu.get(k, 0) + wt
+        M[k] = M.get(k, 0) + 1
+    for (r, s), (m, mu_rs) in {k: (M[k], mu[k]) for k in M}.items():
+        if r == s:  # diagonal: m is already binary count of pairs
+            if m > 0:
+                h += (m - 1) * math.log(mu_rs) - math.lgamma(m)
+        else:
+            if m > 0:
+                h += (m - 1) * math.log(mu_rs) - math.lgamma(m)
+    return h
+
+
+def test_neutral_edge_routing():
+    """
+    Fit the 3-node graph through the Python API with neutral edges, and compare
+    the change of H_W between two fixed partitions with Peixoto's formula.
+    """
+    # A DiGraph with every edge a draw (neutral), each pair listed both ways.
+    G = nx.DiGraph()
+    G.add_node(0)
+    G.add_node(1)
+    G.add_node(2)
+    for u, v, w in [(0, 1, w01), (1, 0, w01), (0, 2, w02), (2, 0, w02), (1, 2, w12), (2, 1, w12)]:
+        G.add_edge(u, v, weight=w, type="neutral")
+
+    # Fix partition [0,0,1]
+    for nd in G.nodes():
+        G.nodes[nd]["group"] = [0, 0, 1][nd]
+
+    cfg = ch.Config(group_attribute="group", weighted_SBM=True, degree_correction=True)
+    r = ch.fit(cfg, G, num_samples=5, seed=42, show_progress=False)
+    sdf = r.to_frame()
+    HW_api = sdf["H_W"].mean()
+
+    HW_peixoto = expected_HW([0, 0, 1])
+
+    # Now fix [0,1,1] and compare
+    G2 = G.copy()
+    for nd in G2.nodes():
+        G2.nodes[nd]["group"] = [0, 1, 1][nd]
+    r2 = ch.fit(
+        ch.Config(group_attribute="group", weighted_SBM=True, degree_correction=True),
+        G2,
+        num_samples=5,
+        seed=42,
+        show_progress=False,
+    )
+    sdf2 = r2.to_frame()
+    HW_api2 = sdf2["H_W"].mean()
+
+    HW_peixoto2 = expected_HW([0, 1, 1])
+
+    assert abs((HW_api2 - HW_api) - (HW_peixoto2 - HW_peixoto)) < 0.5, (
+        f"API ΔH_W={HW_api2 - HW_api:.4f} differs from Peixoto ΔH_W={HW_peixoto2 - HW_peixoto:.4f}"
+    )
+
+
+def make_mcmc_from_fixture(partition, w01, w02, w12):
+    """
+    3-node symmetric graph: nodes 0,1 in group 0; node 2 in group 1.
+      group_adj encodes SRI-like undirected weights (both directions, 1x each).
+      No wins/ties (all edges are 'neutral').
+    """
+    n = 3
+    group_adj = [{} for _ in range(n)]
+    group_adj[0][1] = w01
+    group_adj[1][0] = w01
+    group_adj[0][2] = w02
+    group_adj[2][0] = w02
+    group_adj[1][2] = w12
+    group_adj[2][1] = w12
+
+    mcmc = native.MCMC(
+        wins=[{} for _ in range(n)],
+        ties=[{} for _ in range(n)],
+        group_adj=group_adj,
+        partition=list(partition),
+        scores=[0.0, 0.0, 0.0],
+        num_groups=len(set(partition)),
+        seed=0,
+        weighted_SBM=True,
+    )
+    return mcmc
+
+
+def peixoto_HW_exact(M_off, mu_off, M_diag, mu_diag, K=None, w=None):
+    """Peixoto 2018 Eq. 33 H_W (no outer simplex coupling block pairs)."""
+    h = 0.0
+    for m_rr, mu_rr in zip(M_diag, mu_diag):
+        if m_rr > 0:
+            h += (m_rr - 1) * math.log(mu_rr) - math.lgamma(m_rr)
+    for m_rs, mu_rs in zip(M_off, mu_off):
+        if m_rs > 0:
+            h += (m_rs - 1) * math.log(mu_rs) - math.lgamma(m_rs)
+    return h
+
+
+def test_HW_changes_with_partition():
+    """
+    H_W must differ when node 2 is reassigned.
+    Partition [0,0,1] vs [0,1,1]: same graph, different partition → different H_W.
+    """
+    mcmc_a = make_mcmc_from_fixture([0, 0, 1], w01, w02, w12)
+    mcmc_b = make_mcmc_from_fixture([0, 1, 1], w01, w02, w12)
+    HW_a = mcmc_a.H_W
+    HW_b = mcmc_b.H_W
+
+    assert abs(HW_a - HW_b) > 0.01, (
+        f"H_W should change with partition! Got H_W_a={HW_a:.4f}, H_W_b={HW_b:.4f}"
+    )
+
+
+def test_HW_matches_peixoto_formula():
+    """
+    C++ H_W matches full Peixoto formula: H(W|A,μ,b) + H(μ).
+    Partition [0,0,1]: M_01=2 (binary edges 0-2, 1-2), μ_01=w02+w12.
+      H(W|A,μ,b) = log(w02+w12)
+      H(μ)       = log(w_total)   [two block pairs with edges: (0,0) and (0,1)]
+    """
+    mcmc = make_mcmc_from_fixture([0, 0, 1], w01, w02, w12)
+    # H(W|A,μ,b) component
+    HW_partial = math.log(w02 + w12)
+    # H(μ) component over the block pairs with edges, (npairs-1)*log(w) - log((npairs-1)!)
+    npairs = 2
+    H_mu = (npairs - 1) * math.log(w_total) - math.lgamma(npairs)
+    expected = HW_partial + H_mu
+    assert abs(mcmc.H_W - expected) < 1e-4, (
+        f"H_W={mcmc.H_W:.6f} but expected full formula={expected:.6f} "
+        f"(H(W|A,μ,b)={HW_partial:.4f}, H(μ)={H_mu:.4f})"
+    )
+
+
 # Fixture: 3-node symmetric simple graph, partition [0,0,1]
 #
 #   w01 = 1.9755790294340843  (within group 0)
@@ -47,10 +279,12 @@ import community_hierarchy.MCMC_core as native
 #   w_total = w01+w02+w12 = 4.5039
 #
 #   H_W = 2·log(4.5039) − log(2) + log(2.5284) = 3.24434
-# ---------------------------------------------------------------------------
-
 W01 = 1.9755790294340843
+
+
 W02 = 1.1387325708524414
+
+
 W12 = 1.3896369140947227
 
 

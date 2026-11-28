@@ -1,32 +1,63 @@
-"""Fail loudly when a built artifact is older than the sources it was built from.
-
-A stale build is indistinguishable from a real numerical disagreement: the
-editable install serves the extension from a COPY under site-packages, so
-`cmake --build` updates the source tree and `import community_hierarchy` keeps loading the old
-binary. That cost two sessions an afternoon of chasing a "parity failure" that
-was only a stale .so, so it is now a test.
-
-These skip outside a source checkout (an installed wheel has no src/ to compare
-against), and they never fail for a reason other than staleness.
-"""
+"""The build: the installed version, imports, and that every compiled copy of the core is current."""
 
 from __future__ import annotations
 
+import importlib.metadata
 import pathlib
+import subprocess
+import sys
+from pathlib import Path
 
+import community_hierarchy as ch
+import community_hierarchy.MCMC_core as native
 import pytest
 
-import community_hierarchy  # noqa: F401  (fails early if the package is not installed)
+
+def test_version():
+    assert importlib.metadata.version("community-hierarchy") == ch.__version__
+
+
+# asbm and community_hierarchy each bind a bare (un-namespaced) MCMC and
+# FitResultNative.  Their RTTI names collide, and pybind11's type registry is
+# process-wide, so importing both used to raise
+#   ImportError: generic_type: type "MCMC" is already registered!
+# py::module_local() on both classes keeps each registration inside its own
+# extension module.  Either package can be imported first, so test both orders.
+@pytest.mark.parametrize("first", ["asbm", "community_hierarchy"])
+def test_imports_alongside_community_hierarchy(first):
+    pytest.importorskip("asbm")
+    second = "community_hierarchy" if first == "asbm" else "asbm"
+    code = (
+        f"import {first}, {second}; "
+        "import asbm.core as ac, community_hierarchy.fitting as dc; "
+        "assert ac.fit_backend is not None, 'asbm native backend failed to load'; "
+        "assert dc._fit_backend is not None, 'community_hierarchy native backend failed to load'; "
+        "import asbm._asbm, community_hierarchy.MCMC_core as dm; "
+        "assert asbm._asbm.MCMC is not dm.MCMC"
+    )
+    r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=300)
+    assert r.returncode == 0, r.stderr
+
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
+
+
 # Each artifact is compared against the sources IT is built from: the Python
 # extension does not rebuild from bindings/wasm, and the wasm bundle does not
 # rebuild from bindings/python.  Comparing against everything gives false
 # positives the moment you touch a binding you are not testing.
 EXTENSION_SOURCES = [REPO / "src", REPO / "bindings" / "python"]
+
+
 WASM_SOURCES = [REPO / "src", REPO / "bindings" / "wasm" / "src"]
+
+
 SOURCE_DIRS = EXTENSION_SOURCES
+
+
 WASM_DIST = REPO / "bindings" / "wasm" / "js" / "dist" / "ds_core.mjs"
+
+
 REBUILD = "python -m pip install -e . --no-build-isolation --no-deps"
 
 
@@ -58,7 +89,6 @@ def _fmt(t: float) -> str:
 def test_extension_is_not_older_than_the_sources():
     """The loaded extension must post-date every .cpp/.h it is built from."""
     _skip_unless_source_checkout()
-    import community_hierarchy.MCMC_core as native
 
     newest, newest_mtime = _newest_source()
     if newest is None:
@@ -101,3 +131,15 @@ def test_wasm_bundle_is_not_older_than_the_sources():
         f"  emcmake cmake -S . -B build-wasm -DCMAKE_BUILD_TYPE=Release\n"
         f"  cmake --build build-wasm -j"
     )
+
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_r_package_core_matches_src():
+    r = subprocess.run(
+        [sys.executable, str(ROOT / "tools" / "sync_r_core.py"), "--check"],
+        capture_output=True,
+        text=True,
+    )
+    assert r.returncode == 0, r.stdout + r.stderr

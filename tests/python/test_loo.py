@@ -4,11 +4,10 @@ import pickle
 import random
 import warnings
 
+import community_hierarchy as ch
 import networkx as nx
 import numpy as np
 import pytest
-
-import community_hierarchy as ch
 from community_hierarchy import MCMC_core
 
 
