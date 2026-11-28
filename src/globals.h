@@ -6,20 +6,6 @@
 #include <random>
 
 #include "rng.h"
-#include <chrono>
-#include <unordered_map>
-#include <unordered_set>
-#include <vector>
-
-extern bool verbose; // Whether to print verbose output during MCMC
-
-// Timing variables.  thread_local: fit() runs chains concurrently on std::async
-// threads, and shared timers would be a data race (undefined behaviour).
-// timing (default false) switches on the MCMC::time_* profiling counters; nothing
-// in the package reads them, and they cost several clock reads per move.
-extern bool timing;
-extern thread_local std::chrono::high_resolution_clock::time_point start_time, end_time;
-extern thread_local double duration; // Accumulated or temporary duration (seconds)
 
 // Constants
 // Bookkeeping check (value_check): a cached value passes when

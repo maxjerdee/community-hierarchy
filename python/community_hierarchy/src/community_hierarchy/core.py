@@ -4,6 +4,7 @@ import dataclasses
 from dataclasses import dataclass
 from typing import Optional
 import logging
+import math
 import warnings
 
 import numpy as np
@@ -12,39 +13,101 @@ import pandas as pd
 
 from .input_output import (
     _UNSET,
-    _check_forced_values,
-    _check_group_graph,
-    _check_input_validity,
+    _check_fit_arguments,
+    _edges,
     _get_node_data,
-    _set_model_parameters,
-    get_neighbors,
+    _group_graph_edges,
+    _is_real,
 )
+from .MCMC_core import build_group_layer as _build_group_layer
+from .MCMC_core import build_interactions as _build_interactions
 from .MCMC_core import fit_backend as _fit_backend
+from .MCMC_core import resolve_model as _resolve_model
+from .MCMC_core import sort_groups_by_score as _sort_groups_by_score
 
 logger = logging.getLogger(__name__)
 
 
-def _hdi(arr: np.ndarray, prob: float = 0.90) -> tuple[float, float]:
-    """Highest Density Interval for a 1-D array of posterior samples."""
-    sorted_arr = np.sort(arr)
-    n = len(sorted_arr)
-    interval_idx = int(np.floor(prob * n))
-    n_intervals = n - interval_idx
-    widths = sorted_arr[interval_idx:] - sorted_arr[:n_intervals]
-    min_idx = int(np.argmin(widths))
-    return float(sorted_arr[min_idx]), float(sorted_arr[min_idx + interval_idx])
+# The choices of each model setting.  The presets they select are applied in the
+# C++ core (src/model_presets.h), shared with the other bindings.
+_GROUPS_MODELS = ("traditional_SBM", "general_ASBM", "simple_ASBM", "hybrid_ASBM",
+                  "planted_partition")
+_HIERARCHY_MODELS = ("bradley_terry", "bradley_terry_ties")
+_INTERACTIONS = ("coupled", "independent")
+_MIXING_VARIATIONS = ("general", "simple", "none", "internal", "external")
+_MODEL_SETTINGS = ("variation_in", "variation_out", "individual_depth", "group_depth",
+                   "ties_parameter", "num_groups")
 
-_VALID_GROUPS_MODELS = frozenset({
-    "traditional_SBM",
-    "simple_ASBM",
-    "hybrid_ASBM",
-    "planted_partition",
-    "general_ASBM",
-})
 
-_VALID_HIERARCHY_MODELS = frozenset({"bradley_terry", "bradley_terry_ties"})
-_VALID_INTERACTIONS = frozenset({"coupled", "independent"})
-_VALID_MIXING_VARIATIONS = frozenset({"general", "simple", "none", "internal", "external"})
+def _one_of(value, valid: tuple, name: str, hint: str = "") -> None:
+    if value not in valid:
+        raise ValueError(f"Unknown {name} {value!r}. Valid options: {list(valid)}.{hint}")
+
+
+def _check_model(config: "Config") -> None:
+    """The checks of a Config that need no graph: names, ranges, and explicit
+    values that a preset would override."""
+    if config.groups_model == "general_canonical":
+        raise ValueError("groups_model 'general_canonical' was renamed 'general_ASBM' "
+                         "(the same model).")
+    _one_of(config.groups_model, _GROUPS_MODELS, "groups_model",
+            " Degree correction is not part of the model name; set it with "
+            "Config(degree_correction=True | False).")
+    if config.hierarchy_model is not _UNSET:
+        _one_of(config.hierarchy_model, _HIERARCHY_MODELS, "hierarchy_model")
+    _one_of(config.interaction, _INTERACTIONS, "interaction")
+    if config.mixing_variation is not _UNSET:
+        _one_of(config.mixing_variation, _MIXING_VARIATIONS, "mixing_variation")
+
+    for name in _MODEL_SETTINGS:
+        x = getattr(config, name)
+        if x is _UNSET or x is None:
+            continue
+        x = float(x)
+        if not math.isfinite(x):
+            raise ValueError(f"{name} must be a finite number or None (infer), got {x!r}.")
+        if name in ("variation_in", "variation_out") and not 0.0 <= x <= 1.0:
+            raise ValueError(f"{name} must be in [0, 1] or None (infer), got {x!r}.")
+        if name == "individual_depth" and not x > 0.0:
+            raise ValueError(f"individual_depth must be positive, got {x!r}.")
+        if name in ("group_depth", "ties_parameter") and not x >= 0.0:
+            raise ValueError(f"{name} must be non-negative, got {x!r}.")
+        if name == "num_groups" and not (x >= 1 and x == int(x)):
+            raise ValueError(f"num_groups must be a positive integer or None (infer), got {x!r}.")
+
+    def nonzero(x):  # given, and not 0 (None, "infer", counts as nonzero)
+        return x is not _UNSET and not (x is not None and float(x) == 0.0)
+
+    if config.hierarchy_model == "bradley_terry" and nonzero(config.ties_parameter):
+        raise ValueError(
+            f"hierarchy_model='bradley_terry' fixes ties_parameter at 0, but "
+            f"ties_parameter={config.ties_parameter!r} was given. Use "
+            "hierarchy_model='bradley_terry_ties' to model draws.")
+    if config.interaction == "independent" and nonzero(config.group_depth):
+        raise ValueError(
+            f"interaction='independent' fixes group_depth at 0, but "
+            f"group_depth={config.group_depth!r} was given. Use interaction='coupled' "
+            "to fit group_depth.")
+
+
+def _check_model_for_graph(config: "Config", has_neutral: bool, num_nodes: int) -> None:
+    """The checks of a Config that need the graph."""
+    if config.hierarchy_model is _UNSET and not has_neutral and \
+            config.ties_parameter is not _UNSET and \
+            not (config.ties_parameter is not None and float(config.ties_parameter) == 0.0):
+        raise ValueError(
+            f"ties_parameter={config.ties_parameter!r} was given, but G has no neutral "
+            "edges, so hierarchy_model resolves to 'bradley_terry', which fixes "
+            "ties_parameter at 0. Pass hierarchy_model='bradley_terry_ties' to fit a draw "
+            "rate anyway.")
+    if config.hierarchy_model == "bradley_terry" and has_neutral:
+        raise ValueError(
+            "hierarchy_model='bradley_terry' has no draws, but G has neutral edges. Use "
+            "hierarchy_model='bradley_terry_ties' (the default when G has neutral edges), "
+            "or remove the neutral edges.")
+    k = config.num_groups
+    if k is not _UNSET and k is not None and int(k) > num_nodes:
+        raise ValueError(f"num_groups={int(k)} is larger than the number of nodes ({num_nodes}).")
 
 
 @dataclass(frozen=True)
@@ -57,21 +120,24 @@ class Config:
 
     Parameters
     ----------
-    groups_model : {"general_ASBM", "simple_ASBM", "hybrid_ASBM", "planted_partition", "traditional_SBM"}
+    groups_model : {"traditional_SBM", "general_ASBM", "simple_ASBM", "hybrid_ASBM", "planted_partition"}
         Community structure preset; sets ``mixing_variation`` (and, for
         ``traditional_SBM``, ``assortative=False``) unless those are given:
 
         ========================  ====================  ===============
         preset                    mixing_variation      assortative
         ========================  ====================  ===============
+        ``"traditional_SBM"``     ``"simple"``          False
         ``"general_ASBM"``        ``"general"``         True
         ``"simple_ASBM"``         ``"simple"``          True
         ``"hybrid_ASBM"``         ``"internal"``        True
         ``"planted_partition"``   ``"none"``            True
-        ``"traditional_SBM"``     ``"simple"``          False
         ========================  ====================  ===============
 
-        Default ``"general_ASBM"``.
+        Default ``"traditional_SBM"``: the degree-corrected SBM, one density
+        for all group pairs.  The assortative presets (``*_ASBM``,
+        ``planted_partition``) give edges within and between groups separate
+        densities.
     hierarchy_model : {"bradley_terry", "bradley_terry_ties"}, optional
         ``"bradley_terry"`` fixes ``ties_parameter`` at 0 (no draws; neutral
         edges are not used for the hierarchy, but still count in the community
@@ -141,7 +207,7 @@ class Config:
         ``ties_parameter``).
     """
 
-    groups_model: str = "general_ASBM"
+    groups_model: str = "traditional_SBM"
     hierarchy_model: object = _UNSET  # str | _UNSET
     interaction: str = "coupled"
     assortative: object = _UNSET  # bool | _UNSET
@@ -167,49 +233,40 @@ class Config:
         return f"Config({fields})"
 
     def __post_init__(self) -> None:
-        if self.groups_model == "general_canonical":
-            # Removed: it was general_ASBM under another name, while asbm's reference
-            # notebook uses "general_canonical" for a different model (one that also
-            # integrates the degree-correction strength).
-            raise ValueError(
-                "groups_model 'general_canonical' was renamed 'general_ASBM' "
-                "(the same model; it is also the default)."
-            )
-        if self.groups_model not in _VALID_GROUPS_MODELS:
-            raise ValueError(
-                f"Unknown groups_model '{self.groups_model}'. "
-                f"Valid options: {sorted(_VALID_GROUPS_MODELS)}. "
-                "Degree correction is not part of the model name; set it with "
-                "Config(degree_correction=True | False)."
-            )
+        for name in ("groups_model", "interaction"):
+            if not isinstance(getattr(self, name), str):
+                raise ValueError(f"Unknown {name} {getattr(self, name)!r}")
+        for name in ("hierarchy_model", "mixing_variation"):
+            val = getattr(self, name)
+            if val is not _UNSET and not isinstance(val, str):
+                raise ValueError(f"Unknown {name} {val!r}")
         for name in ("degree_correction", "weighted_SBM", "weighted_proposals"):
             if not isinstance(getattr(self, name), bool):
                 raise ValueError(f"{name} must be True or False, got {getattr(self, name)!r}")
         if self.assortative is not _UNSET and not isinstance(self.assortative, bool):
             raise ValueError(f"assortative must be True or False, got {self.assortative!r}")
-        if self.mixing_variation is not _UNSET and self.mixing_variation not in _VALID_MIXING_VARIATIONS:
-            raise ValueError(
-                f"Unknown mixing_variation {self.mixing_variation!r}. "
-                f"Valid options: {sorted(_VALID_MIXING_VARIATIONS)}"
-            )
-        if self.hierarchy_model is not _UNSET and self.hierarchy_model not in _VALID_HIERARCHY_MODELS:
-            raise ValueError(
-                f"Unknown hierarchy_model '{self.hierarchy_model}'. "
-                f"Valid options: {sorted(_VALID_HIERARCHY_MODELS)}"
-            )
-        if self.interaction not in _VALID_INTERACTIONS:
-            raise ValueError(
-                f"Unknown interaction '{self.interaction}'. "
-                f"Valid options: {sorted(_VALID_INTERACTIONS)}"
-            )
+        for name in _MODEL_SETTINGS:
+            val = getattr(self, name)
+            if val is not _UNSET and val is not None and not _is_real(val):
+                raise TypeError(f"{name} must be a number or None (infer), got {val!r}")
         for name in ("group_attribute", "hierarchy_attribute"):
             val = getattr(self, name)
             if val is not None and (not isinstance(val, str) or not val):
                 raise ValueError(f"{name} must be a non-empty string or None, got {val!r}")
-        # Values the presets force (fixed later in _set_model_parameters).  An
-        # explicit, different value used to be overwritten without a word.
-        _check_forced_values(self.hierarchy_model, self.interaction,
-                             self.group_depth, self.ties_parameter)
+        _check_model(self)
+
+    def _model_choice(self) -> dict:
+        """The configuration as the C++ core's ModelChoice (src/model_presets.h)."""
+        unset = lambda v: "" if v is _UNSET else v
+        given = {name: (None if getattr(self, name) is None else float(getattr(self, name)))
+                 for name in _MODEL_SETTINGS if getattr(self, name) is not _UNSET}
+        return dict(groups_model=self.groups_model,
+                    hierarchy_model=unset(self.hierarchy_model),
+                    interaction=self.interaction,
+                    mixing_variation=unset(self.mixing_variation),
+                    assortative=-1 if self.assortative is _UNSET else int(self.assortative),
+                    degree_correction=self.degree_correction,
+                    given=given)
 
 
 class Result:
@@ -225,10 +282,14 @@ class Result:
     A Result can be pickled.
     """
 
-    def __init__(self, native_result, node_order: tuple, config: Config) -> None:
+    def __init__(self, native_result, node_order: tuple, config: Config,
+                 interactions: dict | None = None) -> None:
         self._native = native_result
         self._node_order = node_order
         self._config = config
+        # The edges of G, for direction_loo_df(): node indices a (the winner, or
+        # the first end of a draw) and b, draw flags and weights.
+        self._interactions = interactions
 
     # ------------------------------------------------------------------
     # Point estimates — delegated to C++
@@ -244,16 +305,6 @@ class Result:
         continuous parameters.  NaN if no samples were recorded."""
         return float(self._native.mdl_value)
 
-    @staticmethod
-    def _sort_groups_by_score(partition: np.ndarray, means: np.ndarray) -> np.ndarray:
-        """Relabel group ids so group 0 has the lowest mean score."""
-        group_means = {}
-        for node_idx, g in enumerate(partition):
-            group_means.setdefault(g, []).append(means[node_idx])
-        ranked = sorted(group_means, key=lambda g: np.mean(group_means[g]))
-        remap = {old: new for new, old in enumerate(ranked)}
-        return np.array([remap[g] for g in partition], dtype=int)
-
     @property
     def mdl_partition(self) -> np.ndarray:
         """Partition of the sample with the smallest description length,
@@ -261,7 +312,7 @@ class Result:
         group 0 has the lowest mean posterior score.  Not a posterior summary;
         see :meth:`consensus_partition`."""
         part = np.asarray(self._native.mdl_partition(), dtype=int)
-        return self._sort_groups_by_score(part, self.score_means)
+        return np.asarray(_sort_groups_by_score(part, self.score_means), dtype=int)
 
     def consensus_partition(self, method: str = "moc", refine: bool = True,
                             min_samples: int = 1000) -> np.ndarray:
@@ -307,7 +358,7 @@ class Result:
         if m not in ("moc", "moc_modal_k", "binder"):
             raise ValueError(f"method must be 'moc', 'moc_modal_k' or 'binder', got {method!r}")
         part = np.asarray(self._native.consensus_partition(m, refine, int(min_samples)), dtype=int)
-        return self._sort_groups_by_score(part, self.score_means)
+        return np.asarray(_sort_groups_by_score(part, self.score_means), dtype=int)
 
     def partition_ess(self) -> float:
         """Bulk ESS (Vehtari et al. 2021, rank-normalised, split chains, pooled)
@@ -544,13 +595,97 @@ class Result:
         for i, node in enumerate(nodes):
             rename[f"{i}_group"] = f"{node}_group"
             rename[f"{i}_score"] = f"{node}_score"
-        df = df.rename(columns=rename)
-        sigma_C = df["group_depth"]
-        sigma_I = df["individual_depth"]
-        sigma_T = np.sqrt(sigma_C ** 2 + sigma_I ** 2)
-        df["sigma_T"] = sigma_T
-        df["ICC"] = np.where(sigma_T > 0, sigma_C ** 2 / sigma_T ** 2, 0.0)
-        return df
+        return df.rename(columns=rename)
+
+    def diagnostics_df(self) -> pd.DataFrame:
+        """MCMC convergence diagnostics (Vehtari et al. 2021), as ArviZ's
+        ``ess(method="bulk")``, ``ess(method="tail")`` and ``rhat()``, computed
+        in C++ (``src/diagnostics.h``) and shared with the R package.
+
+        Returns
+        -------
+        pandas.DataFrame
+            One row per network-level parameter (the rows of
+            :meth:`network_properties_df`), then ``H_A_b`` (the description
+            length of the partition, see :meth:`partition_ess`), then
+            ``scores_median`` and ``relative_scores_median``: the median over
+            nodes of the diagnostics of each node's score, and of each score
+            minus the mean score of its sample (the overall level of the scores
+            is pinned only by their prior and wanders slowly; the differences,
+            which every prediction uses, mix faster).  Columns ``quantity``,
+            ``ess_bulk``, ``ess_tail`` and ``rhat``.  Chains are truncated to
+            the shortest; R-hat needs two chains (NaN otherwise), and a fixed
+            parameter has NaN R-hat.  Per-node values:
+            :meth:`score_diagnostics_df`.
+        """
+        d = pd.DataFrame(self._native.diagnostics())
+        rows = [d]
+        for label, relative in (("scores_median", False), ("relative_scores_median", True)):
+            s = pd.DataFrame(self._native.score_diagnostics(relative))
+            rows.append(pd.DataFrame({"quantity": [label], **{c: [s[c].median()] for c in s.columns}}))
+        return pd.concat(rows, ignore_index=True)
+
+    def score_diagnostics_df(self, relative: bool = False) -> pd.DataFrame:
+        """Convergence diagnostics of each node's score (see
+        :meth:`diagnostics_df`): one row per node, columns ``node``,
+        ``ess_bulk``, ``ess_tail``, ``rhat``.  ``relative=True``: of the score
+        minus the mean score of its sample."""
+        d = pd.DataFrame(self._native.score_diagnostics(bool(relative)))
+        d.insert(0, "node", list(self._node_order))
+        return d
+
+    def direction_loo_df(self, r_eff: float = 1.0) -> pd.DataFrame:
+        """Leave-one-out cross-validation of the edge directions (PSIS-LOO).
+
+        Each edge of ``G`` in turn has its outcome left out (who won, or that it
+        was a draw); the edge itself stays in the network.  The scores and the
+        draw parameter make the outcomes independent, so the leave-one-out
+        posterior is the posterior reweighted by 1 / p(outcome), with the weights
+        Pareto-smoothed (Vehtari, Gelman & Gabry 2017) as in ArviZ's ``loo``,
+        whose numbers it reproduces.  Computed in C++ (``src/loo.h``), shared
+        with the R package.
+
+        An edge of weight w counts w times and is left out whole: pass one edge
+        per interaction (a MultiDiGraph) for leave-one-interaction-out.
+
+        Parameters
+        ----------
+        r_eff : float
+            Relative efficiency of the samples, which sets the length of the
+            smoothed tail.  1 (default) treats the samples as independent, as
+            ArviZ does when it has no parameters to estimate it from.
+
+        Returns
+        -------
+        pandas.DataFrame
+            One row per edge of ``G``, in the order of ``G.edges()``:
+
+            - ``winner``, ``loser``: the edge's ends, the winner first (for a
+              draw, as in ``G``);
+            - ``draw``, ``weight``;
+            - ``elpd``: leave-one-out log predictive density of the outcome
+              (``elpd.sum()`` is the model's total);
+            - ``pareto_k``: above 0.7 that edge's estimate is unreliable;
+            - ``p_win``: decided edges, the leave-one-out probability that the
+              winner beats the loser given that the interaction is decided
+              (plain Bradley-Terry); NaN for draws.
+
+            Two models fitted to the same graph compare edge by edge: the
+            difference of ``elpd`` sums, with standard error
+            ``sqrt(n) * std(elpd_1 - elpd_2)``.
+        """
+        if self._interactions is None:
+            raise ValueError("This result has no edges recorded (pickled by an older version); refit "
+                             "to cross-validate.")
+        if self._native.num_samples == 0:
+            raise ValueError("The fit has no samples.")
+        e = self._interactions
+        r = self._native.direction_loo(e["a"], e["b"], e["draw"], e["weight"], float(r_eff))
+        nodes = list(self._node_order)
+        return pd.DataFrame(dict(
+            winner=[nodes[i] for i in e["a"]], loser=[nodes[i] for i in e["b"]],
+            draw=np.asarray(e["draw"], dtype=bool), weight=np.asarray(e["weight"], dtype=float),
+            elpd=r["elpd"], pareto_k=r["pareto_k"], p_win=r["p_win"]))
 
     def summary_df(self, prob: float = 0.90) -> pd.DataFrame:
         """Posterior summary of network-level parameters with HDI credible intervals.
@@ -628,12 +763,14 @@ class Result:
         return dict(self._native.summary())
 
     def __getstate__(self) -> dict:
-        return {"native": self._native, "node_order": self._node_order, "config": self._config}
+        return {"native": self._native, "node_order": self._node_order, "config": self._config,
+                "interactions": self._interactions}
 
     def __setstate__(self, state: dict) -> None:
         self._native = state["native"]
         self._node_order = state["node_order"]
         self._config = state["config"]
+        self._interactions = state.get("interactions")   # absent in results pickled by 0.5
 
     def __repr__(self) -> str:
         s = dict(self._native.summary())  # bypass DeprecationWarning
@@ -786,23 +923,9 @@ def fit(
     if not isinstance(G, nx.Graph):
         raise TypeError("G must be a networkx.Graph")
 
-    _check_input_validity(
-        G=G,
-        group_attribute=config.group_attribute,
-        hierarchy_attribute=config.hierarchy_attribute,
-        groups_model=config.groups_model,
-        hierarchy_model=config.hierarchy_model,
-        interaction=config.interaction,
-        assortative=config.assortative,
-        mixing_variation=config.mixing_variation,
-        variation_in=config.variation_in,
-        variation_out=config.variation_out,
-        degree_correction=config.degree_correction,
-        individual_depth=config.individual_depth,
-        group_depth=config.group_depth,
-        ties_parameter=config.ties_parameter,
-        num_groups=config.num_groups,
-        weighted_SBM=config.weighted_SBM,
+    _check_fit_arguments(
+        G,
+        num_groups=None if config.num_groups is _UNSET else config.num_groups,
         initial_partition=initial_partition,
         initial_scores=initial_scores,
         initial_individual_depth=initial_individual_depth,
@@ -816,9 +939,8 @@ def fit(
         thinning=thinning,
         beta=beta,
         num_tempering_chains=num_tempering_chains,
-        no_cache=no_cache,
         timeout=timeout,
-        verbose=show_progress,
+        show_progress=show_progress,
     )
     for name, val in (("source_high_rank", source_high_rank),
                       ("merge_split_enabled", merge_split_enabled),
@@ -830,7 +952,7 @@ def fit(
     if initial_scores is not None:
         initial_scores = [float(v) for v in initial_scores]
 
-    node_group_list, _, node_score_list = _get_node_data(
+    node_group_list, node_score_list = _get_node_data(
         G,
         group_attribute=config.group_attribute,
         hierarchy_attribute=config.hierarchy_attribute,
@@ -850,102 +972,47 @@ def fit(
         initial_scores = node_score_list
         scores_fixed = True
 
-    # Resolve an omitted hierarchy model from the data: ties are modelled only
-    # when the graph has neutral edges.  Without one, ties are not an outcome
-    # the data could record, so plain Bradley-Terry (ties_parameter fixed at 0)
-    # is the right model, not a tie rate fitted to "no ties seen".
-    hierarchy_model = config.hierarchy_model
-    if hierarchy_model is _UNSET:
-        has_neutral = any(d.get("type") == "neutral" for _, _, d in G.edges(data=True))
-        hierarchy_model = "bradley_terry_ties" if has_neutral else "bradley_terry"
-        if config.ties_parameter is not _UNSET and config.ties_parameter not in (0, 0.0):
-            raise ValueError(
-                f"ties_parameter={config.ties_parameter!r} was given, but G has no "
-                "neutral edges, so hierarchy_model resolves to 'bradley_terry', which "
-                "fixes ties_parameter at 0. Pass hierarchy_model='bradley_terry_ties' "
-                "to fit a draw rate anyway."
-            )
+    # The interactions, summed into wins and draws in G's node order (C++ core,
+    # src/interactions.h).
+    node_order = tuple(G.nodes())
+    index = {node: i for i, node in enumerate(node_order)}
+    interactions = _build_interactions(
+        len(node_order), *_edges(G, index, integer_weights=not config.weighted_SBM),
+        source_high_rank=source_high_rank)
 
-    # Split edges into wins / ties graphs, in G's node order.
-    G_wins = nx.DiGraph()
-    G_ties = nx.Graph()
-    G_wins.add_nodes_from(G.nodes(data=True))
-    G_ties.add_nodes_from(G.nodes(data=True))
-    for u, v, d in G.edges(data=True):
-        w = d.get("weight", 1.0)
-        if d.get("type") == "neutral":
-            if G_ties.has_edge(u, v):
-                G_ties[u][v]["weight"] += w
-            else:
-                G_ties.add_edge(u, v, weight=w)
-        else:
-            winner, loser = (u, v) if source_high_rank else (v, u)
-            if G_wins.has_edge(winner, loser):
-                G_wins[winner][loser]["weight"] += w
-            else:
-                G_wins.add_edge(winner, loser, weight=w)
+    # The model's parameters from the presets and the explicit values (C++ core).
+    # An unset hierarchy_model models draws only when the graph has neutral edges:
+    # without one, ties are not an outcome the data could record.
+    _check_model_for_graph(config, interactions.has_neutral, len(node_order))
+    model = _resolve_model(**config._model_choice(), has_neutral=interactions.has_neutral)
 
-    # Resolve model parameters
-    (
-        assortative,
-        mixing_variation,
-        variation_in,
-        variation_out,
-        degree_correction,
-        individual_depth,
-        group_depth,
-        ties_parameter,
-        num_groups,
-    ) = _set_model_parameters(
-        config.groups_model,
-        hierarchy_model,
-        config.interaction,
-        config.assortative,
-        config.mixing_variation,
-        config.variation_in,
-        config.variation_out,
-        config.degree_correction,
-        config.individual_depth,
-        config.group_depth,
-        config.ties_parameter,
-        config.num_groups,
-    )
+    assortative = model["assortative"]
+    variation_in, variation_out = model["variation_in"], model["variation_out"]
+    degree_correction = model["degree_correction"]
+    individual_depth, group_depth = model["individual_depth"], model["group_depth"]
+    ties_parameter, num_groups = model["ties_parameter"], model["num_groups"]
 
     if seed is None:
         seed = int(np.random.randint(0, 1_000_000))
     seed = int(seed)
 
-    node_order = tuple(G.nodes())
-
-    # Two-layer mode: validate and convert group_graph to an adjacency list
-    # indexed with the same node ordering as G.
+    # Two-layer mode: the group layer as an adjacency list in G's node order.
     if group_graph is not None:
-        _check_group_graph(G, group_graph)
-        group_adj = get_neighbors(group_graph, node_order=list(node_order))
+        group_adj = _build_group_layer(len(node_order), *_group_graph_edges(G, group_graph, index))
     else:
         group_adj = []  # empty -> single-layer mode in C++
 
-    # Generate initial state if not provided
+    # An empty initial_partition / initial_scores asks the C++ core for the default
+    # starting state (greedy modularity; win fractions), the same in every binding.
+    # Given scores that are not fixed start sigma_I at their RMS (also in C++).
     if initial_partition is None:
-        initial_partition = _gen_initial_partition(
-            G_wins, G_ties, num_groups, group_graph=group_graph, node_order=node_order
-        )
+        initial_partition = []
     if initial_scores is None:
-        initial_scores = _gen_initial_scores(G_wins, G_ties)
-    elif not scores_fixed:
-        # Start sigma_I at the RMS of the user-provided scores, so it is on the scale
-        # of the scores, which are used as given.  individual_depth remains free.
-        scores_arr = np.asarray(initial_scores, dtype=float)
-        src_rms = float(np.sqrt(np.mean(scores_arr ** 2)))
-        if src_rms > 1e-6 and initial_individual_depth is None and individual_depth is None:
-            initial_individual_depth = src_rms
-
-    wins_adj = get_neighbors(G_wins)
-    ties_adj = get_neighbors(G_ties)
+        initial_scores = []
 
     native_result = _fit_backend(
-        wins=wins_adj,
-        ties=ties_adj,
+        wins=interactions.wins,
+        ties=interactions.ties,
         group_adj=group_adj,
         initial_partition=list(initial_partition),
         partition_fixed=bool(partition_fixed),
@@ -1006,78 +1073,6 @@ def fit(
                 stacklevel=2,
             )
 
-    return Result(native_result, node_order, config)
-
-
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
-
-def _gen_initial_partition(
-    G_wins: nx.DiGraph, G_ties: nx.Graph, num_groups, seed: int = 0,
-    group_graph: Optional[nx.Graph] = None, node_order=None,
-) -> list:
-    """Greedy-modularity starting partition, as a list in ``node_order``
-    (default: the node order of ``G_wins``, which is that of ``G``)."""
-    if node_order is None:
-        node_order = list(G_wins.nodes())
-    G_undirected = nx.Graph()
-    G_undirected.add_nodes_from(node_order)
-    if group_graph is not None:
-        G_undirected.add_edges_from((u, v) for u, v in group_graph.edges())
-    else:
-        G_undirected.add_edges_from(G_wins.edges())
-        G_undirected.add_edges_from(G_ties.edges())
-
-    if num_groups is not None:
-        communities = list(nx.community.greedy_modularity_communities(
-            G_undirected, cutoff=num_groups, best_n=num_groups
-        ))
-    else:
-        communities = list(nx.community.greedy_modularity_communities(G_undirected))
-        # Merge communities smaller than 5% of N into their best-connected neighbour.
-        # Greedy modularity tends to over-partition (resolution limit), producing many
-        # small satellites around the dominant communities.  Absorbing them gives the
-        # MCMC a much smaller number of groups to work with during burn-in.
-        N = G_undirected.number_of_nodes()
-        min_size = max(2, int(N * 0.05))
-        node_to_comm = {n: ci for ci, comm in enumerate(communities) for n in comm}
-        changed = True
-        while changed:
-            changed = False
-            new_comms = list(communities)
-            for ci, comm in enumerate(new_comms):
-                if len(comm) < min_size:
-                    edge_counts: dict = {}
-                    for n in comm:
-                        for nbr in G_undirected.neighbors(n):
-                            cj = node_to_comm[nbr]
-                            if cj != ci:
-                                edge_counts[cj] = edge_counts.get(cj, 0) + 1
-                    if not edge_counts:
-                        continue
-                    best = max(edge_counts, key=lambda k: edge_counts[k])
-                    new_comms[best] = frozenset(new_comms[best] | frozenset(comm))
-                    new_comms[ci] = frozenset()
-                    node_to_comm.update({n: best for n in comm})
-                    changed = True
-            communities = [c for c in new_comms if len(c) > 0]
-            node_to_comm = {n: ci for ci, comm in enumerate(communities) for n in comm}
-
-    node_to_index = {node: i for i, node in enumerate(node_order)}
-    partition = [0] * len(node_order)
-    for i, community in enumerate(communities):
-        for node in community:
-            partition[node_to_index[node]] = i
-    return partition
-
-
-def _gen_initial_scores(G_wins: nx.DiGraph, G_ties: nx.Graph) -> list:
-    node_to_index = {node: i for i, node in enumerate(G_wins.nodes())}
-    scores = [0.0] * G_wins.number_of_nodes()
-    for node in G_wins.nodes():
-        wins = G_wins.out_degree(node)
-        losses = G_wins.in_degree(node)
-        ties = G_ties.degree(node)
-        scores[node_to_index[node]] = (wins - losses) / (wins + losses + ties + 1e-6)
-    return scores
+    edges = {"a": interactions.a, "b": interactions.b, "draw": interactions.draw,
+             "weight": interactions.weight}
+    return Result(native_result, node_order, config, edges)

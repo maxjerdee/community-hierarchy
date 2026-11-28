@@ -17,12 +17,6 @@ public:
     // Adjacency rows are kept SORTED by node id: they are summed over, and an
     // unordered_map's iteration order differs between standard libraries, which
     // makes a seeded run diverge between the native and wasm builds (see rng.h).
-    using AdjacencyRow = std::vector<std::pair<int, double>>;
-    static const double* find_edge(const AdjacencyRow& row, int j) {
-        const auto it = std::lower_bound(row.begin(), row.end(), j,
-            [](const std::pair<int, double>& e, int key) { return e.first < key; });
-        return (it != row.end() && it->first == j) ? &it->second : nullptr;
-    }
     // wins/ties: directed and neutral edges (adjacency maps).  group_adj: optional separate
     // undirected graph that drives the community structure (two-layer mode; empty = use
     // wins + ties).  *_fixed flags exclude a variable from the moves.  density_*_initial < 0
@@ -169,18 +163,7 @@ public:
     double density_in; // Typical density of in-group edges
     double density_out; // Typical density of out-group edges
     
-    /* Extra variables */
-    // Execution time trackers, filled only while the global `timing` is true (profiling)
-    double time_H_k = 0.0;
-    double time_H_M = 0.0;
-    double time_H_A_G_k_M_b = 0.0;
-    double time_params = 0.0;
-    
-    // Proposal timing trackers
-    double time_single_site_proposals = 0.0; // Cumulative time for single-site proposals
-    double time_parameter_proposals = 0.0; // Cumulative time for parameter proposals
-
-    // Proposal tracking
+    // Proposal counts (attempted / accepted)
     int single_site_proposals = 0; // Total number of single-site proposals attempted
     int accepted_single_site_proposals = 0; // Total number of single-site proposals accepted
     int merge_proposals = 0;                // Merge proposals attempted
@@ -193,19 +176,10 @@ public:
     int accepted_score_proposals = 0; // Total number of score proposals accepted
     int group_score_proposals = 0; // Total number of group-score-shift proposals attempted
     int accepted_group_score_proposals = 0; // Total number of group-score-shift proposals accepted
-    int parameter_proposals = 0; // Total number of parameter proposals attempted
-    int degree_correction_proposals = 0; // Total number of degree correction proposals attempted
-    int accepted_degree_correction_proposals = 0; // Total number of degree correction proposals
-    int variation_in_proposals = 0; // Total number of variation_in proposals attempted
-    int accepted_variation_in_proposals = 0; // Total number of variation_in proposals
-    int variation_out_proposals = 0; // Total number of variation_out proposals attempted
-    int accepted_variation_out_proposals = 0; // Total number of variation_out proposals
     int individual_depth_proposals = 0; // Total number of individual_depth proposals attempted
     int accepted_individual_depth_proposals = 0; // Total number of individual_depth proposals
     int group_depth_proposals = 0; // Total number of group_depth proposals attempted
     int accepted_group_depth_proposals = 0; // Total number of group_depth proposals accepted
-    int ties_parameter_proposals = 0; // Total number of ties_parameter proposals attempted
-    int accepted_ties_parameter_proposals = 0; // Total number of ties_parameter proposals
     int new_group_proposals = 0;          // single-node moves to a new group (q -> q+1)
     int accepted_new_group_proposals = 0;
     int vacate_proposals = 0;             // single-node moves of a singleton (q -> q-1)

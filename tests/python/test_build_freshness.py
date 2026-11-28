@@ -12,12 +12,11 @@ against), and they never fail for a reason other than staleness.
 
 from __future__ import annotations
 
-import os
 import pathlib
 
 import pytest
 
-import community_hierarchy
+import community_hierarchy  # noqa: F401  (fails early if the package is not installed)
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 # Each artifact is compared against the sources IT is built from: the Python

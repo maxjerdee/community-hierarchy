@@ -2,6 +2,11 @@
 #include "globals.h"
 #include "fit.h"
 #include "fit_result.h"
+#include "diagnostics.h"
+#include "initial_state.h"
+#include "interactions.h"
+#include "loo.h"
+#include "model_presets.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
@@ -12,6 +17,7 @@
 #include <csignal>
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <mutex>
 #include <optional>
 #include <sstream>
@@ -97,6 +103,8 @@ public:
         fill("two_layer_mode",    [](const SampleState& s){ return s.two_layer_mode; });
         fill("weighted_SBM",      [](const SampleState& s){ return s.weighted_SBM; });
         fill("H_W",               [](const SampleState& s){ return s.H_W; });
+        fill("sigma_T",           [](const SampleState& s){ return sigma_T(s); });
+        fill("ICC",               [](const SampleState& s){ return icc(s); });
         fill("chain_id",          [](const SampleState& s){ return s.chain_id; });
         fill("beta",              [](const SampleState& s){ return s.beta; });
 
@@ -225,6 +233,70 @@ public:
 // ---------------------------------------------------------------------------
 
 PYBIND11_MODULE(MCMC_core, m) {
+    // The default starting state of a fit (src/initial_state.h, src/modularity.h); fit_backend uses
+    // them when initial_partition / initial_scores are empty.
+    // The interactions of a fit from the edges of G (src/interactions.h).
+    py::class_<Interactions>(m, "Interactions", py::module_local())
+        .def_readonly("wins", &Interactions::wins)
+        .def_readonly("ties", &Interactions::ties)
+        .def_readonly("a", &Interactions::a)
+        .def_readonly("b", &Interactions::b)
+        .def_readonly("draw", &Interactions::draw)
+        .def_readonly("weight", &Interactions::weight)
+        .def_readonly("has_neutral", &Interactions::has_neutral);
+    m.def("build_interactions", &build_interactions, py::arg("num_nodes"), py::arg("source"),
+          py::arg("target"), py::arg("draw"), py::arg("weight"), py::arg("source_high_rank"));
+    m.def("build_group_layer", &build_group_layer, py::arg("num_nodes"), py::arg("a"),
+          py::arg("b"), py::arg("weight"));
+    m.def("sort_groups_by_score", &FitResult::sort_groups_by_score, py::arg("partition"),
+          py::arg("score_means"),
+          "Relabel groups 0..K-1 in increasing order of their mean score.");
+    m.def("psis", [](std::vector<double> log_ratios, double r_eff) {
+              auto r = psis(std::move(log_ratios), r_eff);
+              return py::make_tuple(r.log_weights, r.pareto_k);
+          },
+          py::arg("log_ratios"), py::arg("r_eff") = 1.0,
+          "Pareto-smoothed importance sampling (src/loo.h): (log_weights, pareto_k).");
+    m.def("greedy_modularity_partition", &greedy_modularity_partition,
+          py::arg("wins"), py::arg("ties"), py::arg("group_adj"), py::arg("num_groups") = py::none(),
+          "Greedy modularity starting partition (Clauset-Newman-Moore), labels by size.");
+    // Model presets (src/model_presets.h), for a choice the caller has checked.
+    // given: the explicit settings, None = infer.
+    auto choice = [](std::string groups_model, std::string hierarchy_model, std::string interaction,
+                     std::string mixing_variation, int assortative, bool degree_correction,
+                     std::map<std::string, std::optional<double>> given) {
+        ModelChoice c;
+        c.groups_model = std::move(groups_model);
+        c.hierarchy_model = std::move(hierarchy_model);
+        c.interaction = std::move(interaction);
+        c.mixing_variation = std::move(mixing_variation);
+        c.assortative = assortative;
+        c.degree_correction = degree_correction;
+        c.given = std::move(given);
+        return c;
+    };
+    m.def("resolve_model",
+          [choice](std::string g, std::string h, std::string i, std::string mv, int a, bool dc,
+                   std::map<std::string, std::optional<double>> given, bool has_neutral) {
+              const ResolvedModel r = resolve_model(choice(g, h, i, mv, a, dc, given), has_neutral);
+              py::dict d;
+              d["hierarchy_model"] = r.hierarchy_model;
+              d["assortative"] = r.assortative;
+              d["variation_in"] = r.variation_in;
+              d["variation_out"] = r.variation_out;
+              d["degree_correction"] = r.degree_correction;
+              d["individual_depth"] = r.individual_depth;
+              d["group_depth"] = r.group_depth;
+              d["ties_parameter"] = r.ties_parameter;
+              d["num_groups"] = r.num_groups;
+              return d;
+          },
+          py::arg("groups_model"), py::arg("hierarchy_model"), py::arg("interaction"),
+          py::arg("mixing_variation"), py::arg("assortative"), py::arg("degree_correction"),
+          py::arg("given"), py::arg("has_neutral"));
+    m.def("win_fraction_scores", &win_fraction_scores, py::arg("wins"), py::arg("ties"),
+          "(wins - losses) / (wins + losses + draws + 1e-6) over distinct opponents.");
+
     // Merge/split tuning dials.  Auxiliary variables: they change the proposal
     // distribution and hence the acceptance rate, never the target (see
     // src/MCMC_merge_split.cpp).  Exposed for experiments, not part of the API.
@@ -350,13 +422,6 @@ PYBIND11_MODULE(MCMC_core, m) {
            .def_readonly("accepted_new_group_proposals",   &MCMC::accepted_new_group_proposals)
            .def_readonly("vacate_proposals",               &MCMC::vacate_proposals)
            .def_readonly("accepted_vacate_proposals",      &MCMC::accepted_vacate_proposals)
-           // time_*: profiling counters, filled only when the global `timing` flag is
-           // set at compile time (globals.cpp); 0 otherwise.
-           .def_readonly("time_H_k",                    &MCMC::time_H_k)
-           .def_readonly("time_H_M",                    &MCMC::time_H_M)
-           .def_readonly("time_H_A_G_k_M_b",            &MCMC::time_H_A_G_k_M_b)
-           .def_readonly("time_single_site_proposals",   &MCMC::time_single_site_proposals)
-           .def_readonly("time_parameter_proposals",     &MCMC::time_parameter_proposals)
            .def("MCMC_sweep", &MCMC::MCMC_sweep,
                 py::arg("beta") = 1.0,
                 py::arg("num_sweeps") = 1,
@@ -406,6 +471,36 @@ PYBIND11_MODULE(MCMC_core, m) {
         .def("parameter_stds",      &FitResultNative::parameter_stds)
         .def("direction_probabilities", &FitResultNative::direction_probabilities,
              py::arg("node_a"), py::arg("node_b"), py::arg("ties_allowed") = true)
+        .def("direction_loo", [](const FitResultNative& self, std::vector<int> a, std::vector<int> b,
+                                 std::vector<bool> draw, std::vector<double> weight, double r_eff) {
+                 auto r = direction_loo(self, a, b, draw, weight, r_eff);
+                 py::dict d;
+                 d["elpd"] = r.elpd;
+                 d["pareto_k"] = r.pareto_k;
+                 d["p_win"] = r.p_win;
+                 return d;
+             },
+             py::arg("a"), py::arg("b"), py::arg("draw"), py::arg("weight"), py::arg("r_eff") = 1.0,
+             "Leave-one-out cross-validation of the edge directions (src/loo.h).")
+        .def("diagnostics", [](const FitResultNative& self) {
+                 auto r = network_diagnostics(self);
+                 py::dict d;
+                 d["quantity"] = r.quantity;
+                 d["ess_bulk"] = r.ess_bulk;
+                 d["ess_tail"] = r.ess_tail;
+                 d["rhat"] = r.rhat;
+                 return d;
+             },
+             "ESS and R-hat of the network-level parameters and H_A_b (src/diagnostics.h).")
+        .def("score_diagnostics", [](const FitResultNative& self, bool relative) {
+                 auto r = score_diagnostics(self, relative);
+                 py::dict d;
+                 d["ess_bulk"] = r.ess_bulk;
+                 d["ess_tail"] = r.ess_tail;
+                 d["rhat"] = r.rhat;
+                 return d;
+             },
+             py::arg("relative"), "ESS and R-hat of each node's score (src/diagnostics.h).")
         .def("network_properties",   &FitResultNative::network_properties_dict,
              py::arg("prob") = 0.90)
         .def("node_properties",     &FitResultNative::node_properties_dict,

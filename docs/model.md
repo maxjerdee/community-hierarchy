@@ -62,11 +62,13 @@ Any of them can be fixed through {class}`~community_hierarchy.Config`.
 
 | `groups_model` | Mixing variation (in / out) | `assortative` |
 |---|---|---|
-| `"general_ASBM"` (default) | both inferred | `True` |
+| `"traditional_SBM"` (default) | 0.5 / 0.5 | `False` |
+| `"general_ASBM"` | both inferred | `True` |
 | `"hybrid_ASBM"` | 0.5 / 0 | `True` |
 | `"simple_ASBM"` | 0.5 / 0.5 | `True` |
 | `"planted_partition"` | 0 / 0 | `True` |
-| `"traditional_SBM"` | 0.5 / 0.5 | `False` |
+
+The default is the standard degree-corrected SBM: one density shared by all group pairs. The assortative presets give edges within and between groups separate densities (0.5.0 and earlier defaulted to `"general_ASBM"`).
 
 - **Mixing variation.** It controls how unequal the edge densities may be across group pairs, within groups ("in") and between them ("out").
   - 0 means all equal.

@@ -4,14 +4,11 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
-#include <iostream>
-#include <numeric>
 #include <stdexcept>
 #include <vector>
 
 #include "globals.h"
 #include "helpers.h"
-#include "MCMC_core.h" // Include full definition of MCMC
 
 // log C(a, b) = lgamma(a + 1) - lgamma(b + 1) - lgamma(a - b + 1), for real a, b.
 double log_binom(double a, double b) {
@@ -112,23 +109,24 @@ double log_neg_binom(int x, double mean, double concentration) {
          x * std::log(mean) - (concentration_used + x) * std::log(concentration_used + mean);
 }
 
-// Overflow protected version of log(e^a + e^b)
-double log_sum_exp(double a, double b) {
-  double a_b_max = std::max(a, b);
-  return a_b_max + std::log(std::exp(a - a_b_max) + std::exp(b - a_b_max));
-}
-
-// Overflow protected version of log(\sum exp(x_i))
-double log_sum_exp(std::vector<double> xs) {
+// Overflow protected version of log(\sum exp(x_i)); -inf for no terms or all -inf.
+double log_sum_exp(const std::vector<double>& xs) {
   if (xs.size() == 0) {
     return -std::numeric_limits<double>::infinity();
   }
   double xs_max = *std::max_element(xs.begin(), xs.end());
+  if (!std::isfinite(xs_max)) return xs_max;
   double result = 0;
   for (double x : xs) {
     result += std::exp(x - xs_max);
   }
   return xs_max + std::log(result);
+}
+
+double davidson_log_z(double s_a, double s_b, double log_nu) {
+  const double t = davidson_log_tie(s_a, s_b, log_nu);
+  const double mx = std::max(std::max(s_a, s_b), t);
+  return mx + std::log(std::exp(s_a - mx) + std::exp(s_b - mx) + std::exp(t - mx));
 }
 
 double concentration_to_variation(double concentration) {
@@ -380,33 +378,3 @@ double value_check(double actual, double bookkeeping, double tolerance, bool thr
   }
   return actual;
 }
-
-void print(std::vector<std::vector<int>> table) {
-  for (size_t i = 0; i < table.size(); i++) {
-    for (size_t j = 0; j < table[0].size(); j++) {
-      std::cout << table[i][j] << ' ';
-    }
-    std::cout << "\n";
-  }
-}
-void print(std::vector<std::vector<double>> table) {
-  for (size_t i = 0; i < table.size(); i++) {
-    for (size_t j = 0; j < table[0].size(); j++) {
-      std::cout << table[i][j] << ' ';
-    }
-    std::cout << "\n";
-  }
-}
-void print(std::vector<int> vec) {
-  for (size_t n = 0; n < vec.size(); ++n)
-    std::cout << vec[n] << ' ';
-  std::cout << '\n';
-}
-void print(std::vector<double> vec) {
-  for (size_t n = 0; n < vec.size(); ++n)
-    std::cout << vec[n] << ' ';
-  std::cout << '\n';
-}
-void print(int val) { std::cout << val << std::endl; }
-void print(double val) { std::cout << val << std::endl; }
-void print(std::string val) { std::cout << val << std::endl; }

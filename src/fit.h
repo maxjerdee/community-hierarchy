@@ -17,6 +17,9 @@ struct FitParams {
     bool weighted_SBM = false;
     bool weighted_proposals = false;  // weighted_SBM only: true = block-informed proposals follow the weights (experimental)
 
+    // Empty = the default starting state (initial_state.h): greedy modularity, and
+    // win fractions.  Given scores that are not fixed also set the starting sigma_I
+    // to their RMS, unless individual_depth(_init) is set.
     std::vector<int>    initial_partition;
     bool                partition_fixed   = false;
     std::vector<double> initial_scores;

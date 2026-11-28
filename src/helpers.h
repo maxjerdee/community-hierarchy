@@ -6,8 +6,6 @@
 #include <string>
 #include <vector>
 
-class MCMC;
-
 /* Math */
 // Logarithm of the binomial coefficient
 double log_binom(double a, double b);
@@ -24,8 +22,19 @@ double log_factorial2(int n);
 double log_neg_binom(int x, double mean, double concentration);
 
 // Overflow protected version of log(e^a + e^b) for precomputing log_q_vals
-double log_sum_exp(double a, double b);
-double log_sum_exp(std::vector<double> xs);
+double log_sum_exp(const std::vector<double>& xs);
+
+// Outcomes of an interaction between a and b, scores s_a and s_b, in Davidson's
+// (1970, J. Am. Stat. Assoc. 65:317) extension of Bradley-Terry to draws:
+//     P(a beats b) = e^{s_a} / Z,   P(draw) = nu e^{(s_a + s_b)/2} / Z,
+//     Z = e^{s_a} + e^{s_b} + nu e^{(s_a + s_b)/2}.
+// With log_nu = log(nu) (-inf for nu = 0, plain Bradley-Terry):
+//     log P(a beats b) = s_a - davidson_log_z(...),
+//     log P(draw)      = davidson_log_tie(...) - davidson_log_z(...).
+inline double davidson_log_tie(double s_a, double s_b, double log_nu) {
+  return log_nu + s_a / 2.0 + s_b / 2.0;
+}
+double davidson_log_z(double s_a, double s_b, double log_nu);
 
 // Value consistency check: with throw_error, throw if
 // |actual - bookkeeping| > tolerance + NUMERICAL_CHECK_REL_TOL * |actual| (or NaN);
@@ -65,12 +74,5 @@ double gaussian_inv_cdf(double p, double mu, double sigma);
 double gaussian_proposal(double a, double mu, double sigma, double move_sigma);
 
 /* Printing functions */
-void print(std::vector<std::vector<int>> table);
-void print(std::vector<std::vector<double>> table);
-void print(std::vector<int> vec);
-void print(std::vector<double> vec);
-void print(int val);
-void print(double val);
-void print(std::string val);
 
 #endif // HELPERS_H

@@ -29,7 +29,13 @@ set(DS_CORE_SOURCES
     src/MCMC_bookkeeping.cpp
     src/helpers.cpp
     src/globals.cpp
-    src/fit_result.cpp)
+    src/diagnostics.cpp
+    src/fit_result.cpp
+    src/initial_state.cpp
+    src/interactions.cpp
+    src/loo.cpp
+    src/model_presets.cpp
+    src/modularity.cpp)
 
 # Build a reusable core library so other language bindings can link against it
 add_library(community_hierarchy_core STATIC ${DS_CORE_SOURCES})

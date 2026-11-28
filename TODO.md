@@ -20,4 +20,4 @@ development notes they came from.  Known sampler issues are listed under
 
 ## Packaging
 
-- An R wrapper.
+- R package (`R-package/`): register on R-universe, then submit to CRAN.

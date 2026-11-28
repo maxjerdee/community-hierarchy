@@ -45,6 +45,22 @@ struct NodePropertiesResult {
     std::vector<double> group_score_mean;
 };
 
+// sigma_T = sqrt(sigma_G^2 + sigma_I^2), the spread of the scores, and
+// ICC = sigma_G^2 / sigma_T^2, the share of it that the groups explain (0 if
+// sigma_T = 0).
+double sigma_T(const SampleState& s);
+double icc(const SampleState& s);
+
+// The network-level parameters of a sample, in display order: the nine sampled
+// ones, then sigma_T and ICC.  The rows of network_properties() and
+// network_diagnostics() (diagnostics.h), and the columns the bindings add to
+// their sample tables.
+struct NetworkParameter {
+    const char* name;
+    double (*get)(const SampleState&);
+};
+const std::vector<NetworkParameter>& network_parameters();
+
 class FitResult {
 public:
     FitResult() = default;

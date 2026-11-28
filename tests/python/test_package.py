@@ -34,7 +34,7 @@ def test_version():
 
 def test_config_defaults():
     config = Config()
-    assert config.groups_model == "general_ASBM"
+    assert config.groups_model == "traditional_SBM"
     assert config.interaction == "coupled"
 
 
@@ -129,7 +129,6 @@ def test_result_samples_df_shape(small_result):
 
 def test_result_mdl_value(small_result):
     result = small_result
-    G = _small_graph()
     assert isinstance(result.mdl_value, float)
     df = result.samples_df()
     total_dl = df["H_A_b"] + df["H_Adir_G_A_s_nu"] + df["H_s_G_b_depths"]
@@ -165,7 +164,6 @@ def test_result_score_stds_shape(small_result):
 
 def test_result_parameter_df_params(small_result):
     result = small_result
-    G = _small_graph()
     with pytest.warns(DeprecationWarning, match="network_properties_df"):
         net_df = result.parameter_df
     expected = {
@@ -208,7 +206,6 @@ def test_result_coincidence_matrix_shape(small_result):
 
 def test_result_summary_keys(small_result):
     result = small_result
-    G = _small_graph()
     with pytest.warns(DeprecationWarning, match="mdl_value"):
         s = result.summary
     assert "num_samples" in s
@@ -224,7 +221,6 @@ def test_result_summary_keys(small_result):
 
 def test_result_network_properties_df_columns(small_result):
     result = small_result
-    G = _small_graph()
     npdf = result.network_properties_df()
     assert list(npdf.columns) == ["parameter", "mean", "std", "hdi_lo", "hdi_hi"]
     params = set(npdf["parameter"])
@@ -277,7 +273,6 @@ def test_result_node_properties_df_columns(small_result):
 
 def test_result_node_properties_df_partition_modes(small_result):
     result = small_result
-    G = _small_graph()
     df_auto = result.node_properties_df(partition="auto")
     df_mdl  = result.node_properties_df(partition="mdl")
     df_cons = result.node_properties_df(partition="consensus")
@@ -308,7 +303,6 @@ def test_result_node_properties_df_auto_large_warns(monkeypatch):
 
 def test_result_node_properties_df_invalid_partition(small_result):
     result = small_result
-    G = _small_graph()
     with pytest.raises(Exception):  # C++ raises for unknown mode string
         result.node_properties_df(partition="bogus")
 
@@ -333,7 +327,6 @@ def _triangle_graph() -> nx.DiGraph:
 
 def _make_fake_native_result(G):
     """Return a minimal fake native result for monkeypatching _fit_backend."""
-    import community_hierarchy.MCMC_core as _nc
     # Use a real tiny fit so we have a valid native object to introspect
     # but capture the kwargs passed to it.
     pass  # implemented inline below
@@ -647,7 +640,6 @@ def test_prior_q_uniform():
     ties = [{} for _ in range(n)]
     vi = _c2v(1.0)
     expected_mean = (n + 1) / 2.0   # 4.5 for n=8
-    q_vals = np.arange(1, n + 1)
 
     def _make_state():
         return native.MCMC(

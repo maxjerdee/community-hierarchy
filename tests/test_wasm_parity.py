@@ -176,6 +176,8 @@ class TestParameterDraws:
             "sweeps_per_sample": 0,
             "samples": 1,
             "assortative": True,
+            "variation_in": -1,     # inferred: general_ASBM
+            "variation_out": -1,
             "merge_split_enabled": False,
         })["samples"][0]
 
@@ -184,7 +186,7 @@ class TestParameterDraws:
         import community_hierarchy as ch
         G = _build_nx_graph()
         result = ch.fit(
-            ch.Config(), G,
+            ch.Config(groups_model="general_ASBM"), G,
             num_samples=1, seed=SEED,
             burn_sweeps=0, sweeps_per_sample=0,
             merge_split_enabled=False,
@@ -246,6 +248,8 @@ class TestInitialDLParity:
         sweeps_per_sample=0,
         samples=1,
         assortative=True,
+        variation_in=-1,      # inferred: general_ASBM
+        variation_out=-1,
         merge_split_enabled=False,
     )
 
@@ -255,7 +259,7 @@ class TestInitialDLParity:
         import community_hierarchy as ch
         G = _build_nx_graph()
         result = ch.fit(
-            ch.Config(), G,
+            ch.Config(groups_model="general_ASBM"), G,
             num_samples=1, seed=SEED,
             burn_sweeps=0, sweeps_per_sample=0,
             merge_split_enabled=False,
@@ -325,7 +329,7 @@ class TestConvergence:
         import community_hierarchy as ch
         G = _build_nx_graph()
         return ch.fit(
-            ch.Config(), G,
+            ch.Config(groups_model="general_ASBM"), G,
             num_samples=10, seed=SEED,
             burn_sweeps=50, sweeps_per_sample=1,
             merge_split_enabled=True,
@@ -344,6 +348,8 @@ class TestConvergence:
             "samples": 10,
             "sweeps_per_sample": 1,
             "assortative": True,
+            "variation_in": -1,     # inferred: general_ASBM
+            "variation_out": -1,
             "merge_split_enabled": True,
         })
 
@@ -401,7 +407,7 @@ class TestConvergenceMultiSweep(TestConvergence):
         import community_hierarchy as ch
         G = _build_nx_graph()
         return ch.fit(
-            ch.Config(), G,
+            ch.Config(groups_model="general_ASBM"), G,
             num_samples=10, seed=SEED,
             burn_sweeps=20, sweeps_per_sample=3,
             merge_split_enabled=True,
@@ -416,6 +422,8 @@ class TestConvergenceMultiSweep(TestConvergence):
             "samples": 10,
             "sweeps_per_sample": 3,
             "assortative": True,
+            "variation_in": -1,     # inferred: general_ASBM
+            "variation_out": -1,
             "merge_split_enabled": True,
         })
 
@@ -441,7 +449,7 @@ class TestIndependentCoupling:
         import community_hierarchy as ch
         G = _build_nx_graph()
         return ch.fit(
-            ch.Config(interaction="independent"), G,
+            ch.Config(groups_model="general_ASBM", interaction="independent"), G,
             num_samples=10, seed=SEED,
             burn_sweeps=50, sweeps_per_sample=1,
             merge_split_enabled=True,
@@ -456,6 +464,8 @@ class TestIndependentCoupling:
             "samples": 10,
             "sweeps_per_sample": 1,
             "assortative": True,
+            "variation_in": -1,     # inferred: general_ASBM
+            "variation_out": -1,
             "merge_split_enabled": True,
             "independent_coupling": 1,
         })

@@ -10,7 +10,29 @@ from __future__ import annotations
 
 import numpy
 import pandas
-__all__: list[str] = ['FitResult', 'MCMC', 'fit_backend', 'get_equal_spend_c', 'get_individual_depth_centred_prob', 'get_merge_split_weight', 'get_prestage_mode', 'get_staging_sweeps', 'set_equal_spend_c', 'set_individual_depth_centred_prob', 'set_individual_depth_scale_move', 'set_merge_split_weight', 'set_prestage_mode', 'set_staging_sweeps']
+__all__: list[str] = ['FitResult', 'Interactions', 'MCMC', 'build_group_layer', 'build_interactions', 'fit_backend', 'get_equal_spend_c', 'get_individual_depth_centred_prob', 'get_merge_split_weight', 'get_prestage_mode', 'get_staging_sweeps', 'greedy_modularity_partition', 'psis', 'resolve_model', 'set_equal_spend_c', 'set_individual_depth_centred_prob', 'set_individual_depth_scale_move', 'set_merge_split_weight', 'set_prestage_mode', 'set_staging_sweeps', 'sort_groups_by_score', 'win_fraction_scores']
+class Interactions:
+    @property
+    def a(self) -> list[int]:
+        ...
+    @property
+    def b(self) -> list[int]:
+        ...
+    @property
+    def draw(self) -> list[bool]:
+        ...
+    @property
+    def has_neutral(self) -> bool:
+        ...
+    @property
+    def ties(self) -> list[dict[int, float]]:
+        ...
+    @property
+    def weight(self) -> list[float]:
+        ...
+    @property
+    def wins(self) -> list[dict[int, float]]:
+        ...
 class MCMC:
     adapting: bool
     weighted_proposals: bool
@@ -170,22 +192,6 @@ class MCMC:
     def ties_parameter(self) -> float:
         ...
     @property
-    def time_H_A_G_k_M_b(self) -> float:
-        """Profiling counter (as are the other time_* fields): filled only when the
-        core is compiled with the global ``timing`` flag set, 0 otherwise."""
-    @property
-    def time_H_M(self) -> float:
-        ...
-    @property
-    def time_H_k(self) -> float:
-        ...
-    @property
-    def time_parameter_proposals(self) -> float:
-        ...
-    @property
-    def time_single_site_proposals(self) -> float:
-        ...
-    @property
     def vacate_proposals(self) -> int:
         ...
     @property
@@ -208,6 +214,18 @@ class FitResult:
         ...
     def consensus_sample_indices(self, min_samples: int = 1000) -> list[int]:
         ...
+    def diagnostics(self) -> dict:
+        """
+        ESS and R-hat of the network-level parameters and H_A_b (src/diagnostics.h).
+        """
+    def direction_loo(self, a: list[int], b: list[int], draw: list[bool], weight: list[float], r_eff: float = 1.0) -> dict:
+        """
+        Leave-one-out cross-validation of the edge directions (src/loo.h).
+        """
+    def score_diagnostics(self, relative: bool) -> dict:
+        """
+        ESS and R-hat of each node's score (src/diagnostics.h).
+        """
     def direction_probabilities(self, node_a: int, node_b: int, ties_allowed: bool = True) -> list[float]:
         ...
     def mdl_partition(self) -> list[int]:
@@ -238,6 +256,10 @@ class FitResult:
     @property
     def num_samples(self) -> int:
         ...
+def build_group_layer(num_nodes: int, a: list[int], b: list[int], weight: list[float]) -> list[dict[int, float]]:
+    ...
+def build_interactions(num_nodes: int, source: list[int], target: list[int], draw: list[bool], weight: list[float], source_high_rank: bool) -> Interactions:
+    ...
 def fit_backend(wins: list[dict[int, float]], ties: list[dict[int, float]], *, group_adj: list[dict[int, float]] = [], initial_partition: list[int], partition_fixed: bool = False, initial_scores: list[float], scores_fixed: bool = False, assortative: bool = True, variation_in: float | None = None, variation_out: float | None = None, degree_correction: float | None = None, individual_depth: float | None = None, initial_individual_depth: float | None = None, group_depth: float | None = None, initial_group_depth: float | None = None, ties_parameter: float | None = None, num_groups: int | None = None, num_groups_fixed: bool = False, num_chains: int = 1, samples_per_chain: int = 1000, sweeps_per_sample: int = 10, burn_sweeps: int = 500, param_warmup_sweeps: int = 0, thinning: int = 1, beta: float = 1.0, num_tempering_chains: int = 1, merge_split_enabled: bool = True, seed: int = 0, timeout: float = 60.0, show_progress: bool = False, weighted_SBM: bool = False, weighted_proposals: bool = False) -> FitResult:
     ...
 def get_equal_spend_c() -> float:
@@ -249,6 +271,16 @@ def get_merge_split_weight() -> float:
 def get_prestage_mode() -> int:
     ...
 def get_staging_sweeps() -> int:
+    ...
+def greedy_modularity_partition(wins: list[dict[int, float]], ties: list[dict[int, float]], group_adj: list[dict[int, float]], num_groups: int | None = None) -> list[int]:
+    """
+    Greedy modularity starting partition (Clauset-Newman-Moore), labels by size.
+    """
+def psis(log_ratios: list[float], r_eff: float = 1.0) -> tuple:
+    """
+    Pareto-smoothed importance sampling (src/loo.h): (log_weights, pareto_k).
+    """
+def resolve_model(groups_model: str, hierarchy_model: str, interaction: str, mixing_variation: str, assortative: int, degree_correction: bool, given: dict[str, float | None], has_neutral: bool) -> dict:
     ...
 def set_equal_spend_c(c: float) -> None:
     """
@@ -273,4 +305,12 @@ def set_prestage_mode(mode: int) -> None:
 def set_staging_sweeps(M: int) -> None:
     """
     Gibbs sweeps used to refine a staged split (Peixoto's M)
+    """
+def sort_groups_by_score(partition: list[int], score_means: list[float]) -> list[int]:
+    """
+    Relabel groups 0..K-1 in increasing order of their mean score.
+    """
+def win_fraction_scores(wins: list[dict[int, float]], ties: list[dict[int, float]]) -> list[float]:
+    """
+    (wins - losses) / (wins + losses + draws + 1e-6) over distinct opponents.
     """

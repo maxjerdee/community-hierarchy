@@ -1,11 +1,5 @@
 #include "globals.h"
 
-bool verbose = false;
-
-bool timing = false;  // profiling only: see globals.h
-thread_local std::chrono::high_resolution_clock::time_point start_time, end_time;
-thread_local double duration = 0.0;
-
 // Default-constructed: every MCMC constructor seeds it (MCMC_core.cpp).
 thread_local std::mt19937 rng;
 

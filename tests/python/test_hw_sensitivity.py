@@ -3,7 +3,7 @@ Test that H_W actually varies when the partition changes on a weighted graph.
 Checks the Mathematica fixture directly (multigraph case: M_01=3, H_W=4.8926),
 then verifies that H_W changes when a node is moved between groups.
 """
-import math, pytest
+import math
 import community_hierarchy.MCMC_core as native
 
 
@@ -91,7 +91,6 @@ def test_HW_changes_with_partition():
 
     # Analytical Peixoto for [0,1,1]: group 0 = {0}, group 1 = {1,2}
     # μ_00=0, μ_01 = w01+w02, μ_11 = w12; M_00=0, M_01=2 (binary), M_11=2
-    K = 3; w = w_total
     # [0,0,1]: M_00=1 (0 contrib), M_01=2 → log(w02+w12), M_11=0
     peix_a = math.log(w02+w12)
     # [0,1,1]: M_00=0, M_01=2 → log(w01+w02), M_11=1 (0 contrib)

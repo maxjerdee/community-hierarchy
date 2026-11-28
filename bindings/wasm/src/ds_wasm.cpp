@@ -11,20 +11,19 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <iomanip>
 #include <memory>
-#include <numeric>
+#include <optional>
 #include <random>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include "MCMC_core.h"
 #include "fit_result.h"
 #include "globals.h"
+#include "initial_state.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
@@ -32,128 +31,6 @@
 #else
 #define DS_EXPORT extern "C"
 #endif
-
-// ---------------------------------------------------------------------------
-// greedy_modularity_partition — Clauset-Newman-Moore algorithm on the
-// undirected projection of wins+ties, matching Python's
-// nx.community.greedy_modularity_communities + small-community merging.
-// The result gives the same starting communities as Python's _gen_initial_partition
-// (when num_groups is None), so MCMC starts in the same basin as community_hierarchy.fit().
-// ---------------------------------------------------------------------------
-static std::vector<int> greedy_modularity_partition(
-    const std::vector<std::unordered_map<int, double>>& wins_adj,
-    const std::vector<std::unordered_map<int, double>>& ties_adj,
-    int n)
-{
-    if (n == 0) return {};
-
-    // Build undirected adjacency (unweighted, as Python treats all edges equally)
-    std::vector<std::unordered_set<int>> G(static_cast<std::size_t>(n));
-    for (int i = 0; i < n; ++i) {
-        for (auto& [j, w] : wins_adj[static_cast<std::size_t>(i)]) {
-            G[static_cast<std::size_t>(i)].insert(j);
-            G[static_cast<std::size_t>(j)].insert(i);
-        }
-    }
-    for (int i = 0; i < n; ++i) {
-        for (auto& [j, w] : ties_adj[static_cast<std::size_t>(i)]) {
-            if (j > i) {
-                G[static_cast<std::size_t>(i)].insert(j);
-                G[static_cast<std::size_t>(j)].insert(i);
-            }
-        }
-    }
-
-    double m = 0.0;
-    for (int i = 0; i < n; ++i) m += static_cast<double>(G[static_cast<std::size_t>(i)].size());
-    m /= 2.0;
-    if (m == 0.0) {
-        // No edges: each node is its own community
-        std::vector<int> p(static_cast<std::size_t>(n));
-        std::iota(p.begin(), p.end(), 0);
-        return p;
-    }
-
-    // e[ci][cj] = (# edges between community ci and cj) / (2m)
-    // a[ci]     = degree[ci] / (2m)
-    // Initially each node is its own community labelled by its index.
-    std::unordered_map<int, std::unordered_map<int, double>> e;
-    std::unordered_map<int, double> a;
-    e.reserve(static_cast<std::size_t>(n));
-    a.reserve(static_cast<std::size_t>(n));
-    for (int i = 0; i < n; ++i) {
-        a[i] = static_cast<double>(G[static_cast<std::size_t>(i)].size()) / (2.0 * m);
-        for (int j : G[static_cast<std::size_t>(i)])
-            e[i][j] = 1.0 / (2.0 * m);
-    }
-
-    std::vector<int> comm(static_cast<std::size_t>(n));
-    std::iota(comm.begin(), comm.end(), 0);
-
-    // merge_into: fold community cj into ci.
-    auto merge_into = [&](int ci, int cj) {
-        for (auto& [k, ekj] : e[cj]) {
-            if (k == ci || k == cj) continue;
-            e[ci][k] += ekj;
-            e[k][ci] += ekj;
-            e[k].erase(cj);
-        }
-        e[ci].erase(cj);
-        e.erase(cj);
-        a[ci] += a[cj];
-        a.erase(cj);
-        for (int i = 0; i < n; ++i)
-            if (comm[static_cast<std::size_t>(i)] == cj)
-                comm[static_cast<std::size_t>(i)] = ci;
-    };
-
-    // Greedily merge the pair with maximum ΔQ = 2*(e_ij - a_i * a_j) > 0.
-    while (e.size() > 1) {
-        double best_dq = 0.0;
-        int best_ci = -1, best_cj = -1;
-        for (auto& [ci, row] : e) {
-            double ai = a.at(ci);
-            for (auto& [cj, eij] : row) {
-                if (cj <= ci) continue;
-                double dq = 2.0 * (eij - ai * a.at(cj));
-                if (dq > best_dq) { best_dq = dq; best_ci = ci; best_cj = cj; }
-            }
-        }
-        if (best_ci == -1) break;
-        merge_into(best_ci, best_cj);
-    }
-
-    // Merge communities smaller than 5% of N into their best-connected neighbour,
-    // matching Python's _gen_initial_partition small-community merging.
-    const int min_size = std::max(2, n / 20);
-    bool changed = true;
-    while (changed) {
-        changed = false;
-        std::unordered_map<int, int> sizes;
-        for (int c : comm) sizes[c]++;
-        for (auto& [ci, sz] : sizes) {
-            if (sz < min_size && e.count(ci)) {
-                int best_nbr = -1;
-                double best_w = -1.0;
-                for (auto& [cj, eij] : e.at(ci)) {
-                    if (eij > best_w) { best_w = eij; best_nbr = cj; }
-                }
-                if (best_nbr != -1) {
-                    merge_into(best_nbr, ci);
-                    changed = true;
-                    break;
-                }
-            }
-        }
-    }
-
-    // Compact labels to 0..K-1.
-    std::unordered_map<int, int> lbl;
-    for (int c : comm) if (!lbl.count(c)) lbl[c] = static_cast<int>(lbl.size());
-    std::vector<int> partition(static_cast<std::size_t>(n));
-    for (int i = 0; i < n; ++i) partition[static_cast<std::size_t>(i)] = lbl.at(comm[static_cast<std::size_t>(i)]);
-    return partition;
-}
 
 namespace {
 
@@ -311,8 +188,8 @@ DS_EXPORT const char* ds_last_error() { return last_error.c_str(); }
 // wins_weight / ties_weight may be null (1.0 per edge); weights must be finite
 // and positive.  initial_partition / initial_scores may be null; if given they
 // must have length num_nodes, and the partition must use every label 0..K-1.
-// num_groups <= 0: K comes from the initial partition (greedy modularity when
-// none is given; min(n, 5) score quantiles if that finds a single group).
+// num_groups <= 0 or not fixed: K comes from the initial partition (the greedy
+// modularity start of initial_state.h when none is given).
 DS_EXPORT int ds_session_create(
     int num_nodes,
     const int* wins_from, const int* wins_to, const double* wins_weight, int num_wins,
@@ -409,14 +286,14 @@ DS_EXPORT int ds_session_create(
 
         // ---------------------------------------------------------------
         // Initial scores — mirrors community_hierarchy.fit() (core.py):
-        //   - no scores given: generate win-rate scores (_gen_initial_scores)
+        //   - no scores given: win fractions (win_fraction_scores, initial_state.h)
         //   - scores given: used as given; if their RMS is > 1e-6 it is the
         //     initial individual_depth (id_init), else id is drawn
         // id_init > 0 means we skip the init_rng draw for individual_depth (as
         // fit.cpp does when p.individual_depth_init.has_value() == true).
         // ---------------------------------------------------------------
         std::vector<double> scores;
-        double id_init = -1.0;  // -1 = draw id from unif01 below
+        double id_init = -1.0;  // -1 = draw id from init_rng below
         if (initial_scores) {
             scores.assign(initial_scores, initial_scores + initial_scores_length);
             double sum_sq = 0.0;
@@ -424,98 +301,45 @@ DS_EXPORT int ds_session_create(
             double rms = std::sqrt(sum_sq / static_cast<double>(scores.size()));
             if (rms > 1e-6) id_init = rms;  // initial individual_depth = score RMS
         } else {
-            // Generate win-rate scores from the adjacency, matching Python's
-            // _gen_initial_scores: score[i] = (wins - losses) / (wins + losses + ties + eps)
-            // Match Python's _gen_initial_scores: count distinct opponents
-            // (out_degree / in_degree / degree), not sum of edge weights.
-            scores.resize(static_cast<std::size_t>(num_nodes), 0.0);
-            std::vector<double> losses_deg(static_cast<std::size_t>(num_nodes), 0.0);
-            for (int i = 0; i < num_nodes; ++i)
-                for (auto& [j, w] : wins_adj[static_cast<std::size_t>(i)])
-                    losses_deg[static_cast<std::size_t>(j)] += 1.0;
-            for (int i = 0; i < num_nodes; ++i) {
-                double w = static_cast<double>(wins_adj[static_cast<std::size_t>(i)].size());
-                double t = static_cast<double>(ties_adj[static_cast<std::size_t>(i)].size());
-                scores[static_cast<std::size_t>(i)] =
-                    (w - losses_deg[static_cast<std::size_t>(i)]) /
-                    (w + losses_deg[static_cast<std::size_t>(i)] + t + 1e-6);
-            }
+            // The default starting scores of every binding (initial_state.h).
+            scores = win_fraction_scores(wins_adj, ties_adj);
         }
 
         // ---------------------------------------------------------------
-        // Initial partition — if not provided, run greedy modularity on the
-        // undirected projection of wins+ties, matching Python's
-        // _gen_initial_partition (Clauset-Newman-Moore + small-community merging).
-        // This places MCMC in the same basin as community_hierarchy.fit(), giving
-        // comparable community counts and description-length trajectories.
+        // Initial partition: the default of every binding (initial_state.h),
+        // greedy modularity, with num_groups groups when they are fixed.
         // ---------------------------------------------------------------
-        int ng = (num_groups > 0) ? num_groups : std::min(num_nodes, 5);
         std::vector<int> partition;
         if (initial_partition) {
             partition.assign(initial_partition, initial_partition + initial_partition_length);
-            int max_g = *std::max_element(partition.begin(), partition.end());
-            if (!num_groups_fixed) ng = max_g + 1;
         } else {
-            partition = greedy_modularity_partition(wins_adj, ties_adj, num_nodes);
-            int K_gm = partition.empty() ? 1 :
-                       *std::max_element(partition.begin(), partition.end()) + 1;
-
-            if (K_gm > 1 && !num_groups_fixed) {
-                // Greedy found real community structure — use its K.
-                ng = K_gm;
-            } else if (K_gm > ng) {
-                // num_groups_fixed: map greedy labels into [0, ng) via modulo.
-                for (int& g : partition) g = g % ng;
-            } else if (K_gm < ng) {
-                // Greedy collapsed (e.g. complete graph) or K_gm < requested ng.
-                // Fall back to score-sorted quantile with ng groups so the
-                // partition has the right number of labels for MCMC.
-                std::vector<int> order(static_cast<std::size_t>(num_nodes));
-                std::iota(order.begin(), order.end(), 0);
-                // Stable so equal scores preserve node-index order,
-                // giving a predictable sequential split when scores are flat.
-                std::stable_sort(order.begin(), order.end(),
-                                 [&](int a, int b) { return scores[a] < scores[b]; });
-                for (int r = 0; r < num_nodes; ++r)
-                    partition[static_cast<std::size_t>(order[r])] = r * ng / num_nodes;
-            }
-            // K_gm == ng && num_groups_fixed: partition is already correct.
+            std::optional<int> k;
+            if (num_groups_fixed && num_groups > 0) k = num_groups;
+            partition = greedy_modularity_partition(wins_adj, ties_adj, {}, k);
         }
+        int ng = *std::max_element(partition.begin(), partition.end()) + 1;
+        if (num_groups_fixed && num_groups > 0) ng = num_groups;
 
         // ---------------------------------------------------------------
         // Seed and draw continuous parameters — exactly as fit.cpp does for
         // a single chain (chain_id = 0):
         //   rng.seed(seed)                           — shared move generator
         //   init_rng = mt19937_64(seed * 2654435761) — parameter initializer
-        //   vi, vo ~ unif01(init_rng)
-        //   dc = 0.5 (fixed — p.degree_correction.has_value() == true, BUT
+        //   vi, vo ~ next_uniform(init_rng)
+        //   dc = 0.5 (fixed -- p.degree_correction.has_value() == true, BUT
         //              C++ evaluates value_or's argument eagerly, so fit.cpp
         //              always consumes one draw for dc even when it's fixed.
         //              We must do the same to keep subsequent draws aligned.)
-        //   id ~ unif01(init_rng) OR id_init (when score normalization set it,
+        //   id ~ next_uniform(init_rng) OR id_init (when score normalization set it,
         //              matching p.individual_depth_init.has_value() == true)
-        //   gd, tp ~ unif01(init_rng)
-        //
-        // IMPORTANT: do NOT use std::uniform_real_distribution<double> with
-        // mt19937_64 here.  mt19937_64::max() - mt19937_64::min() + 1 == 2^64,
-        // which overflows uint64_t to 0.  libstdc++ (Python) handles this by
-        // doing one generator draw; libc++ (Emscripten / WASM) falls into a
-        // different branch and consumes two draws per call.  The mismatch shifts
-        // every subsequent draw and makes Python and WASM start from different
-        // parameter states even with the same seed.
-        //
-        // Fix: extract the double directly.  For a 64-bit generator the
-        // canonical libstdc++ formula is: result = raw_value * (1 / 2^64).
-        // This is exactly one draw and produces the same value as Python.
+        //   gd, tp ~ next_uniform(init_rng)
+        // next_uniform (rng.h), not std::uniform_real_distribution, whose draws
+        // differ between libstdc++ and libc++.
         // ---------------------------------------------------------------
         rng.seed(static_cast<std::mt19937::result_type>(seed));
         std::mt19937_64 init_rng(static_cast<std::uint64_t>(seed) * 2654435761ULL);
-        // Matches libstdc++ generate_canonical with 1 draw from mt19937_64.
-        auto unif01 = [](std::mt19937_64& g) -> double {
-            return static_cast<double>(g()) * (1.0 / 18446744073709551616.0);
-        };
-        double vi = unif01(init_rng);
-        double vo = unif01(init_rng);
+        double vi = next_uniform(init_rng);
+        double vo = next_uniform(init_rng);
         // A fixed mixing variation (>= 0) replaces the drawn start and is not
         // sampled -- the model presets (simple 0.5/0.5, hybrid 0.5/0, planted
         // 0/0, traditional 0.5/0.5), as Python's Config sets them. Negative:
@@ -525,10 +349,10 @@ DS_EXPORT int ds_session_create(
         const bool vo_fixed = variation_out_fixed_value >= 0.0;
         if (vi_fixed) vi = variation_in_fixed_value;
         if (vo_fixed) vo = variation_out_fixed_value;
-        (void)unif01(init_rng);  // mirrors fit.cpp: degree_correction.value_or(unif01) is eager
+        (void)next_uniform(init_rng);  // mirrors fit.cpp: degree_correction.value_or(next_uniform(...)) is eager
         // degree_correction_mode: 0 = fixed at 0 (no DC), 1 = fixed at 0.5 (default)
         const double dc = (degree_correction_mode == 0) ? 0.0 : 0.5;
-        double id = (id_init > 0.0) ? id_init : unif01(init_rng);
+        double id = (id_init > 0.0) ? id_init : next_uniform(init_rng);
         // independent_coupling: when set, group_depth is fixed at 0.0 (hierarchy
         // decoupled from communities — mirrors Python Config(interaction='independent')).
         //
@@ -537,8 +361,8 @@ DS_EXPORT int ds_session_create(
         // So independent mode consumes NO draw for gd, and tp becomes draw5 instead of draw6.
         // Coupled mode (no explicit group_depth) consumes draw5 → gd, draw6 → tp.
         const bool gd_fixed = independent_coupling != 0;
-        double gd = gd_fixed ? 0.0 : unif01(init_rng);
-        double tp = unif01(init_rng);   // drawn regardless, as fit.cpp's value_or does
+        double gd = gd_fixed ? 0.0 : next_uniform(init_rng);
+        double tp = next_uniform(init_rng);   // drawn regardless, as fit.cpp's value_or does
         // No neutral edges: ties are not an outcome the data could record, so the
         // model is plain Bradley-Terry with ties_parameter fixed at 0 -- what the
         // Python front end resolves an omitted hierarchy_model to (core.fit). It
@@ -560,7 +384,7 @@ DS_EXPORT int ds_session_create(
             vo, /*variation_out_fixed=*/vo_fixed,
             dc, /*degree_correction_fixed=*/true,
             id, /*individual_depth_fixed=*/false,
-            gd_fixed ? 0.0 : gd, /*group_depth_fixed=*/gd_fixed,
+            gd, /*group_depth_fixed=*/gd_fixed,
             tp, /*ties_parameter_fixed=*/ties_fixed,
             /*seed=*/-1,          // rng already seeded above
             /*density_in_initial=*/-1.0,
@@ -692,7 +516,7 @@ DS_EXPORT const char* ds_session_best(int handle) {
 }
 
 // Freezes the result and returns it as JSON.
-// Call ds_session_scores and ds_session_coincidence after this.
+// Call ds_session_coincidence after this.
 DS_EXPORT const char* ds_session_finish(int handle, int cancelled) {
     DsSession* sess = get(handle);
     if (!sess) return nullptr;
@@ -706,31 +530,6 @@ DS_EXPORT const char* ds_session_finish(int handle, int cancelled) {
         last_error = e.what();
     } catch (...) {
         last_error = "unknown C++ exception in ds_session_finish";
-    }
-    return nullptr;
-}
-
-// {"score_means":[...],"score_stds":[...]} — requires ds_session_finish first.
-DS_EXPORT const char* ds_session_scores(int handle) {
-    DsSession* sess = get(handle);
-    if (!sess) return nullptr;
-    if (!sess->result) {
-        last_error = "call ds_session_finish before ds_session_scores";
-        return nullptr;
-    }
-    try {
-        std::ostringstream s;
-        s << "{\"score_means\":";
-        double_array(s, sess->result->score_means());
-        s << ",\"score_stds\":";
-        double_array(s, sess->result->score_stds());
-        s << '}';
-        sess->text = s.str();
-        return sess->text.c_str();
-    } catch (const std::exception& e) {
-        last_error = e.what();
-    } catch (...) {
-        last_error = "unknown C++ exception in ds_session_scores";
     }
     return nullptr;
 }
@@ -761,22 +560,3 @@ DS_EXPORT int ds_session_coincidence(int handle, double* out) {
 }
 
 DS_EXPORT void ds_session_free(int handle) { sessions().erase(handle); }
-
-// Debug: return the first n values from mt19937_64 seeded with seed*2654435761.
-// Used to verify that init_rng produces the same sequence as Python's libstdc++.
-DS_EXPORT const char* ds_debug_rng64(int seed_int, int count) {
-    try {
-        std::mt19937_64 g(static_cast<std::uint64_t>(seed_int) * 2654435761ULL);
-        std::ostringstream os;
-        os << '[';
-        for (int i = 0; i < count; ++i) {
-            if (i) os << ',';
-            // Same formula as the unif01 lambda in ds_session_create
-            os << std::setprecision(17) << static_cast<double>(g()) * (1.0 / 18446744073709551616.0);
-        }
-        os << ']';
-        static std::string buf;
-        buf = os.str();
-        return buf.c_str();
-    } catch (...) { return "[]"; }
-}

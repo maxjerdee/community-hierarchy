@@ -1,5 +1,6 @@
 #include "fit.h"
 #include "globals.h"
+#include "initial_state.h"
 #include "rng.h"
 
 #include <algorithm>
@@ -13,6 +14,20 @@
 
 FitResult fit(FitParams p) {
     int n = static_cast<int>(p.wins.size());
+    // Default starting state, the same for every binding (initial_state.h).
+    if (p.initial_partition.empty())
+        p.initial_partition = greedy_modularity_partition(p.wins, p.ties, p.group_adj,
+                                                          p.num_groups);
+    if (p.initial_scores.empty()) {
+        p.initial_scores = win_fraction_scores(p.wins, p.ties);
+    } else if (!p.scores_fixed && !p.individual_depth && !p.individual_depth_init) {
+        // Given scores are used as given: start sigma_I at their RMS, on their scale
+        // (it remains free).
+        double ss = 0.0;
+        for (double x : p.initial_scores) ss += x * x;
+        const double rms = p.initial_scores.empty() ? 0.0 : std::sqrt(ss / p.initial_scores.size());
+        if (rms > 1e-6) p.individual_depth_init = rms;
+    }
     int initial_num_groups = *std::max_element(p.initial_partition.begin(),
                                                p.initial_partition.end()) + 1;
     const int total_samples = p.num_chains * p.samples_per_chain;

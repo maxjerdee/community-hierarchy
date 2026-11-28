@@ -86,7 +86,7 @@ errors found by the core (a self-loop, a bad `initialPartition`) reject
 | `degree_correction_mode` | 1 | 1: degree correction (fixed at 0.5, a uniform prior over degree sequences); 0: none |
 | `weighted_sbm` | 0 | 1: real-valued weights, uniform simplex prior (the H_W term) |
 | `independent_coupling` | 0 | 1: `group_depth` fixed at 0 (scores independent of the groups) |
-| `variation_in`, `variation_out` | -1 | Fixed mixing variation in [0, 1]; negative = inferred |
+| `variation_in`, `variation_out` | 0.5 | Fixed mixing variation in [0, 1]; negative = inferred. With `assortative: false`, the default is the degree-corrected SBM (`traditional_SBM`) |
 | `merge_split_enabled` | true | Collective merge/split moves |
 | `burn_sweeps` | 1000 | Burn-in, in units of `sweeps_per_sample` sweeps |
 | `samples` | 1000 | Samples to record |
@@ -106,7 +106,6 @@ defaults differ:
 | | Python `fit(Config(), G, ...)` | wasm `m.fit(wins, ties, options)` |
 |---|---|---|
 | input | NetworkX graph; direction read via `source_high_rank` | edge lists; a win `[u, v]` always means u beats v |
-| `assortative` | True (`general_ASBM` preset) | **false** |
 | burn-in | `burn_sweeps=500` | **`burn_sweeps: 1000`** |
 | sweeps per sample | `sweeps_per_sample=10` | **`sweeps_per_sample: 1`** |
 | seed | random | **0** |

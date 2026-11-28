@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import warnings
 
 import networkx as nx
 import numpy as np
@@ -323,7 +324,9 @@ def test_consensus_thinning_floor_and_ess():
     idx = r._native.consensus_sample_indices(50)
     assert idx == sorted(set(idx)) and idx[0] == 0
     try:
-        import arviz as az
+        with warnings.catch_warnings():         # ArviZ announces its refactor on import
+            warnings.simplefilter("ignore", FutureWarning)
+            import arviz as az
     except ImportError:
         return
     df = r.samples_df()
@@ -440,28 +443,33 @@ def test_numpy_partition_labels_and_seed_are_accepted():
 
 
 def test_initial_partition_in_two_layer_mode_follows_G_node_order():
-    from community_hierarchy.core import _gen_initial_partition
+    from community_hierarchy.MCMC_core import build_group_layer, greedy_modularity_partition
+    from community_hierarchy.input_output import _group_graph_edges
 
-    G_wins = nx.DiGraph()
-    G_wins.add_nodes_from(range(8))
     group_graph = nx.Graph()
     group_graph.add_nodes_from([0, 4, 1, 5, 2, 6, 3, 7])          # a different order
     group_graph.add_edges_from([(i, j) for i in range(4) for j in range(i + 1, 4)])
     group_graph.add_edges_from([(i, j) for i in range(4, 8) for j in range(i + 1, 8)])
     group_graph.add_edge(3, 4)
-    p = _gen_initial_partition(G_wins, nx.Graph(), None, group_graph=group_graph,
-                               node_order=list(G_wins.nodes()))
+    G = nx.DiGraph()
+    G.add_nodes_from(range(8))
+    group_adj = build_group_layer(8, *_group_graph_edges(G, group_graph, {i: i for i in range(8)}))
+    p = greedy_modularity_partition([{}] * 8, [{}] * 8, group_adj)
     assert len(set(p[:4])) == 1 and len(set(p[4:])) == 1 and p[0] != p[4]
 
 
 def test_multigraph_group_graph_sums_parallel_edges():
-    from community_hierarchy.input_output import get_neighbors
+    from community_hierarchy.MCMC_core import build_group_layer
+    from community_hierarchy.input_output import _group_graph_edges
 
     gg = nx.MultiGraph()
     gg.add_edge(0, 1, weight=2.0)
     gg.add_edge(0, 1, weight=3.0)
     gg.add_edge(1, 2)
-    assert get_neighbors(gg) == [{1: 5.0}, {0: 5.0, 2: 1.0}, {1: 1.0}]
+    G = nx.DiGraph()
+    G.add_nodes_from(range(3))
+    adj = build_group_layer(3, *_group_graph_edges(G, gg, {0: 0, 1: 1, 2: 2}))
+    assert adj == [{1: 5.0}, {0: 5.0, 2: 1.0}, {1: 1.0}]
 
 
 def test_write_gml_uses_network_properties(tmp_path):

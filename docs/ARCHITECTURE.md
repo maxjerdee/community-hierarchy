@@ -8,14 +8,18 @@ the sampler.
 
 | layer | files | role |
 |---|---|---|
-| Python API | `python/community_hierarchy/src/community_hierarchy/core.py` | `Config` (model presets), `fit()`, `Result` (summaries, plots) |
-| input handling | `.../input_output.py` | input validation, model presets → parameters (`_set_model_parameters`), GML output, plotting |
+| Python API | `python/community_hierarchy/src/community_hierarchy/core.py` | `Config`, `fit()`, `Result` (summaries, plots) |
+| input handling | `.../input_output.py` | input validation, GML output, plotting |
+| R API | `R-package/` | `ch_config()`, `ch_fit()`, summaries; a copy of `src/` (`tools/sync_r_core.py`) |
 | binding | `bindings/python/bindings.cpp` | pybind11: `fit_backend`, `FitResult`, and the raw `MCMC` class |
+| model presets | `src/model_presets.{h,cpp}` | named presets + explicit values → sampler parameters, and their checks (every binding) |
+| starting state | `src/initial_state.{h,cpp}`, `src/modularity.{h,cpp}` | default partition (greedy modularity, `modularity`) and scores (win fractions), used by `fit()` when none are given |
 | driver | `src/fit.{h,cpp}` | chains (threads), parallel tempering, burn-in, sampling, timeout/abort, progress callbacks |
 | model + moves | `src/MCMC_core.{h,cpp}`, `src/MCMC_proposals.cpp`, `src/MCMC_merge_split.cpp` | the state, every move, `change_parameter` |
 | energies | `src/MCMC_bookkeeping.cpp` | from-scratch computation of every term; `check_state_bookkeeping` |
 | helpers | `src/helpers.{h,cpp}`, `src/globals.{h,cpp}` | special functions, prior-CDF proposals, per-thread RNG, merge/split tuning |
 | results | `src/fit_result.{h,cpp}` | samples, consensus, coincidence matrix, summaries |
+| cross-validation | `src/loo.{h,cpp}` | PSIS (a port of ArviZ's) and leave-one-out of the edge directions (`direction_loo_df()` in Python, `direction_loo()` in R) |
 
 ## The model (the energy the sampler targets)
 
@@ -103,8 +107,11 @@ half-Cauchy(4).
   (no reseed) and share that stream.
 - Starting partition: unless `initial_partition` is given, every chain starts
   from a greedy-modularity partition of the undirected graph (small groups
-  merged into their best-connected neighbour; `_gen_initial_partition` in
-  `core.py`), which avoids starting in the slow-to-coarsen many-groups regime.
+  merged into their best-connected neighbour; `src/modularity.cpp`, the same
+  in every binding), which avoids starting in the slow-to-coarsen many-groups
+  regime. Since 0.6.0 it is computed in C++ with exact (integer) modularity
+  gains; 0.5.0 and earlier used networkx, whose order among equal gains and
+  equal-sized groups differs, so seeded fits from the default start differ.
 - `param_warmup_sweeps`: sweeps with partition and scores frozen, letting the
   continuous parameters settle first.
 - `timeout` (seconds, default 60) stops a fit early, **with fewer samples than

@@ -98,22 +98,22 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins_in,
       beta(0.0),  // Inverse temperature (set during MCMC_sweep)
       proposal_weights(),
       partition(partition),  // Copy initial partition from const reference
-      partition_fixed(partition_fixed),
-      scores(scores), // Copy initial scores from const reference
-      scores_fixed(scores_fixed),
-    variation_in(variation_in),  // Copy variation parameters (stored as values)
-    variation_out(variation_out),
-    degree_correction(degree_correction),
-    variation_in_fixed(variation_in_fixed),
-    variation_out_fixed(variation_out_fixed),
-      degree_correction_fixed(degree_correction_fixed),
+      scores(scores),  // Copy initial scores from const reference
+      variation_in(variation_in),  // Copy variation parameters (stored as values)
+      variation_out(variation_out),
+      degree_correction(degree_correction),
       individual_depth(individual_depth),
-      individual_depth_fixed(individual_depth_fixed),
       group_depth(group_depth),
-      group_depth_fixed(group_depth_fixed),
       ties_parameter(ties_parameter),
-      ties_parameter_fixed(ties_parameter_fixed),
+      partition_fixed(partition_fixed),
+      scores_fixed(scores_fixed),
+      variation_in_fixed(variation_in_fixed),
+      variation_out_fixed(variation_out_fixed),
+      degree_correction_fixed(degree_correction_fixed),
       num_groups_fixed(num_groups_fixed),
+      individual_depth_fixed(individual_depth_fixed),
+      group_depth_fixed(group_depth_fixed),
+      ties_parameter_fixed(ties_parameter_fixed),
       assortative(assortative),
       H_b(0.0),
       H_M(0.0),
@@ -122,34 +122,21 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins_in,
       H_W(0.0),
       H_A_G_b(0.0),
       H_A_b(0.0),
-      w_total(0.0),
       num_groups(num_groups),
       node_counts(),  // Will be resized and computed
       group_members(),  // group_members[r] = vector of node IDs in group r
       node_indices_in_groups(),  // node_indices_in_groups[r][node] = position in group_members[r]
       edge_counts(),  // edge_counts[r][s] = total edge weight from group r to s
       edge_counts_sum(),  // edge_counts_sum[r] = total degree of group r
-      group_score_sums(), // Sum of the scores in each group
+      w_total(0.0),
+      group_score_sums(),  // Sum of the scores in each group
       concentration_in(0.0),  // Negative binomial concentration parameters
       concentration_out(0.0),
       degree_correction_concentration(0.0),
       density_in(0.0),
       density_out(0.0),
-      time_H_k(0.0),  // Performance profiling timers
-      time_H_M(0.0),
-      time_H_A_G_k_M_b(0.0),
-      time_params(0.0),
-      time_single_site_proposals(0.0),
-      time_parameter_proposals(0.0),
       single_site_proposals(0),
-      accepted_single_site_proposals(0),
-      parameter_proposals(0),
-      degree_correction_proposals(0),
-      accepted_degree_correction_proposals(0),
-      variation_in_proposals(0),
-      accepted_variation_in_proposals(0),
-      variation_out_proposals(0),
-      accepted_variation_out_proposals(0) {
+      accepted_single_site_proposals(0) {
 
     
     // Seed random number generator for reproducibility (negative: keep the stream)
@@ -291,35 +278,6 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins_in,
         }
     }
 
-    if(verbose){
-        for(int i = 0; i < n; i++){
-            // Updating edge counts for neighbor 0 of node 96 with A_ij = 0.000000
-            print("Neighbors of node " + std::to_string(i) + ":");
-            for(const auto& edge : neighbors[i]){
-                int j = edge.first;
-                double weight = edge.second;
-                print("  Node " + std::to_string(j) + " with weight " + std::to_string(weight));
-            }
-            print("Wins of node " + std::to_string(i) + ":");
-            for(const auto& edge : wins[i]){
-                int j = edge.first;
-                double weight = edge.second;
-                print("  Wins against node " + std::to_string(j) + " with weight " + std::to_string(weight));
-            }
-            print("Ties of node " + std::to_string(i) + ":");
-            for(const auto& edge : ties[i]){
-                int j = edge.first;
-                double weight = edge.second;
-                print("  Ties with node " + std::to_string(j) + " with weight " + std::to_string(weight));
-            }
-            print("Losses of node " + std::to_string(i) + ":");
-            for(const auto& edge : losses[i]){
-                int j = edge.first;
-                double weight = edge.second;
-                print("  Loses to node " + std::to_string(j) + " with weight " + std::to_string(weight));
-            }
-        }
-    }
 
     // Block-informed proposals use binary edge counts unless the caller switches
     // weighted_proposals on afterwards (weighted_SBM only; see block_move_prob).
@@ -372,10 +330,6 @@ MCMC::MCMC(const std::vector<std::unordered_map<int, double>>& wins_in,
     }
 
     // Reset execution timers for performance profiling
-    time_H_k = 0.0;
-    time_H_M = 0.0;
-    time_H_A_G_k_M_b = 0.0;
-    time_params = 0.0;
 
     // === Initialize bookkeeping data structures ===
     // q comes from the partition (max label + 1).  The num_groups argument is
@@ -485,9 +439,6 @@ void MCMC::MCMC_sweep(double beta, int num_sweeps, bool merge_split_enabled) {
 
     for (int sweep = 0; sweep < num_sweeps; sweep++) {
         for (int i = 0; i < n; i++) {
-            if (verbose) {
-                print("MCMC sweep " + std::to_string(sweep + 1) + ", proposal " + std::to_string(i + 1) + " of " + std::to_string(n));
-            }
             propose_move();
         }
         // Group-score block: one shift per group.  Collective group-score shifts
@@ -532,11 +483,7 @@ void MCMC::MCMC_sweep(double beta, int num_sweeps, bool merge_split_enabled) {
  * @param new_value: Proposed new value
  */
 void MCMC::change_parameter(const std::string& param_name, double new_value) {
-    if(verbose){
-        print("Changing parameter " + param_name + " to " + std::to_string(new_value) + " =================================");
-    }
     if(param_name == "degree_correction"){
-        degree_correction_proposals++;
         double degree_correction_old = degree_correction;  // Store for potential rollback
         double H_k_old = H_k;  // Store old entropy component
         
@@ -550,7 +497,6 @@ void MCMC::change_parameter(const std::string& param_name, double new_value) {
         double acceptance_prob = std::exp(-beta * delta_H);
         if(uniform_random(rng) < acceptance_prob){
             // Accept: update total entropies
-            accepted_degree_correction_proposals++;
             H_A_G_b += (H_k - H_k_old);
             H_A_b += (H_k - H_k_old);
         } else {
@@ -560,7 +506,6 @@ void MCMC::change_parameter(const std::string& param_name, double new_value) {
             H_k = H_k_old;
         }
     } else if (param_name == "variation_in"){
-        variation_in_proposals++;
         double variation_in_old = variation_in;
         double H_M_old = H_M;
         
@@ -573,7 +518,6 @@ void MCMC::change_parameter(const std::string& param_name, double new_value) {
         double delta_H = H_M - H_M_old;
         double acceptance_prob = std::exp(-beta * delta_H);
         if(uniform_random(rng) < acceptance_prob){
-            accepted_variation_in_proposals++;
             H_A_G_b += (H_M - H_M_old);
             H_A_b += (H_M - H_M_old);
         } else {
@@ -583,7 +527,6 @@ void MCMC::change_parameter(const std::string& param_name, double new_value) {
             H_M = H_M_old;
         }
     } else if (param_name == "variation_out"){
-        variation_out_proposals++;
         double variation_out_old = variation_out;
         double H_M_old = H_M;
         
@@ -596,7 +539,6 @@ void MCMC::change_parameter(const std::string& param_name, double new_value) {
         double delta_H = H_M - H_M_old;
         double acceptance_prob = std::exp(-beta * delta_H);
         if(uniform_random(rng) < acceptance_prob){
-            accepted_variation_out_proposals++;
             H_A_G_b += (H_M - H_M_old);
             H_A_b += (H_M - H_M_old);
         } else {
@@ -706,7 +648,6 @@ void MCMC::change_parameter(const std::string& param_name, double new_value) {
             H_s_G_b_depths = H_s_G_b_depths_old;
         }
     } else if (param_name == "ties_parameter"){
-        ties_parameter_proposals++;
         double ties_parameter_old = ties_parameter;
         double H_Adir_G_A_s_nu_old = H_Adir_G_A_s_nu;
 
@@ -719,16 +660,12 @@ void MCMC::change_parameter(const std::string& param_name, double new_value) {
         double acceptance_prob = std::exp(-beta * delta_H);
         if(uniform_random(rng) < acceptance_prob){
             // Accept: update total entropies
-            accepted_ties_parameter_proposals++;
         } else {
             // Reject: restore old values
             ties_parameter = ties_parameter_old;
             H_Adir_G_A_s_nu = H_Adir_G_A_s_nu_old;
         }
     } else {
-        if(verbose){
-            print("Unknown parameter name: " + param_name);
-        }
     }
 }
 

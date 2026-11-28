@@ -10,8 +10,7 @@ set(DS_WASM_EXPORTS
     _ds_last_error
     _ds_session_create _ds_session_step _ds_session_progress
     _ds_session_current _ds_session_best
-    _ds_session_finish _ds_session_scores _ds_session_coincidence _ds_session_free
-    _ds_debug_rng64
+    _ds_session_finish _ds_session_coincidence _ds_session_free
     _malloc _free)
 list(JOIN DS_WASM_EXPORTS "," _exports)
 

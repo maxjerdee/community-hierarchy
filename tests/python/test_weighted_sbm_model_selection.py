@@ -28,9 +28,7 @@ All expected values are computed analytically from the formula above to avoid
 circular testing against the same implementation.
 """
 import math
-import networkx as nx
 import community_hierarchy.MCMC_core as native
-import community_hierarchy as ch
 
 
 # ---------------------------------------------------------------------------
@@ -196,16 +194,8 @@ def test_HW_mathematica_fixture_binary():
           [1, 0, 1],
           [0, 1, 0]]
     groups = [[0, 1], [2]]
-    # w_total from SW: upper-triangle sum of SW = (W01+W02+W12+0.1687)/2 ... but SW[2][2]=0.1687
-    # Actually total weight = sum of all SW / 2 (symmetric)
-    w_total = (W01 + W02 + W12 + 0.16869873063752025) / 1.0  # full upper+lower already halved by _hw_mathematica_formula
-    # Let _hw_mathematica_formula compute it internally
     result = _hw_mathematica_formula(SW, AB, groups)
-    # Reference: H(W|A,μ,b) + H(μ)
-    q = 2; npairs = 3; wt = (W01 + W02 + W12 + 0.16869873063752025)  # total weight / 1 (symmetric rows sum to 2×upper)
-    # Actually _hw_mathematica_formula computes w_total = sum(mu)/2, where mu[r][s] = sum(SW[i][j] for i in gr, j in gs)
-    # mu[0][0] = SW[0][1]+SW[1][0] = 2*W01; mu[0][1]=SW[0][2]+SW[1][2]; mu[1][0]=SW[2][0]+SW[2][1]; mu[1][1]=SW[2][2]*0?
-    # Let's just assert result > math.log(W02 + W12)  (it must include H(mu) > 0)
+    # H(W|A,mu,b) + H(mu) must exceed H(W|A,mu,b) alone, since H(mu) > 0.
     HWAb_only = math.log(W02 + W12)
     assert result > HWAb_only, f"HWGAb={result:.5f} should exceed H(W|A,μ,b)={HWAb_only:.5f}"
 

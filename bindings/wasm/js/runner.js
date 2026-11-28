@@ -113,9 +113,10 @@ export async function runFit(core, job, { onProgress, isCancelled } = {}) {
       // independent_coupling: 1 = fix group_depth at 0.0 (hierarchy decoupled from communities)
       o.independent_coupling ?? 0,
       // variation_in / variation_out: a fixed mixing variation (the model presets);
-      // omitted or negative = inferred (general_ASBM)
-      o.variation_in ?? -1,
-      o.variation_out ?? -1);
+      // negative = inferred.  Default 0.5 / 0.5 with assortative false: the
+      // degree-corrected SBM, Python's and R's default (traditional_SBM).
+      o.variation_in ?? 0.5,
+      o.variation_out ?? 0.5);
     if (!handle) throw new Error(readError(core));
 
     let chunk = 1;

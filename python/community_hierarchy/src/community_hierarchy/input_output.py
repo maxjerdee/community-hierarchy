@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 from typing import Optional, Iterable, Any
 import math
 import numbers
-import warnings
 
 import numpy as np
 
@@ -61,254 +60,87 @@ def _is_real(x: Any) -> bool:
     return isinstance(x, numbers.Real) and not isinstance(x, (bool, np.bool_))
 
 
-def _check_forced_values(hierarchy_model: Any, interaction: str,
-                         group_depth: Any, ties_parameter: Any) -> None:
-    """Raise if an explicit value contradicts one the presets force.
-
-    ``hierarchy_model="bradley_terry"`` fixes ``ties_parameter`` at 0 and
-    ``interaction="independent"`` fixes ``group_depth`` at 0 (see
-    :func:`_set_model_parameters`).  An explicit, different value (including
-    None, "infer") would otherwise be overwritten silently.
-    """
-    if hierarchy_model == "bradley_terry" and ties_parameter is not _UNSET \
-            and not (_is_real(ties_parameter) and float(ties_parameter) == 0.0):
-        raise ValueError(
-            f"hierarchy_model='bradley_terry' fixes ties_parameter at 0, but "
-            f"ties_parameter={ties_parameter!r} was given. Use "
-            "hierarchy_model='bradley_terry_ties' to model draws."
-        )
-    if interaction == "independent" and group_depth is not _UNSET \
-            and not (_is_real(group_depth) and float(group_depth) == 0.0):
-        raise ValueError(
-            f"interaction='independent' fixes group_depth at 0, but "
-            f"group_depth={group_depth!r} was given. Use interaction='coupled' "
-            "to fit group_depth."
-        )
-
-
-def _check_weight(u: Any, v: Any, data: dict, *, integer: bool, what: str = "Edge") -> None:
-    """A ``weight`` attribute must be a finite positive number (an integer
-    multiplicity unless ``integer`` is False)."""
-    if "weight" not in data:
-        return
-    w = data["weight"]
+def _edge_weight(u: Any, v: Any, data: dict, *, integer: bool, graph: str = "G") -> float:
+    """An edge's ``weight`` (1 if absent): a finite positive number, and a whole
+    number (a count of interactions) unless ``integer`` is False."""
+    w = data.get("weight", 1.0)
     if not _is_real(w):
-        raise TypeError(f"{what} ({u!r}, {v!r}) has non-numeric weight {w!r}.")
+        raise TypeError(f"Edge ({u!r}, {v!r}) of {graph} has non-numeric weight {w!r}.")
     w = float(w)
     if not math.isfinite(w) or w <= 0.0:
-        raise ValueError(f"{what} ({u!r}, {v!r}) has weight {w!r}; weights must be finite and positive.")
+        raise ValueError(f"Edge ({u!r}, {v!r}) of {graph} has weight {w!r}; weights must be "
+                         "finite and positive.")
     if integer and w != round(w):
         raise ValueError(
-            f"{what} ({u!r}, {v!r}) has weight {w!r}; without weighted_SBM a weight is a "
-            "multiplicity and must be a positive integer. Use Config(weighted_SBM=True) "
-            "for real-valued weights."
-        )
+            f"Edge ({u!r}, {v!r}) of {graph} has weight {w!r}; without weighted_SBM a weight "
+            "is a number of interactions and must be a positive integer. Use "
+            "Config(weighted_SBM=True) for real-valued weights.")
+    return w
 
 
-# Check that the arguments passed to the function are valid, if not raise an error
-def _check_input_validity(
+def _edges(G: nx.Graph, index: dict, *, integer_weights: bool) -> tuple[list, list, list, list]:
+    """The edges of G, checked, as node indices, draw flags and weights.
+
+    An edge with ``type="neutral"`` is a draw and one with ``type="dominant"`` (or no
+    type on any edge) a decided interaction; if any edge has a type, every edge
+    must.  Self-loops are an error."""
+    source, target, draw, weight = [], [], [], []
+    typed = untyped = False
+    for u, v, data in G.edges(data=True):
+        if u == v:
+            raise ValueError(
+                f"G has a self-loop at node {u!r}; self-loops are not supported (an "
+                "interaction needs two nodes). Remove them, e.g. with "
+                "G.remove_edges_from(nx.selfloop_edges(G)).")
+        if "type" in data:
+            typed = True
+            if data["type"] not in ("dominant", "neutral"):
+                raise ValueError(f"Edge ({u!r}, {v!r}) has invalid type {data['type']!r}. "
+                                 "Must be 'dominant' or 'neutral'.")
+        else:
+            untyped = True
+        if typed and untyped:
+            raise ValueError("Some edges have a 'type' and some do not; if any edge has a type "
+                             "('dominant' or 'neutral'), every edge must.")
+        source.append(index[u])
+        target.append(index[v])
+        draw.append(data.get("type") == "neutral")
+        weight.append(_edge_weight(u, v, data, integer=integer_weights))
+    return source, target, draw, weight
+
+
+def _check_fit_arguments(
     G: nx.Graph,
-    node_groups: Optional[pd.DataFrame] = None,
     *,
-    group_attribute: Optional[str] = None,
-    hierarchy_attribute: Optional[str] = None,
-    groups_model: str = "general_ASBM",
-    hierarchy_model: str = _UNSET,
-    interaction: str = "coupled",
-    assortative: bool = _UNSET,
-    mixing_variation: str = _UNSET,
-    variation_in: Optional[float] = _UNSET,
-    variation_out: Optional[float] = _UNSET,
-    degree_correction: bool = _UNSET,
-    individual_depth: Optional[float] = _UNSET,
-    group_depth: Optional[float] = _UNSET,
-    ties_parameter: Optional[float] = _UNSET,
-    num_groups: Optional[int] = _UNSET,
-    weighted_SBM: bool = False,
-    initial_partition: Optional[Iterable[int]] = None,
-    initial_scores: Optional[Iterable[float]] = None,
-    initial_individual_depth: Optional[float] = None,
-    initial_group_depth: Optional[float] = None,
-    seed: Optional[int] = None,
-    num_chains: int = 1,
-    samples_per_chain: int = 1000,
-    sweeps_per_sample: int = 10,
-    burn_sweeps: int = 500,
-    param_warmup_sweeps: int = 0,
-    thinning: int = 1,
-    beta: float = 1.0,
-    num_tempering_chains: int = 1,
-    no_cache: bool = False,
-    timeout: float = 60.0,
-    verbose: bool = True,
+    num_groups: Optional[int],
+    initial_partition: Optional[Iterable[int]],
+    initial_scores: Optional[Iterable[float]],
+    initial_individual_depth: Optional[float],
+    initial_group_depth: Optional[float],
+    seed: Optional[int],
+    num_chains: int,
+    samples_per_chain: int,
+    sweeps_per_sample: int,
+    burn_sweeps: int,
+    param_warmup_sweeps: int,
+    thinning: int,
+    beta: float,
+    num_tempering_chains: int,
+    timeout: float,
+    show_progress: bool,
 ) -> None:
-    """Validate public API inputs and raise informative errors for invalid values.
-
-    This function checks types, ranges and basic consistency for the parameters
-    documented in the public API. It intentionally performs lightweight checks
-    only (no heavy computation or graph processing).
-    """
-
-    # Graph checks
+    """Check the arguments of fit() other than the model (checked by Config and
+    core._check_model_for_graph) and the edges (checked by _edges)."""
     if not isinstance(G, nx.Graph):
-        raise TypeError("G must be a NetworkX graph object.")
+        raise TypeError("G must be a networkx.Graph")
     if not G.is_directed():
         raise TypeError(
             "G must be a directed NetworkX graph (e.g., nx.DiGraph or nx.MultiDiGraph)."
         )
-    # Check that the graph is not empty
     if G.number_of_nodes() == 0:
         raise ValueError("Graph G must have at least one node.")
 
-    # Node attribute name checks
-    for attr_name, attr_value in (
-        ("group_attribute", group_attribute),
-        ("hierarchy_attribute", hierarchy_attribute),
-    ):
-        if attr_value is not None:
-            if not isinstance(attr_value, str):
-                raise TypeError(f"{attr_name} must be a string or None.")
-            if not attr_value:
-                raise ValueError(f"{attr_name} must be a non-empty string or None.")
-
-    # Warn if group_attribute is provided alongside a non-default groups_model
-    if group_attribute is not None and groups_model != "general_ASBM":
-        warnings.warn(
-            f"group_attribute '{group_attribute}' was provided alongside groups_model '{groups_model}'. "
-            "The group_attribute will be used for model initialization, but the specified model type will still be applied. "
-            "To avoid confusion, consider using the default groups_model when providing node attributes.",
-            UserWarning,
-            stacklevel=3,
-        )
-
-    # Edges: self-loops, weights and types.  If any edge has a type, all must,
-    # and it must be "dominant" or "neutral".
-    type_found = False
-    neutral_type_found = False
-    for u, v, data in G.edges(data=True):
-        if u == v:
-            raise ValueError(
-                f"G has a self-loop at node {u!r}; self-loops are not supported "
-                "(an interaction needs two nodes). Remove them, e.g. with "
-                "G.remove_edges_from(nx.selfloop_edges(G))."
-            )
-        _check_weight(u, v, data, integer=not weighted_SBM)
-        if "type" in data:
-            type_found = True
-            edge_type = data["type"]
-            if edge_type == "neutral":
-                neutral_type_found = True
-            if edge_type not in ["dominant", "neutral"]:
-                raise ValueError(
-                    f"Edge ({u}, {v}) has invalid type '{edge_type}'. Must be 'dominant' or 'neutral'."
-                )
-
-    if type_found:
-        for u, v, data in G.edges(data=True):
-            if "type" not in data:
-                raise ValueError(
-                    f"Edge ({u}, {v}) is missing 'type' attribute while other edges have it."
-                )
-
-    # groups_model
-    valid_models = [
-        "traditional_SBM",
-        "simple_ASBM",
-        "hybrid_ASBM",
-        "planted_partition",
-        "general_ASBM",
-    ]
-    if groups_model not in valid_models:
-        raise ValueError(
-            f"Unknown groups_model '{groups_model}'. Valid options: {valid_models}"
-        )
-
-    # hierarchy_model
-    original_hierarchy_model = hierarchy_model  # Store original value before defaulting
-    if hierarchy_model is _UNSET:
-        if neutral_type_found:
-            hierarchy_model = "bradley_terry_ties"  # Default when ties are present
-        else:
-            hierarchy_model = "bradley_terry"  # Default when no ties
-
-    # Warn if hierarchy_attribute is provided alongside an explicitly-provided hierarchy_model
-    if hierarchy_attribute is not None and original_hierarchy_model is not _UNSET:
-        warnings.warn(
-            f"hierarchy_attribute '{hierarchy_attribute}' was provided alongside hierarchy_model '{original_hierarchy_model}'. "
-            "The hierarchy_attribute will be used for model initialization, but the specified model type will still be applied. "
-            "To avoid confusion, consider using the default hierarchy_model when providing node attributes.",
-            UserWarning,
-            stacklevel=3,
-        )
-
-    # Plain Bradley-Terry gives a draw probability 0: a graph with draws in it
-    # has likelihood 0 under that model, so it is an error, not a fit.
-    if hierarchy_model == "bradley_terry" and neutral_type_found:
-        raise ValueError(
-            "hierarchy_model='bradley_terry' has no draws, but G has neutral edges. "
-            "Use hierarchy_model='bradley_terry_ties' (the default when G has "
-            "neutral edges), or remove the neutral edges."
-        )
-
-    valid_hierarchy_models = ["bradley_terry", "bradley_terry_ties"]
-    if hierarchy_model not in valid_hierarchy_models:
-        raise ValueError(
-            f"Unknown hierarchy_model '{hierarchy_model}'. Valid options: {valid_hierarchy_models}"
-        )
-
-    # interaction
-    valid_interactions = ["coupled", "independent"]
-    if interaction not in valid_interactions:
-        raise ValueError(
-            f"Unknown interaction '{interaction}'. Valid options: {valid_interactions}"
-        )
-
-    # Fix the unset parameters to their defaults (to pass the type checks below)
-    if assortative is _UNSET:
-        assortative = True
-    if mixing_variation is _UNSET:
-        mixing_variation = "general"
-    if variation_in is _UNSET:
-        variation_in = None
-    if variation_out is _UNSET:
-        variation_out = None
-    if individual_depth is _UNSET:
-        individual_depth = None
-    if group_depth is _UNSET:
-        group_depth = None
-    if ties_parameter is _UNSET:
-        ties_parameter = None
-    if num_groups is _UNSET:
-        num_groups = None
-
-    # assortative
-    if not isinstance(assortative, bool):
-        raise TypeError("assortative must be a boolean.")
-
-    # mixing_variation
-    valid_mixing = ["simple", "none", "internal", "external", "general"]
-    if mixing_variation not in valid_mixing:
-        raise ValueError(f"mixing_variation must be one of {valid_mixing}")
-
-    # variation_in/out: None or 0 <= x <= 1
-    for name, val in (("variation_in", variation_in), ("variation_out", variation_out)):
-        if val is not None:
-            if not _is_real(val):
-                raise TypeError(f"{name} must be a float in [0, 1] or None.")
-            if not (0.0 <= float(val) <= 1.0):
-                raise ValueError(
-                    f"{name} must be between 0 and 1 (inclusive). Got {val}."
-                )
-
-    # degree_correction: a binary switch (the Config field is a bool)
-    if degree_correction is not _UNSET and not isinstance(degree_correction, bool):
-        raise TypeError("degree_correction must be True or False.")
-
-    # Depths and the ties parameter: None or a finite number in range
     for name, val, positive in (
-        ("individual_depth", individual_depth, True),
-        ("group_depth", group_depth, False),
-        ("ties_parameter", ties_parameter, False),
         ("initial_individual_depth", initial_individual_depth, True),
         ("initial_group_depth", initial_group_depth, False),
     ):
@@ -321,66 +153,38 @@ def _check_input_validity(
         if not positive and float(val) < 0:
             raise ValueError(f"{name} must be non-negative, got {val!r}.")
 
-    # num_groups must be positive integer if provided and not greater than number of nodes
-    if num_groups is not None:
-        if not _is_int(num_groups) or num_groups <= 0:
-            raise ValueError("num_groups must be a positive integer or None.")
-        if G is not None and num_groups > G.number_of_nodes():
-            raise ValueError(
-                "num_groups cannot be greater than the number of nodes in G."
-            )
-
-    # initial_partition: if provided, must be iterable of ints of length equal to number of nodes
+    n = G.number_of_nodes()
     if initial_partition is not None:
         try:
-            ip_list = list(initial_partition)
-        except Exception:
-            raise TypeError(
-                "initial_partition must be an iterable of integers or None."
-            )
-        if G is not None and len(ip_list) != G.number_of_nodes():
-            raise ValueError(
-                "initial_partition length must match number of nodes in G."
-            )
-        for v in ip_list:
-            if not _is_int(v) or v < 0:
-                raise ValueError(
-                    "initial_partition must contain non-negative integer labels."
-                )
-        if num_groups is not None:
-            if max(ip_list) >= num_groups:
-                raise ValueError("initial_partition contains labels >= num_groups.")
-        # Make sure that each group has at least one member
-        unique_groups = set(ip_list)
-        if len(unique_groups) < max(ip_list) + 1:
-            raise ValueError(
-                "initial_partition does not contain members for every group."
-            )
-        if num_groups is not None and len(unique_groups) < num_groups:
-            raise ValueError(
-                "initial_partition has a different number of groups than num_groups."
-            )
+            labels = list(initial_partition)
+        except TypeError:
+            raise TypeError("initial_partition must be an iterable of integers or None.")
+        if len(labels) != n:
+            raise ValueError("initial_partition length must match number of nodes in G.")
+        if not all(_is_int(v) and v >= 0 for v in labels):
+            raise ValueError("initial_partition must contain non-negative integer labels.")
+        if len(set(labels)) < max(labels) + 1:
+            raise ValueError("initial_partition does not contain members for every group.")
+        if num_groups is not None and max(labels) + 1 != num_groups:
+            raise ValueError("initial_partition has a different number of groups than num_groups.")
 
-    # initial_scores: if provided, must be iterable of floats of length equal to number of nodes
     if initial_scores is not None:
         try:
-            is_list = list(initial_scores)
-        except Exception:
+            scores = list(initial_scores)
+        except TypeError:
             raise TypeError("initial_scores must be an iterable of floats or None.")
-        if G is not None and len(is_list) != G.number_of_nodes():
+        if len(scores) != n:
             raise ValueError("initial_scores length must match number of nodes in G.")
-        for s in is_list:
-            if not _is_real(s) or not math.isfinite(float(s)):
-                raise ValueError("initial_scores must contain finite numeric values.")
+        if not all(_is_real(s) and math.isfinite(float(s)) for s in scores):
+            raise ValueError("initial_scores must contain finite numeric values.")
 
-    # seed: chain c is seeded with seed + c in a C int
+    # Chain c is seeded with seed + c in a C int.
     if seed is not None:
         if not _is_int(seed):
             raise TypeError("seed must be an integer or None.")
         if not 0 <= int(seed) < 2**30:
             raise ValueError(f"seed must be in [0, 2**30), got {seed}.")
 
-    # Run lengths
     for name, val, minimum in (
         ("num_chains", num_chains, 1),
         ("samples_per_chain", samples_per_chain, 1),
@@ -395,34 +199,20 @@ def _check_input_validity(
         if not _is_int(val) or val < minimum:
             raise ValueError(f"{name} must be an integer >= {minimum}, got {val!r}.")
 
-    # beta (non-negative float)
     if not _is_real(beta) or not math.isfinite(float(beta)) or float(beta) < 0.0:
         raise ValueError("beta must be a non-negative number.")
-
-    # no_cache (boolean; ignored)
-    if not isinstance(no_cache, bool):
-        raise TypeError("no_cache must be a boolean.")
-
-    # timeout
     if not _is_real(timeout) or float(timeout) <= 0.0:
         raise ValueError("timeout must be a positive number (seconds).")
-
-    # verbose
-    if not isinstance(verbose, bool):
+    if not isinstance(show_progress, bool):
         raise TypeError("show_progress must be a boolean.")
 
-    # Passes all checks
-    return None
 
-
-def _check_group_graph(G: nx.Graph, group_graph: nx.Graph) -> None:
-    """Validate that group_graph is compatible with the primary graph G."""
+def _group_graph_edges(G: nx.Graph, group_graph: nx.Graph, index: dict) -> tuple[list, list, list]:
+    """The edges of group_graph, checked, as node indices of G and weights."""
     if not isinstance(group_graph, nx.Graph):
         raise TypeError("group_graph must be a NetworkX Graph instance.")
     if group_graph.is_directed():
         raise TypeError("group_graph must be undirected (nx.Graph), not directed.")
-    if group_graph.number_of_edges() == 0:
-        raise ValueError("group_graph has no edges.")
     G_nodes = set(G.nodes())
     S_nodes = set(group_graph.nodes())
     if G_nodes != S_nodes:
@@ -434,13 +224,17 @@ def _check_group_graph(G: nx.Graph, group_graph: nx.Graph) -> None:
         if only_S:
             msg += f" Nodes in group_graph but not G: {sorted(only_S, key=repr)[:5]}{'...' if len(only_S) > 5 else ''}."
         raise ValueError(msg)
+    if group_graph.number_of_edges() == 0:
+        raise ValueError("group_graph has no edges.")
+    a, b, w = [], [], []
     for u, v, data in group_graph.edges(data=True):
         if u == v:
-            raise ValueError(
-                f"group_graph has a self-loop at node {u!r}; self-loops are not supported "
-                "in two-layer mode."
-            )
-        _check_weight(u, v, data, integer=False, what="group_graph edge")
+            raise ValueError(f"group_graph has a self-loop at node {u!r}; self-loops are not "
+                             "supported in two-layer mode.")
+        a.append(index[u])
+        b.append(index[v])
+        w.append(_edge_weight(u, v, data, integer=False, graph="group_graph"))
+    return a, b, w
 
 
 def _get_node_data(
@@ -448,7 +242,7 @@ def _get_node_data(
     *,
     group_attribute: str | None = None,
     hierarchy_attribute: str | None = None,
-) -> tuple[list[int] | None, list[str] | None, list[float] | None]:
+) -> tuple[list[int] | None, list[float] | None]:
     """
     Extract node data from the graph and return as lists.
     Attributes are read only when their corresponding attribute-name argument is provided.
@@ -468,8 +262,6 @@ def _get_node_data(
     -------
     node_group_list : list[int] or None
         List of group labels for each node, or None if no group data is present.
-    node_group_name_list : list[str] or None
-        List of group names that correspond to each integer, or None if no group data is present.
     node_score_list : list[float] or None
         List of hierarchy scores for each node, or None if no hierarchy data is present.
     """
@@ -530,121 +322,11 @@ def _get_node_data(
 
     if not group_data_found:
         node_group_list = None
-        node_group_name_list = None
     if not score_data_found:
         node_score_list = None
 
-    return node_group_list, node_group_name_list, node_score_list
+    return node_group_list, node_score_list
 
-
-
-def _set_model_parameters(
-    groups_model: str,
-    hierarchy_model: str,
-    interaction: str,
-    assortative: bool = _UNSET,
-    mixing_variation: str = _UNSET,
-    variation_in: Optional[float] = _UNSET,
-    variation_out: Optional[float] = _UNSET,
-    degree_correction: bool = _UNSET,
-    individual_depth: Optional[float] = _UNSET,
-    group_depth: Optional[float] = _UNSET,
-    ties_parameter: Optional[float] = _UNSET,
-    num_groups: Optional[int] = _UNSET,
-) -> tuple:
-    """
-    Convert the model_name to corresponding non-default parameter values (if not explicitly provided)
-    """
-    # groups_model
-    if groups_model == "traditional_SBM":
-        if mixing_variation is _UNSET:
-            mixing_variation = "simple"
-        if assortative is _UNSET:
-            assortative = False
-    elif groups_model == "simple_ASBM":
-        if mixing_variation is _UNSET:
-            mixing_variation = "simple"
-    elif groups_model == "hybrid_ASBM":
-        if mixing_variation is _UNSET:
-            mixing_variation = "internal"
-    elif groups_model == "planted_partition":
-        if mixing_variation is _UNSET:
-            mixing_variation = "none"
-    elif groups_model == "general_ASBM":
-        if mixing_variation is _UNSET:
-            mixing_variation = "general"
-    # hierarchy_model
-    if hierarchy_model == "bradley_terry":
-        ties_parameter = 0.0
-    elif hierarchy_model == "bradley_terry_ties":
-        pass  # Take default or user-provided value
-
-    # interaction
-    if interaction == "coupled":
-        pass  # all parameters take default values
-    elif interaction == "independent":
-        group_depth = 0.0
-
-    # If mixing_variation is still _UNSET, set it to 'general' by default
-    if mixing_variation is _UNSET:
-        mixing_variation = "general"
-
-    # Implement the mixing_variation presets
-    if mixing_variation == "general":
-        pass  # both inferred
-    elif mixing_variation == "simple":
-        if variation_in is _UNSET:
-            variation_in = 0.5
-        if variation_out is _UNSET:
-            variation_out = 0.5
-    elif mixing_variation == "none":
-        if variation_in is _UNSET:
-            variation_in = 0.0
-        if variation_out is _UNSET:
-            variation_out = 0.0
-    elif mixing_variation == "internal":
-        if variation_in is _UNSET:
-            variation_in = 0.5
-        if variation_out is _UNSET:
-            variation_out = 0.0
-    elif mixing_variation == "external":
-        if variation_in is _UNSET:
-            variation_in = 0.0
-        if variation_out is _UNSET:
-            variation_out = 0.5
-
-    # Set remaining _UNSET parameters to defaults
-    if assortative is _UNSET:
-        assortative = True
-    # Degree correction is a binary switch, independent of the model preset:
-    # True -> 0.5 (Dirichlet alpha = 1, uniform over degree sequences), False -> 0.
-    if degree_correction is _UNSET:
-        degree_correction = True
-    degree_correction = 0.5 if degree_correction else 0.0
-    if num_groups is _UNSET:
-        num_groups = None
-    if variation_in is _UNSET:
-        variation_in = None
-    if variation_out is _UNSET:
-        variation_out = None
-    if individual_depth is _UNSET:
-        individual_depth = None
-    if group_depth is _UNSET:
-        group_depth = None
-    if ties_parameter is _UNSET:
-        ties_parameter = None
-
-    return (
-        assortative,
-        mixing_variation,
-        variation_in,
-        variation_out,
-        degree_correction,
-        individual_depth,
-        group_depth,
-        ties_parameter,
-        num_groups,
-    )
 
 
 def write_gml_with_inferences(
@@ -712,52 +394,6 @@ def write_gml_with_inferences(
     _sanitize_graph_attributes_for_gml(G_copy)
     nx.write_gml(G_copy, output_filename)
     
-
-
-def get_neighbors(G: nx.DiGraph | nx.Graph, node_order=None) -> Iterable[dict]:
-    """
-    Return the out-neighbors in a directed graph or neighbors in an undirected graph in formats that can be used by the MCMC algorithm
-    neighbors_list[i] is a dictionary where the keys are the indices of the neighbors of node i
-    and the values are the edge weights.
-
-    Edge weights are stored in the 'weight' attribute; if not present, default to 1.0.
-    Parallel edges of a multigraph are summed.
-
-    Parameters
-    ----------
-    G : nx.DiGraph | nx.Graph
-        NetworkX graph to get neighbors for.
-    node_order : list, optional
-        Explicit node ordering to use for index assignment. When provided,
-        node_order[i] maps to integer index i. Required when G is a secondary
-        graph (e.g. group_graph) that must share the same node-to-index mapping
-        as the primary directed graph.
-    """
-    if node_order is not None:
-        node_to_index_dict = {node: i for i, node in enumerate(node_order)}
-    else:
-        node_to_index_dict = {node: i for i, node in enumerate(G.nodes)}
-    
-    neighbors_list = []
-    for i in range(len(node_to_index_dict)):
-        neighbors_list.append({})
-    
-    # Iterate over all edges and extract weights
-    for u, v, data in G.edges(data=True):
-        u_idx = node_to_index_dict[u]
-        v_idx = node_to_index_dict[v]
-        
-        # Get weight from edge data, default to 1.0
-        weight = float(data.get('weight', 1.0))
-        
-        # Parallel edges (multigraphs) are summed.
-        neighbors_list[u_idx][v_idx] = neighbors_list[u_idx].get(v_idx, 0.0) + weight
-
-        # For undirected graphs, also add the reverse direction
-        if not G.is_directed() and u_idx != v_idx:
-            neighbors_list[v_idx][u_idx] = neighbors_list[v_idx].get(u_idx, 0.0) + weight
-
-    return neighbors_list
 
 
 def plot_node_properties(
@@ -833,8 +469,6 @@ def plot_node_properties(
     -------
     fig, ax : tuple
     """
-    import numpy as np
-    import pandas as pd
     import matplotlib.patheffects as pe
     from .core import Result  # local import to avoid circular
 
@@ -990,7 +624,6 @@ def plot_adjacency_matrix(
     -------
     fig, ax : tuple
     """
-    import numpy as np
     import matplotlib.patches as mpatches
     from .core import Result  # local import to avoid circular
 

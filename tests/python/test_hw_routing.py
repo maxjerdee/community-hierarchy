@@ -16,9 +16,7 @@ def expected_HW(partition):
     # Partition {0,1,1}: μ_00=0, μ_01=w01+w02, μ_11=w12; M_01=2, M_11=1 (halved)
     K = 3; w = w01 + w02 + w12
     h = (K-1)*math.log(w) - math.lgamma(K)
-    groups = set(partition)
     # Build weight sums per block pair from undirected perspective
-    nodes = list(range(3))
     edges = [(0,1,w01),(0,2,w02),(1,2,w12)]
     mu = {}; M = {}
     for u,v,wt in edges:
@@ -68,7 +66,7 @@ def test_neutral_edge_routing():
 
     HW_peixoto = expected_HW([0,0,1])
 
-    print(f"\nPartition [0,0,1]:")
+    print("\nPartition [0,0,1]:")
     print(f"  Peixoto formula:    {HW_peixoto:.4f}")
     print(f"  MCMC constructor:   {HW_constructor:.4f}")
     print(f"  Python API (fit):   {HW_api:.4f}")
@@ -87,12 +85,12 @@ def test_neutral_edge_routing():
     HW_constructor2 = mcmc2.H_W
     HW_peixoto2 = expected_HW([0,1,1])
 
-    print(f"\nPartition [0,1,1]:")
+    print("\nPartition [0,1,1]:")
     print(f"  Peixoto formula:    {HW_peixoto2:.4f}")
     print(f"  MCMC constructor:   {HW_constructor2:.4f}")
     print(f"  Python API (fit):   {HW_api2:.4f}")
 
-    print(f"\nΔH_W (partition change):")
+    print("\nΔH_W (partition change):")
     print(f"  Peixoto:      {HW_peixoto2 - HW_peixoto:.4f}")
     print(f"  Constructor:  {HW_constructor2 - HW_constructor:.4f}")
     print(f"  Python API:   {HW_api2 - HW_api:.4f}")

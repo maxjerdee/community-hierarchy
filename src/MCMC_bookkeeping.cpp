@@ -38,13 +38,6 @@
  *                     false, repair silently
  */
 void MCMC::check_state_bookkeeping(bool throw_error) {
-    if(verbose){
-        print("Checking state bookkeeping consistency, current partition:");
-        for (int i = 0; i < partition.size(); i++) {
-            printf("%d ", partition[i]);
-        }
-        print("");
-    }
 
     // === Validate num_groups ===
     int num_groups_actual = *std::max_element(partition.begin(), partition.end()) + 1;
@@ -54,13 +47,6 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     std::vector<int> node_counts_actual(num_groups, 0);
     std::vector<std::vector<int>> group_members_actual(num_groups);
     std::vector<std::unordered_map<int, size_t>> node_indices_in_groups_actual(num_groups);
-    
-    // Initialize structures
-    for (int r = 0; r < num_groups; r++) {
-        node_counts_actual[r] = 0;
-        group_members_actual[r] = std::vector<int>();
-        node_indices_in_groups_actual[r] = std::unordered_map<int, size_t>();
-    }
     
     // Populate from partition
     for (int i = 0; i < n; i++) {
@@ -307,9 +293,6 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     H_Adir_G_A_s_nu = value_check(H_Adir_G_A_s_nu_actual, H_Adir_G_A_s_nu, NUMERICAL_CHECK_EPSILON, throw_error, "H_Adir_G_A_s_nu");
     // Entropy of the scores given the partition and depth parameters
     double H_s_G_b_depths_actual = calculate_H_s_G_b_depths();
-    if(verbose){
-        print("H_s_G_b_depths: " + std::to_string(H_s_G_b_depths));
-    }
     // H_s is a difference of sums of s_hat^2-sized terms; far in the depth priors'
     // tails (e.g. sigma_G ~ 1e5 on an edgeless graph, s_hat^2 ~ 1e10) rounding
     // alone exceeds an absolute 1e-6, so scale the tolerance with those terms.
@@ -318,13 +301,6 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     H_s_G_b_depths = value_check(H_s_G_b_depths_actual, H_s_G_b_depths,
                                  std::max(NUMERICAL_CHECK_EPSILON, 1e-12 * s_hat_sq), throw_error, "H_s_G_b_depths");
     
-    if (verbose) {
-        if(throw_error){
-            print("Bookkeeping check passed successfully.");
-        }else{
-            print("Bookkeeping initialized.");
-        }
-    }
 }
 
 /**
@@ -345,10 +321,6 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
  * @return H_k entropy value
  */
 double MCMC::calculate_H_k() {
-    if(verbose){
-        print("Calculating H_k with current edge counts and parameters:");
-        print("degree_correction_concentration: " + std::to_string(degree_correction_concentration));
-    }
     double H_k_actual = 0.0;
 
     if(degree_correction_concentration < MAX_CONCENTRATION){
@@ -373,18 +345,6 @@ double MCMC::calculate_H_k() {
             H_k_actual += log_factorial(node_degrees[i]);
         }
     }
-    if(verbose){
-        printf("Degrees k_i:\n");
-        for(int i = 0; i < n; i++){
-            printf("%d ", node_degrees[i]);
-        }
-        print("");
-        printf("edge_counts_sum[r]:\n");
-        for(int r = 0; r < num_groups; r++){
-            printf("%d ", edge_counts_sum[r]);
-        }
-        print("");
-    }
     
     return H_k_actual;
 }
@@ -406,11 +366,6 @@ double MCMC::calculate_H_k() {
  * @return H_M entropy value
  */
 double MCMC::calculate_H_M() {
-    if(verbose){
-        print("Calculating H_M with current edge counts and parameters:");
-        print("density_in: " + std::to_string(density_in) + ", density_out: " + std::to_string(density_out));
-        print("concentration_in: " + std::to_string(concentration_in) + ", concentration_out: " + std::to_string(concentration_out));
-    }
     
     double H_M_actual = 0.0; 
     
@@ -443,9 +398,9 @@ double MCMC::calculate_H_M() {
  *                      / ( prod_r e_r! prod_{i<j} A_ij! prod_i A_ii!! ),
  * so -log P = sum_{i<j} log A_ij! + sum_i log A_ii!! - sum_i log k_i!
  *             - sum_{r<s} log e_rs! - sum_r log e_rr!! + sum_r log e_r!.
- * Self-loop convention: diagonal entries are stored DOUBLED, A_ii = 2 x (number of
- * self-loops at i) and e_rr = 2 x (edges inside r), hence the double factorials.
- * The constructor rejects self-loops, so the A_ii!! term is always 0 here.
+ * Diagonal entries are stored doubled: e_rr = 2 x (edges inside r), hence the
+ * double factorial.  The constructor rejects self-loops, so A_ii = 0 and its term
+ * is dropped.
  *
  * The per-edge term sum_{i<j} log A_ij! is counted once per unordered pair (it
  * used to be counted for (i,j) and (j,i)).  It does not depend on the partition,
@@ -461,17 +416,13 @@ double MCMC::calculate_H_M() {
 double MCMC::calculate_H_A_G_k_M_b() {
     double H_A_G_k_M_b_actual = 0.0;
     
-    // sum_{i<j} log A_ij! (+ sum_i log A_ii!!): multigraph mode only.
+    // sum_{i<j} log A_ij!: multigraph mode only.
     if (!weighted_SBM && !two_layer_mode) {
         for(int i = 0; i < n; i++){
             for(const auto& edge : neighbors_com[i]){
                 const int j = edge.first;
                 const int A_ij = static_cast<int>(std::llround(edge.second));
-                if(i == j){
-                    H_A_G_k_M_b_actual += log_factorial2(A_ij);
-                }else if(i < j){
-                    H_A_G_k_M_b_actual += log_factorial(A_ij);
-                }
+                if (i < j) H_A_G_k_M_b_actual += log_factorial(A_ij);
             }
         }
     }
@@ -555,38 +506,25 @@ double MCMC::calculate_H_W() {
  */
 double MCMC::calculate_H_Adir_G_A_s_nu() {
     double H_Adir_G_A_s_nu_actual = 0.0;
+    const double log_nu = std::log(ties_parameter);
     // Iterate over all undirected edges
     for(int i = 0; i < n; i++){
         for(const auto& edge : wins[i]){
             int j = edge.first;
             double Awins_ij = edge.second;
-            double log_p_win_ij = scores[i] - log_sum_exp(std::vector<double>{scores[i], scores[j], std::log(ties_parameter) + scores[i]/2.0 + scores[j]/2.0}); // P(i -> j|i - j)
+            double log_p_win_ij = scores[i] - davidson_log_z(scores[i], scores[j], log_nu); // P(i -> j|i - j)
             H_Adir_G_A_s_nu_actual -= Awins_ij * log_p_win_ij;
-            if(verbose){
-                print("Edge (" + std::to_string(i) + " -> " + std::to_string(j) + "): Awins_ij = " + std::to_string(Awins_ij) + ", log_p_win_ij = " + std::to_string(log_p_win_ij));
-            }
         }
         for(const auto& edge : ties[i]){
             int j = edge.first;
             double Aties_ij = edge.second;
             if(i < j){
-                double log_p_tie_ij = std::log(ties_parameter) + scores[i]/2.0 + scores[j]/2.0 - log_sum_exp(std::vector<double>{scores[i], scores[j], std::log(ties_parameter) + scores[i]/2.0 + scores[j]/2.0}); // P(i <-> j|i - j): ν·exp((si+sj)/2) / Z
+                double log_p_tie_ij = davidson_log_tie(scores[i], scores[j], log_nu) - davidson_log_z(scores[i], scores[j], log_nu); // P(i <-> j|i - j)
                 H_Adir_G_A_s_nu_actual -= Aties_ij * log_p_tie_ij;
-                if(verbose){
-                    print("Edge (" + std::to_string(i) + " <-> " + std::to_string(j) + "): Aties_ij = " + std::to_string(Aties_ij) + ", log_p_tie_ij = " + std::to_string(log_p_tie_ij));
-                }
             }
         }
     }
     H_Adir_G_A_s_nu_actual += H_Adir_counts_term;
-    if(verbose){
-        print("scores:");
-        for(int i = 0; i < n; i++){
-            print("score[" + std::to_string(i) + "]: " + std::to_string(scores[i]));
-        }
-        print("ties_parameter: " + std::to_string(ties_parameter));
-        print("H_Adir_G_A_s_nu_actual: " + std::to_string(H_Adir_G_A_s_nu_actual));
-    }
     return H_Adir_G_A_s_nu_actual;
 }
 

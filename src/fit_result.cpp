@@ -1,5 +1,8 @@
 #include "fit_result.h"
 
+#include "diagnostics.h"
+#include "helpers.h"
+
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -78,116 +81,6 @@ std::vector<int> FitResult::mdl_partition() const {
 // ---------------------------------------------------------------------------
 namespace {
 
-// Inverse standard normal CDF (Acklam's rational approximation, |rel err| < 1.2e-9).
-double inv_norm_cdf(double p) {
-    static const double a[] = {-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02,
-                               1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00};
-    static const double b[] = {-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02,
-                               6.680131188771972e+01, -1.328068155288572e+01};
-    static const double c[] = {-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00,
-                               -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00};
-    static const double d[] = {7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00,
-                               3.754408661907416e+00};
-    const double lo = 0.02425, hi = 1.0 - lo;
-    if (p < lo) {
-        double q = std::sqrt(-2.0 * std::log(p));
-        return (((((c[0]*q + c[1])*q + c[2])*q + c[3])*q + c[4])*q + c[5]) /
-               ((((d[0]*q + d[1])*q + d[2])*q + d[3])*q + 1.0);
-    }
-    if (p > hi) {
-        double q = std::sqrt(-2.0 * std::log(1.0 - p));
-        return -(((((c[0]*q + c[1])*q + c[2])*q + c[3])*q + c[4])*q + c[5]) /
-                ((((d[0]*q + d[1])*q + d[2])*q + d[3])*q + 1.0);
-    }
-    double q = p - 0.5, r = q * q;
-    return (((((a[0]*r + a[1])*r + a[2])*r + a[3])*r + a[4])*r + a[5]) * q /
-           (((((b[0]*r + b[1])*r + b[2])*r + b[3])*r + b[4])*r + 1.0);
-}
-
-// Bulk ESS of Vehtari, Gelman, Simpson, Carpenter & Buerkner (2021, Bayesian
-// Analysis 16:667), as in ArviZ ess(method="bulk"): split each chain in half,
-// rank-normalise the pooled draws (average ranks for ties, Blom offset), then the
-// multi-chain Geyer initial-monotone-sequence estimator.  chains must be equal
-// length.  Returns NaN when the draws have no variance.
-double bulk_ess(std::vector<std::vector<double>> chains) {
-    // split
-    std::vector<std::vector<double>> sp;
-    for (auto& ch : chains) {
-        const std::size_t h = ch.size() / 2;
-        if (h < 2) continue;
-        sp.emplace_back(ch.begin(), ch.begin() + static_cast<std::ptrdiff_t>(h));
-        sp.emplace_back(ch.end() - static_cast<std::ptrdiff_t>(h), ch.end());
-    }
-    const int M = static_cast<int>(sp.size());
-    if (M == 0) return std::numeric_limits<double>::quiet_NaN();
-    const int N = static_cast<int>(sp[0].size());
-    const int S = M * N;
-
-    // rank-normalise
-    std::vector<std::pair<double, int>> all;
-    all.reserve(static_cast<std::size_t>(S));
-    for (int m = 0; m < M; ++m)
-        for (int t = 0; t < N; ++t) all.push_back({sp[m][t], m * N + t});
-    std::sort(all.begin(), all.end());
-    std::vector<double> z(static_cast<std::size_t>(S));
-    for (int i = 0; i < S;) {
-        int j = i;
-        while (j + 1 < S && all[j + 1].first == all[i].first) ++j;
-        const double rank = 0.5 * (i + j) + 1.0;                 // 1-based average rank
-        const double v = inv_norm_cdf((rank - 0.375) / (S + 0.25));
-        for (int k = i; k <= j; ++k) z[static_cast<std::size_t>(all[k].second)] = v;
-        i = j + 1;
-    }
-    if (all.front().first == all.back().first) return std::numeric_limits<double>::quiet_NaN();
-
-    std::vector<double> mean(M, 0.0);
-    for (int m = 0; m < M; ++m) {
-        for (int t = 0; t < N; ++t) mean[m] += z[m * N + t];
-        mean[m] /= N;
-    }
-    auto acov_mean = [&](int lag) {                    // mean over chains of biased acov
-        double s = 0.0;
-        for (int m = 0; m < M; ++m) {
-            double a = 0.0;
-            const double* x = &z[static_cast<std::size_t>(m) * N];
-            for (int t = 0; t + lag < N; ++t) a += (x[t] - mean[m]) * (x[t + lag] - mean[m]);
-            s += a / N;
-        }
-        return s / M;
-    };
-    const double mean_var = acov_mean(0) * N / (N - 1.0);
-    double var_plus = mean_var * (N - 1.0) / N;
-    if (M > 1) {
-        double gm = 0.0;
-        for (double v : mean) gm += v;
-        gm /= M;
-        double b = 0.0;
-        for (double v : mean) b += (v - gm) * (v - gm);
-        var_plus += b / (M - 1.0);
-    }
-    auto rho = [&](int lag) { return 1.0 - (mean_var - acov_mean(lag)) / var_plus; };
-
-    std::vector<double> r(static_cast<std::size_t>(N) + 2, 0.0);
-    r[0] = 1.0;
-    double even = 1.0, odd = rho(1);
-    r[1] = odd;
-    int t = 1;
-    while (t < N - 3 && even + odd > 0.0) {
-        even = rho(t + 1);
-        odd = rho(t + 2);
-        if (even + odd >= 0.0) { r[t + 1] = even; r[t + 2] = odd; }
-        t += 2;
-    }
-    const int max_t = t - 2;
-    for (int k = 1; k <= max_t - 2; k += 2)                 // initial monotone sequence
-        if (r[k + 1] + r[k + 2] > r[k - 1] + r[k]) r[k + 1] = r[k + 2] = 0.5 * (r[k - 1] + r[k]);
-    double tau = -1.0;
-    for (int k = 0; k <= max_t; ++k) tau += 2.0 * r[k];
-    if (max_t + 1 >= 0) tau += r[static_cast<std::size_t>(max_t + 1)];
-    tau = std::max(tau, 1.0 / std::log10(static_cast<double>(S)));
-    return S / tau;
-}
-
 // Hungarian algorithm, square S x S cost matrix (row-major), minimisation.
 // Returns row_to_col.  O(S^3).
 std::vector<int> hungarian_min(const std::vector<double>& a, int S) {
@@ -252,14 +145,7 @@ int FitResult::modal_num_groups() const {
 }
 
 double FitResult::partition_ess() const {
-    // Samples are stored chain by chain (fit.cpp); truncate to the shortest chain.
-    std::map<int, std::vector<double>> by_chain;
-    for (const auto& s : samples_) by_chain[s.chain_id].push_back(s.H_A_b);
-    std::size_t len = std::numeric_limits<std::size_t>::max();
-    for (const auto& kv : by_chain) len = std::min(len, kv.second.size());
-    std::vector<std::vector<double>> chains;
-    for (auto& kv : by_chain) chains.emplace_back(kv.second.begin(), kv.second.begin() + static_cast<std::ptrdiff_t>(len));
-    return bulk_ess(std::move(chains));
+    return ess_bulk(chains_of(*this, [](const SampleState& s) { return s.H_A_b; }));
 }
 
 // Thin to max(min_samples, ESS) evenly spaced samples.  The ESS is that of
@@ -607,30 +493,20 @@ std::vector<double> FitResult::direction_probabilities(int node_a, int node_b, b
                                      : std::vector<double>{0.0, 0.0};
     double sum_a = 0.0, sum_tie = 0.0, sum_b = 0.0;
     for (const auto& s : samples_) {
-        double sa = s.scores[node_a], sb = s.scores[node_b];
-        // Subtract max to avoid exp overflow (numerically equivalent, cancels in ratios)
-        double shift = std::max(sa, sb);
-        if (ties_allowed) shift = std::max(shift, (sa + sb) / 2.0);
-        double ea  = std::exp(sa - shift);
-        double eb  = std::exp(sb - shift);
-        double tie = ties_allowed
-            ? s.ties_parameter * std::exp((sa + sb) / 2.0 - shift)
-            : 0.0;
-        double Z = ea + eb + tie;
-        sum_a   += ea  / Z;
-        sum_tie += tie / Z;
-        sum_b   += eb  / Z;
+        const double sa = s.scores[node_a], sb = s.scores[node_b];
+        const double log_nu = ties_allowed ? std::log(s.ties_parameter)
+                                           : -std::numeric_limits<double>::infinity();
+        const double log_z = davidson_log_z(sa, sb, log_nu);
+        sum_a += std::exp(sa - log_z);
+        sum_tie += std::exp(davidson_log_tie(sa, sb, log_nu) - log_z);
+        sum_b += std::exp(sb - log_z);
     }
     if (ties_allowed) return {sum_a / ns, sum_tie / ns, sum_b / ns};
     return {sum_a / ns, sum_b / ns};
 }
 
-// The 9 network-level scalar parameters, in display order, paired with an
-// accessor into SampleState.  num_groups (int) is accumulated as a double.
-namespace {
-const std::vector<std::pair<std::string, double (*)(const SampleState&)>>&
-parameter_accessors() {
-    static const std::vector<std::pair<std::string, double (*)(const SampleState&)>> a = {
+const std::vector<NetworkParameter>& network_parameters() {
+    static const std::vector<NetworkParameter> p = {
         {"num_groups",        [](const SampleState& s) { return static_cast<double>(s.num_groups); }},
         {"density_in",        [](const SampleState& s) { return s.density_in; }},
         {"density_out",       [](const SampleState& s) { return s.density_out; }},
@@ -640,15 +516,25 @@ parameter_accessors() {
         {"individual_depth",  [](const SampleState& s) { return s.individual_depth; }},
         {"group_depth",       [](const SampleState& s) { return s.group_depth; }},
         {"ties_parameter",    [](const SampleState& s) { return s.ties_parameter; }},
+        {"sigma_T",           [](const SampleState& s) { return sigma_T(s); }},
+        {"ICC",               [](const SampleState& s) { return icc(s); }},
     };
-    return a;
+    return p;
 }
-}  // namespace
+
+double sigma_T(const SampleState& s) {
+    return std::sqrt(s.group_depth * s.group_depth + s.individual_depth * s.individual_depth);
+}
+
+double icc(const SampleState& s) {
+    const double t = sigma_T(s);
+    return t > 0.0 ? s.group_depth * s.group_depth / (t * t) : 0.0;
+}
 
 std::map<std::string, double> FitResult::parameter_means() const {
     int ns = static_cast<int>(samples_.size());
     std::map<std::string, double> means;
-    for (const auto& [name, get] : parameter_accessors()) {
+    for (const auto& [name, get] : network_parameters()) {
         double sum = 0.0;
         if (ns > 0) {
             for (const auto& s : samples_) sum += get(s);
@@ -663,7 +549,7 @@ std::map<std::string, double> FitResult::parameter_stds() const {
     int ns = static_cast<int>(samples_.size());
     auto means = parameter_means();
     std::map<std::string, double> stds;
-    for (const auto& [name, get] : parameter_accessors()) {
+    for (const auto& [name, get] : network_parameters()) {
         double var = 0.0;
         if (ns > 1) {
             double m = means[name];
@@ -683,7 +569,6 @@ std::map<std::string, double> FitResult::parameter_stds() const {
 // ---------------------------------------------------------------------------
 
 // Highest Density Interval: shortest interval containing floor(prob * n) samples.
-// Matches the Python _hdi() algorithm in core.py.
 std::pair<double, double> FitResult::hdi_bounds(std::vector<double> arr, double prob) {
     if (arr.empty()) return {0.0, 0.0};
     std::sort(arr.begin(), arr.end());
@@ -707,16 +592,6 @@ std::pair<double, double> FitResult::hdi_bounds(std::vector<double> arr, double 
 NetworkPropertiesResult FitResult::network_properties(double prob) const {
     int ns = static_cast<int>(samples_.size());
 
-    // Compute sigma_T and ICC per sample from group_depth and individual_depth.
-    std::vector<double> sigma_T_vals(ns), icc_vals(ns);
-    for (int s = 0; s < ns; ++s) {
-        double gd = samples_[s].group_depth;
-        double id = samples_[s].individual_depth;
-        double sT = std::sqrt(gd * gd + id * id);
-        sigma_T_vals[s] = sT;
-        icc_vals[s] = (sT > 0.0) ? (gd * gd) / (sT * sT) : 0.0;
-    }
-
     NetworkPropertiesResult result;
 
     auto add_param = [&](const std::string& name, std::vector<double> vals) {
@@ -736,13 +611,11 @@ NetworkPropertiesResult FitResult::network_properties(double prob) const {
         result.hdi_hi.push_back(hi);
     };
 
-    for (const auto& [name, get] : parameter_accessors()) {
+    for (const auto& [name, get] : network_parameters()) {
         std::vector<double> vals(ns);
         for (int s = 0; s < ns; ++s) vals[s] = get(samples_[s]);
         add_param(name, std::move(vals));
     }
-    add_param("sigma_T", sigma_T_vals);
-    add_param("ICC",     icc_vals);
 
     return result;
 }

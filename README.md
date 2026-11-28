@@ -43,6 +43,12 @@ pip install .
 
 in the base directory (requires a C++ compiler).
 
+An R package with the same sampler is in [`R-package/`](R-package/README.md):
+
+```r
+remotes::install_github("maxjerdee/community-hierarchy", subdir = "R-package")
+```
+
 ## Usage
 
 The public API is three objects: `Config` (the model), `fit` (the sampler) and
