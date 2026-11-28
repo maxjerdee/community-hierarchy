@@ -634,12 +634,10 @@ double MCMC::group_cross_dA(int r, double d) const {
 /**
  * flip_nodes: Move a set of nodes from their current group to a new group
  *
- * This is the core function for partition updates. It efficiently updates all
- * bookkeeping and entropy components by:
- * 1. Identifying impacted groups (before and after the move)
- * 2. Subtracting entropy contributions from old configuration
- * 3. Updating partition, group_members, node_indices, edge_counts
- * 4. Adding entropy contributions from new configuration
+ * This is the core function for partition updates.  It finds the groups whose
+ * terms the move changes (before and after it), removes their description-length
+ * terms (shift_group_terms), moves the nodes (remove_from_group / add_to_group),
+ * and adds the terms back.
  * 
  * Key features:
  * - Handles group creation (when new_group == num_groups)
@@ -707,10 +705,7 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
     // `num_groups` must therefore NOT stay in final_impacted_groups -- after the
     // compaction it is out of range, and the Phase 3 re-add would read past the end
     // of node_counts/edge_counts, giving H_M=inf, H_k=nan, H_A_G_k_M_b=-inf.
-    // The partition itself stays valid, so this corrupts SILENTLY.
-    // Unreachable from propose_single_site_move (its singleton branch only merges
-    // into existing groups; its split branch only fires for non-singletons), which
-    // is why it has never shown up -- but merge/split needs the batch path.
+    // The partition itself stays valid, so this would corrupt SILENTLY.
     if (new_group == num_groups && empty_old_group) {
         final_impacted_groups.erase(new_group);
     }
@@ -726,297 +721,171 @@ void MCMC::flip_nodes(const std::vector<int>& nodes, int new_group) {
         }
     }
 
-    // Store old entropy values
-    double H_b_old = H_b;
-    double H_k_old = H_k;
-    double H_M_old = H_M;
-    double H_A_G_k_M_b_old = H_A_G_k_M_b;
-    double H_W_old = H_W;
+    const double H_b_old = H_b, H_k_old = H_k, H_M_old = H_M;
+    const double H_A_G_k_M_b_old = H_A_G_k_M_b, H_W_old = H_W;
 
-    /* === PHASE 1: Remove entropy terms from initial configuration === */
+    // Remove the terms of the impacted groups, move the nodes, add the terms back.
+    if (weighted_SBM) H_W -= H_W_totals(nonzero_pairs);
+    const double nonzero_removed = shift_group_terms(initial_impacted_groups, -1.0);
 
-    // H(nb|q): Partition count prior
-    H_b -= log_binom(n - 1, num_groups - 1);
-
-    // H(b|nb): Group size distribution
-    for (int r : initial_impacted_groups) {
-        H_b += log_factorial(node_counts[r]);  // Will be subtracted back after update
-    }
-
-    // H(k): Degree sequence entropy
-    for (int r : initial_impacted_groups) {
-        if (degree_correction_concentration < MAX_CONCENTRATION) {
-            H_k -=
-                log_binom(edge_counts_sum[r] + node_counts[r] * degree_correction_concentration - 1,
-                          node_counts[r] * degree_correction_concentration - 1);
-        } else {
-            // Multinomial approximation for large concentration
-            H_k += log_factorial(edge_counts_sum[r]);
-            H_k -= edge_counts_sum[r] * std::log(node_counts[r]);
-        }
-    }
-
-    // H(M): Edge count distribution entropy
-    for (int r : initial_impacted_groups) {
-        for (int s = 0; s < num_groups; s++) {
-            if (r == s) {
-                // Within-group edges (undirected, so divide by 2)
-                H_M += log_neg_binom(edge_counts[r][r] / 2.0,
-                                     density_in * node_counts[r] * node_counts[r] / 2.0,
-                                     concentration_in);
-            } else {
-                // Between-group edges
-                // Use symmetry_factor to avoid double-counting when both r and s are impacted
-                double symmetry_factor = 1;
-                if (initial_impacted_groups.find(s) != initial_impacted_groups.end()) {
-                    symmetry_factor = 0.5;
-                }
-                H_M +=
-                    symmetry_factor * log_neg_binom(edge_counts[r][s],
-                                                    density_out * node_counts[r] * node_counts[s],
-                                                    concentration_out);
-            }
-        }
-    }
-
-    // H(A|k,M,b): Adjacency matrix entropy given edge counts
-    for (int r : initial_impacted_groups) {
-        for (int s = 0; s < num_groups; s++) {
-            if (r == s) {
-                H_A_G_k_M_b += log_factorial2(edge_counts[r][r]);
-            } else {
-                // If s is also in initial_impacted_groups, only add half the term to avoid double counting
-                double symmetry_factor = 1;
-                if (initial_impacted_groups.find(s) != initial_impacted_groups.end()) {
-                    symmetry_factor = 0.5;
-                }
-                H_A_G_k_M_b += symmetry_factor * log_factorial(edge_counts[r][s]);
-            }
-        }
-        H_A_G_k_M_b -= log_factorial(edge_counts_sum[r]);
-    }
-
-    // H_W: remove per-block-pair contributions of affected groups (weighted SBM only)
-    double nonzero_removed = 0.0;  // impacted block pairs with edges, before the move
-    if (weighted_SBM) {
-        H_W -= H_W_totals(nonzero_pairs);
-        for (int r : initial_impacted_groups) {
-            H_W -= H_W_pair(r, r);
-            if (edge_counts[r][r] > 0) nonzero_removed += 1.0;
-            for (int s = 0; s < num_groups; s++) {
-                if (s == r) continue;
-                double sym = initial_impacted_groups.count(s)
-                                 ? 0.5
-                                 : 1.0;  // pairs of two impacted groups are visited twice
-                H_W -= sym * H_W_pair(r, s);
-                if (edge_counts[r][s] > 0) nonzero_removed += sym;
-            }
-        }
-    }
-
-    // H(s|b,depths): hierarchy-community entropy
-    for (int r : initial_impacted_groups) {
-        H_s_G_b_depths -= score_prior_group_term(r);
-    }
-
-    /* === PHASE 2: Update partition and bookkeeping === */
     for (int node : filtered_nodes) {
-        // Remove node from old_group using swap-and-pop (O(1) removal)
-        size_t node_index = node_indices_in_groups[old_group][node];
-        int last_node = group_members[old_group].back();
-        group_members[old_group][node_index] = last_node;
-        node_indices_in_groups[old_group][last_node] = node_index;
-        group_members[old_group].pop_back();
-        node_indices_in_groups[old_group].erase(node);
-        node_counts[old_group]--;
-
-        // Update edge counts: subtract edges from old_group (both directions: the
-        // constructor rejects self-loops, so j != node).
-        for (const auto& [j, A_ij] : neighbors_com[node]) {
-            int neighbor_group = partition[j];
-            int count_delta = (weighted_SBM || two_layer_mode) ? 1 : static_cast<int>(A_ij);
-            edge_counts[old_group][neighbor_group] -= count_delta;
-            edge_counts_sum[old_group] -= count_delta;
-            edge_counts[neighbor_group][old_group] -= count_delta;
-            edge_counts_sum[neighbor_group] -= count_delta;
-            if (weighted_SBM) {
-                weight_counts[old_group][neighbor_group] -= A_ij;
-                weight_counts_sum[old_group] -= A_ij;
-                weight_counts[neighbor_group][old_group] -= A_ij;
-                weight_counts_sum[neighbor_group] -= A_ij;
-            }
-        }
-
+        remove_from_group(node, old_group);
         partition[node] = new_group;
-
-        group_score_sums[old_group] -= scores[node];
-
-        // If creating a new group, resize all data structures
-        if (new_group == num_groups) {
-            group_members.push_back(std::vector<int>());
-            node_indices_in_groups.push_back(std::unordered_map<int, size_t>());
-            node_counts.push_back(0);
-            edge_counts_sum.push_back(0);
-            edge_counts.push_back(std::vector<int>(num_groups, 0));
-            for (auto& row : edge_counts) {
-                row.push_back(0);
-            }
-            if (weighted_SBM) {
-                weight_counts_sum.push_back(0.0);
-                weight_counts.push_back(std::vector<double>(num_groups, 0.0));
-                for (auto& row : weight_counts) {
-                    row.push_back(0.0);
-                }
-            }
-            group_score_sums.push_back(0.0);
-            num_groups += 1;
-        }
-
-        // Add node to new_group
-        group_members[new_group].push_back(node);
-        node_indices_in_groups[new_group][node] = group_members[new_group].size() - 1;
-        node_counts[new_group]++;
-
-        // Update edge counts: add edges to new_group.
-        for (const auto& [j, A_ij] : neighbors_com[node]) {
-            int neighbor_group = partition[j];
-            int count_delta = (weighted_SBM || two_layer_mode) ? 1 : static_cast<int>(A_ij);
-            edge_counts[new_group][neighbor_group] += count_delta;
-            edge_counts_sum[new_group] += count_delta;
-            edge_counts[neighbor_group][new_group] += count_delta;
-            edge_counts_sum[neighbor_group] += count_delta;
-            if (weighted_SBM) {
-                weight_counts[new_group][neighbor_group] += A_ij;
-                weight_counts_sum[new_group] += A_ij;
-                weight_counts[neighbor_group][new_group] += A_ij;
-                weight_counts_sum[neighbor_group] += A_ij;
-            }
-        }
-
-        group_score_sums[new_group] += scores[node];
+        if (new_group == num_groups) add_empty_group();
+        add_to_group(node, new_group);
     }
-
-    // If old_group is now empty, compact by moving last group to fill the gap
     if (empty_old_group) {
-        int last_group = num_groups - 1;
-        if (old_group != last_group) {
-            swap_groups(old_group, last_group);
-        }
-
-        // Remove last group's data structures
-        group_members.pop_back();
-        node_indices_in_groups.pop_back();
-        node_counts.pop_back();
-        edge_counts_sum.pop_back();
-        edge_counts.pop_back();  // Remove last row
-        for (auto& row : edge_counts) {
-            row.pop_back();  // Remove last column from all rows
-        }
-        if (weighted_SBM) {
-            weight_counts.pop_back();
-            for (auto& row : weight_counts) {
-                row.pop_back();
-            }
-            weight_counts_sum.pop_back();
-        }
-        group_score_sums.pop_back();
-        num_groups -= 1;
+        // Compact: the last group takes old_group's label.
+        if (old_group != num_groups - 1) swap_groups(old_group, num_groups - 1);
+        remove_last_group();
     }
 
-    /* === PHASE 3: Add entropy terms from final configuration === */
-
-    // Enforce the non-assortative constraint
-    if (!assortative) {
-        density_out = density_in;
-    }
-
-    // H(nb|q): Partition count with new num_groups
-    H_b += log_binom(n - 1, num_groups - 1);
-
-    // H(b|nb): Group size distribution with new partition
-    for (int r : final_impacted_groups) {
-        H_b -= log_factorial(node_counts[r]);
-    }
-
-    // H(k): Degree sequence entropy with new configuration
-    for (int r : final_impacted_groups) {
-        if (degree_correction_concentration < MAX_CONCENTRATION) {
-            H_k +=
-                log_binom(edge_counts_sum[r] + node_counts[r] * degree_correction_concentration - 1,
-                          node_counts[r] * degree_correction_concentration - 1);
-        } else {
-            // Multinomial approximation for large concentration
-            H_k -= log_factorial(edge_counts_sum[r]);
-            H_k += edge_counts_sum[r] * std::log(node_counts[r]);
-        }
-    }
-
-    // H(M): Edge count distribution with new configuration
-    for (int r : final_impacted_groups) {
-        for (int s = 0; s < num_groups; s++) {
-            if (r == s) {
-                H_M -= log_neg_binom(edge_counts[r][r] / 2.0,
-                                     density_in * node_counts[r] * node_counts[r] / 2.0,
-                                     concentration_in);
-            } else {
-                // Use symmetry_factor to avoid double-counting
-                double symmetry_factor = 1;
-                if (final_impacted_groups.find(s) != final_impacted_groups.end()) {
-                    symmetry_factor = 0.5;
-                }
-                H_M -=
-                    symmetry_factor * log_neg_binom(edge_counts[r][s],
-                                                    density_out * node_counts[r] * node_counts[s],
-                                                    concentration_out);
-            }
-        }
-    }
-
-    // H(A|k,M,b): Adjacency matrix entropy with new configuration
-    for (int r : final_impacted_groups) {
-        for (int s = 0; s < num_groups; s++) {
-            if (r == s) {
-                H_A_G_k_M_b -= log_factorial2(edge_counts[r][r]);
-            } else {
-                // If s is also in initial_impacted_groups, only add half the term to avoid double counting
-                double symmetry_factor = 1;
-                if (final_impacted_groups.find(s) != final_impacted_groups.end()) {
-                    symmetry_factor = 0.5;
-                }
-                H_A_G_k_M_b -= symmetry_factor * log_factorial(edge_counts[r][s]);
-            }
-        }
-        H_A_G_k_M_b += log_factorial(edge_counts_sum[r]);
-    }
-
-    // H_W: add per-block-pair contributions of affected groups in new configuration (weighted SBM only)
+    if (!assortative) density_out = density_in;  // the non-assortative constraint
+    const double nonzero_added = shift_group_terms(final_impacted_groups, +1.0);
     if (weighted_SBM) {
-        double nonzero_added = 0.0;
-        for (int r : final_impacted_groups) {
-            H_W += H_W_pair(r, r);
-            if (edge_counts[r][r] > 0) nonzero_added += 1.0;
-            for (int s = 0; s < num_groups; s++) {
-                if (s == r) continue;
-                double sym = final_impacted_groups.count(s) ? 0.5 : 1.0;
-                H_W += sym * H_W_pair(r, s);
-                if (edge_counts[r][s] > 0) nonzero_added += sym;
-            }
-        }
         nonzero_pairs += static_cast<int>(std::lround(nonzero_added - nonzero_removed));
         H_W += H_W_totals(nonzero_pairs);
     }
 
-    // H(s|b,depths): hierarchy-community entropy with new configuration
-    for (int r : final_impacted_groups) {
-        H_s_G_b_depths += score_prior_group_term(r);
-    }
-
-    // Update total entropies: add delta from component changes.
-    // H_W = -log P (description-length contribution, negative when model fits well), so add its delta.
     H_A_G_b +=
         (H_k - H_k_old) + (H_M - H_M_old) + (H_A_G_k_M_b - H_A_G_k_M_b_old) + (H_W - H_W_old);
     H_A_b += (H_b - H_b_old) + (H_k - H_k_old) + (H_M - H_M_old) + (H_A_G_k_M_b - H_A_G_k_M_b_old) +
              (H_W - H_W_old);
+}
+
+// The terms of H_b, H_k, H_M, H_A_G_k_M_b, H_W and H_s_G_b_depths that involve the
+// groups in `groups`, added to the running totals (sign = +1) or removed from them
+// (sign = -1).  A block pair (r, s) with both groups in the set is visited twice,
+// hence the factor 1/2.  Returns the number of those block pairs with edges
+// (weighted_SBM's nonzero_pairs bookkeeping); H_W_totals is the caller's.
+double MCMC::shift_group_terms(const std::set<int>& groups, double sign) {
+    // H(nb|q) and H(b|nb): partition count and group sizes
+    H_b += sign * log_binom(n - 1, num_groups - 1);
+    for (int r : groups) H_b -= sign * log_factorial(node_counts[r]);
+
+    // H(k): degree sequences
+    for (int r : groups) {
+        if (degree_correction_concentration < MAX_CONCENTRATION) {
+            H_k += sign * log_binom(edge_counts_sum[r] +
+                                        node_counts[r] * degree_correction_concentration - 1,
+                                    node_counts[r] * degree_correction_concentration - 1);
+        } else {  // multinomial limit for large concentration
+            H_k -= sign * log_factorial(edge_counts_sum[r]);
+            H_k += sign * (edge_counts_sum[r] * std::log(node_counts[r]));
+        }
+    }
+
+    // H(M) and H(A|k,M,b): block edge counts, and the adjacency given them
+    for (int r : groups) {
+        for (int s = 0; s < num_groups; s++) {
+            if (r == s) {
+                H_M -= sign * log_neg_binom(edge_counts[r][r] / 2.0,
+                                            density_in * node_counts[r] * node_counts[r] / 2.0,
+                                            concentration_in);
+                H_A_G_k_M_b -= sign * log_factorial2(edge_counts[r][r]);
+            } else {
+                const double half = groups.count(s) ? 0.5 : 1.0;
+                H_M -= sign * (half * log_neg_binom(edge_counts[r][s],
+                                                    density_out * node_counts[r] * node_counts[s],
+                                                    concentration_out));
+                H_A_G_k_M_b -= sign * (half * log_factorial(edge_counts[r][s]));
+            }
+        }
+        H_A_G_k_M_b += sign * log_factorial(edge_counts_sum[r]);
+    }
+
+    // H_W: block-pair weights (weighted SBM only)
+    double nonzero = 0.0;
+    if (weighted_SBM) {
+        for (int r : groups) {
+            H_W += sign * H_W_pair(r, r);
+            if (edge_counts[r][r] > 0) nonzero += 1.0;
+            for (int s = 0; s < num_groups; s++) {
+                if (s == r) continue;
+                const double half = groups.count(s) ? 0.5 : 1.0;
+                H_W += sign * (half * H_W_pair(r, s));
+                if (edge_counts[r][s] > 0) nonzero += half;
+            }
+        }
+    }
+
+    // H(s|b,depths): the score prior of each group
+    for (int r : groups) H_s_G_b_depths += sign * score_prior_group_term(r);
+    return nonzero;
+}
+
+// Add (sign = +1) or remove (sign = -1) node's edges to the counts of group g.
+void MCMC::shift_edge_counts(int node, int g, int sign) {
+    for (const auto& [j, A_ij] : neighbors_com[node]) {
+        const int t = partition[j];
+        const int count = (weighted_SBM || two_layer_mode) ? 1 : static_cast<int>(A_ij);
+        edge_counts[g][t] += sign * count;
+        edge_counts_sum[g] += sign * count;
+        edge_counts[t][g] += sign * count;
+        edge_counts_sum[t] += sign * count;
+        if (weighted_SBM) {
+            weight_counts[g][t] += sign * A_ij;
+            weight_counts_sum[g] += sign * A_ij;
+            weight_counts[t][g] += sign * A_ij;
+            weight_counts_sum[t] += sign * A_ij;
+        }
+    }
+}
+
+// Take node out of group g (swap-and-pop, O(1)); partition[node] is still g.
+void MCMC::remove_from_group(int node, int g) {
+    const std::size_t i = node_indices_in_groups[g][node];
+    const int last = group_members[g].back();
+    group_members[g][i] = last;
+    node_indices_in_groups[g][last] = i;
+    group_members[g].pop_back();
+    node_indices_in_groups[g].erase(node);
+    node_counts[g]--;
+    shift_edge_counts(node, g, -1);
+    group_score_sums[g] -= scores[node];
+}
+
+// Put node into group g; partition[node] is already g.
+void MCMC::add_to_group(int node, int g) {
+    group_members[g].push_back(node);
+    node_indices_in_groups[g][node] = group_members[g].size() - 1;
+    node_counts[g]++;
+    shift_edge_counts(node, g, +1);
+    group_score_sums[g] += scores[node];
+}
+
+// A new, empty group with label num_groups.
+void MCMC::add_empty_group() {
+    group_members.emplace_back();
+    node_indices_in_groups.emplace_back();
+    node_counts.push_back(0);
+    edge_counts_sum.push_back(0);
+    edge_counts.push_back(std::vector<int>(num_groups, 0));
+    for (auto& row : edge_counts) row.push_back(0);
+    if (weighted_SBM) {
+        weight_counts_sum.push_back(0.0);
+        weight_counts.push_back(std::vector<double>(num_groups, 0.0));
+        for (auto& row : weight_counts) row.push_back(0.0);
+    }
+    group_score_sums.push_back(0.0);
+    num_groups += 1;
+}
+
+// Drop the last group, which must be empty.
+void MCMC::remove_last_group() {
+    group_members.pop_back();
+    node_indices_in_groups.pop_back();
+    node_counts.pop_back();
+    edge_counts_sum.pop_back();
+    edge_counts.pop_back();
+    for (auto& row : edge_counts) row.pop_back();
+    if (weighted_SBM) {
+        weight_counts.pop_back();
+        for (auto& row : weight_counts) row.pop_back();
+        weight_counts_sum.pop_back();
+    }
+    group_score_sums.pop_back();
+    num_groups -= 1;
 }
 
 // Exchange the labels of groups group1 and group2: members, counts, the rows

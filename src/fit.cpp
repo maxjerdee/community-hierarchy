@@ -8,185 +8,178 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <functional>
 #include <future>
 #include <random>
 #include <vector>
 
-FitResult fit(FitParams p) {
-    int n = static_cast<int>(p.wins.size());
-    complete_start(p);  // the default starting state (initial_state.h)
-    const int total_samples = p.num_chains * draws_per_chain(p);
-    std::atomic<int> completed_warmup{0};
-    std::atomic<int> completed_burn{0};
-    std::atomic<int> completed_samples{0};
+namespace {
 
-    auto run_chain = [&](int chain_id) -> std::vector<SampleState> {
-        // Build tempering stack — all chains in the stack share the same graph
-        // but start from the same initial state and evolve independently.
-        std::vector<MCMC> chain_stack;
-        chain_stack.reserve(static_cast<std::size_t>(p.num_tempering_chains));
+// Progress counters shared by the chains (atomic: the chains run in parallel).
+struct Progress {
+    std::atomic<int> param_warmup{0}, warmup{0}, samples{0};
+};
 
-        // This thread's move generator: seeded once per chain.  The replicas below
-        // are built with seed -1 so they do not reseed it; they share one stream.
-        // (Previously each replica passed its own seed, but every constructor
-        // reseeded the same thread_local generator, so only the last one counted.)
-        // With one replica this is the same seed as before: seed + chain.
-        // seed + chain in 64-bit arithmetic: an int sum overflows (undefined
-        // behaviour) for seeds near INT_MAX.  For every seed that did not overflow
-        // the resulting generator seeds are unchanged.
-        const std::uint64_t chain_seed = static_cast<std::uint64_t>(
-            static_cast<std::int64_t>(p.seed) + static_cast<std::int64_t>(chain_id));
-        rng.seed(static_cast<std::mt19937::result_type>(chain_seed));
+// The inverse temperatures of the replicas: beta alone, or with K > 1 replicas
+// 0 and then K - 1 values geometrically spaced from beta / (K - 1) to beta.  The
+// last replica is at beta, and is the one recorded.
+std::vector<double> beta_ladder(double beta, int K) {
+    if (K == 1) return {beta};
+    std::vector<double> betas = {0.0};
+    const double log_bmin = std::log(beta / (K - 1)), log_bmax = std::log(beta);
+    for (int i = 1; i < K; ++i)
+        betas.push_back(std::exp(log_bmin + (log_bmax - log_bmin) * i / (K - 1)));
+    return betas;
+}
 
-        std::mt19937_64 init_rng(chain_seed * 2654435761ULL);
-
+// One chain of a fit: its tempering replicas, run through parameter warm-up,
+// warm-up and sampling.
+class ChainRun {
+public:
+    ChainRun(const FitParams& p, int chain_id, Progress& progress)
+        : p_(p),
+          chain_id_(chain_id),
+          progress_(progress),
+          // seed + chain in 64-bit arithmetic (an int sum would overflow near INT_MAX).
+          seed_(static_cast<std::uint64_t>(static_cast<std::int64_t>(p.seed) + chain_id)),
+          swap_rng_(seed_ + 999983ULL),
+          betas_(beta_ladder(p.beta, p.num_tempering_chains)) {
+        // This thread's move generator, seeded once per chain; the replicas are
+        // built without reseeding it (new_chain), so they share one stream.
+        rng.seed(static_cast<std::mt19937::result_type>(seed_));
+        std::mt19937_64 init_rng(seed_ * 2654435761ULL);
         for (int ci = 0; ci < p.num_tempering_chains; ++ci)
-            chain_stack.push_back(new_chain(p, init_rng));
-
-        // Beta schedule: [0, ..., beta] on a log scale; single chain → [beta].
-        std::vector<double> betas;
-        if (p.num_tempering_chains == 1) {
-            betas.push_back(p.beta);
-        } else {
-            betas.push_back(0.0);
-            double log_bmin = std::log(p.beta / (p.num_tempering_chains - 1));
-            double log_bmax = std::log(p.beta);
-            for (int i = 1; i < p.num_tempering_chains; ++i) {
-                double lb = log_bmin + (log_bmax - log_bmin) * i / (p.num_tempering_chains - 1);
-                betas.push_back(std::exp(lb));
-            }
-        }
-
-        std::mt19937_64 swap_rng(chain_seed + 999983ULL);
-
-        // Swap criterion: the tempered energy, i.e. the data likelihood terms only.
-        // Every move targets exp(-(H_b + H_s_G_b_depths + priors + beta * H_total)),
-        // with the partition prior H_b and the score prior H_s_G_b_depths untempered
-        // (the convention of MCMC_core.h), so exchanging configurations between
-        // inverse temperatures involves H_total alone.  (Before 2026-09 some moves
-        // tempered H_s_G_b_depths and others did not, so the hot chains had no
-        // consistent target -- the "~0.06 over-clustering" once seen when H_s was
-        // added here was a symptom of that, not of the swap rule.)
-        auto H_total = [](const MCMC& c) { return c.H_A_G_b + c.H_Adir_G_A_s_nu; };
-
-        auto do_swaps = [&]() {
-            for (int ci = 0; ci < p.num_tempering_chains - 1; ++ci) {
-                double db = betas[ci + 1] - betas[ci];
-                double dH = H_total(chain_stack[ci + 1]) - H_total(chain_stack[ci]);
-                if (next_uniform(swap_rng) < std::exp(db * dH))
-                    std::swap(chain_stack[ci], chain_stack[ci + 1]);
-            }
-        };
-
-        auto t_start = std::chrono::steady_clock::now();
-        auto elapsed = [&]() {
-            return std::chrono::duration<double>(std::chrono::steady_clock::now() - t_start)
-                .count();
-        };
-        auto aborted = [&]() {
-            return p.abort_flag && p.abort_flag->load(std::memory_order_relaxed);
-        };
-
-        // Parameter warmup: freeze partition and scores so that continuous
-        // parameters (variation_in/out, degree_correction, individual_depth,
-        // group_depth, ties_parameter) can reach their conditional posterior
-        // before the partition is free to move.
-        if (p.num_param_warmup > 0) {
-            for (int ci = 0; ci < p.num_tempering_chains; ++ci) {
-                chain_stack[ci].partition_fixed = true;
-                chain_stack[ci].scores_fixed = true;
-            }
-            for (int b = 0; b < p.num_param_warmup && elapsed() < p.timeout && !aborted(); ++b) {
-                for (int ci = 0; ci < p.num_tempering_chains; ++ci)
-                    chain_stack[ci].MCMC_sweep(betas[ci], p.sweeps_per_sample,
-                                               p.merge_split_enabled);
-                if (p.on_warmup) {
-                    int done = completed_warmup.fetch_add(1, std::memory_order_relaxed) + 1;
-                    p.on_warmup(done, p.num_chains * p.num_param_warmup);
-                }
-            }
-            for (int ci = 0; ci < p.num_tempering_chains; ++ci) {
-                chain_stack[ci].partition_fixed = p.partition_fixed;
-                chain_stack[ci].scores_fixed = p.scores_fixed;
-            }
-        }
-
-        // Equal-spend weighting of the collective moves, while the caller leaves
-        // MERGE_SPLIT_WEIGHT negative.  The old auto value, the linear-time
-        // condition n/(M(n+m)), budgets against a WORST-CASE cost of M(n+m) per
-        // collective move, as if restaging touched the whole graph; it restages
-        // only the two groups involved, k ~ 2n/q nodes.  The overestimate grows
-        // with density, so on a dense network collective moves stop firing (~5 in
-        // a 1250-sweep run on the 456-node English football graph, which then
-        // missed the leagues by ~1000 nats).  Equating the true cost with the
-        // single-node sweep cost gives w = q/(6 C M); the per-node cost cancels,
-        // which is why density does not appear.
-        //
-        // Updated only DURING BURN-IN and frozen for sampling: q changes as the
-        // chain runs, and a state-dependent weight would bias the q-marginal.
-        // Never below the old linear-time value, so no run loses collective moves.
-        auto retune = [&]() {
-            for (int ci = 0; ci < p.num_tempering_chains; ++ci)
-                chain_stack[static_cast<std::size_t>(ci)].retune_collective_weight();
-        };
-        retune();  // from the initial partition
-
-        // Step sizes adapt during burn-in only (Robbins-Monro, globals.h) and are
-        // frozen for sampling, so the sampling kernel is fixed and exact.
-        for (auto& c : chain_stack) c.adapting = true;
-
-        // Warm-up: num_warmup iterations of sweeps_per_sample sweeps each.
-        for (int b = 0; b < p.num_warmup && elapsed() < p.timeout && !aborted(); ++b) {
-            for (int ci = 0; ci < p.num_tempering_chains; ++ci)
-                chain_stack[ci].MCMC_sweep(betas[ci], p.sweeps_per_sample, p.merge_split_enabled);
-            do_swaps();
-            retune();  // adapt, then freeze at sampling
-            if (p.on_burn_in) {
-                int done = completed_burn.fetch_add(1, std::memory_order_relaxed) + 1;
-                p.on_burn_in(done, p.num_chains * p.num_warmup);
-            }
-        }
-
-        for (auto& c : chain_stack) c.adapting = false;
-
-        // Sampling
-        std::vector<SampleState> samples;
-        samples.reserve(static_cast<std::size_t>(draws_per_chain(p)));
-
-        // Sampling: num_samples iterations; the draw of every num_thin-th is recorded.
-        for (int it = 0; it < p.num_samples && elapsed() < p.timeout && !aborted(); ++it) {
-            for (int ci = 0; ci < p.num_tempering_chains; ++ci)
-                chain_stack[ci].MCMC_sweep(betas[ci], p.sweeps_per_sample, p.merge_split_enabled);
-            if (it % p.num_thin != 0) {
-                do_swaps();
-                continue;
-            }
-
-            // Record the replica at the target beta (last in the schedule).
-            samples.push_back(chain_stack[p.num_tempering_chains - 1].snapshot(chain_id));
-
-            int done = completed_samples.fetch_add(1, std::memory_order_relaxed) + 1;
-            if (p.on_sample) p.on_sample(done, total_samples);
-
-            do_swaps();
-        }
-
-        return samples;
-    };
-
-    // Launch all independent chains in parallel
-    std::vector<std::future<std::vector<SampleState>>> futures;
-    futures.reserve(static_cast<std::size_t>(p.num_chains));
-    for (int ci = 0; ci < p.num_chains; ++ci)
-        futures.emplace_back(std::async(std::launch::async, run_chain, ci));
-
-    std::vector<SampleState> all_samples;
-    all_samples.reserve(static_cast<std::size_t>(total_samples));
-    for (auto& f : futures) {
-        auto chunk = f.get();
-        all_samples.insert(all_samples.end(), std::make_move_iterator(chunk.begin()),
-                           std::make_move_iterator(chunk.end()));
+            replicas_.push_back(new_chain(p, init_rng));
+        start_ = std::chrono::steady_clock::now();  // the timeout counts from here
     }
 
-    return FitResult(n, std::move(all_samples));
+    std::vector<SampleState> run() {
+        param_warmup();
+        warmup();
+        return sample();
+    }
+
+private:
+    // Before warm-up: the partition and scores frozen, so the continuous parameters
+    // reach their conditional posterior before the partition is free to move.
+    void param_warmup() {
+        if (p_.num_param_warmup == 0) return;
+        for (auto& c : replicas_) c.partition_fixed = c.scores_fixed = true;
+        for (int it = 0; it < p_.num_param_warmup && running(); ++it) {
+            sweep();
+            report(p_.on_warmup, progress_.param_warmup, p_.num_chains * p_.num_param_warmup);
+        }
+        for (auto& c : replicas_) {
+            c.partition_fixed = p_.partition_fixed;
+            c.scores_fixed = p_.scores_fixed;
+        }
+    }
+
+    // Warm-up: the step sizes adapt (Robbins-Monro, globals.h) and the weight of the
+    // collective moves is retuned; both are frozen for sampling, so the sampling
+    // kernel is fixed and exact.
+    void warmup() {
+        retune();  // from the initial partition
+        for (auto& c : replicas_) c.adapting = true;
+        for (int it = 0; it < p_.num_warmup && running(); ++it) {
+            sweep();
+            swap();
+            retune();
+            report(p_.on_burn_in, progress_.warmup, p_.num_chains * p_.num_warmup);
+        }
+        for (auto& c : replicas_) c.adapting = false;
+    }
+
+    // Sampling: num_samples iterations; the state of every num_thin-th is recorded.
+    std::vector<SampleState> sample() {
+        std::vector<SampleState> draws;
+        draws.reserve(static_cast<std::size_t>(draws_per_chain(p_)));
+        for (int it = 0; it < p_.num_samples && running(); ++it) {
+            sweep();
+            if (it % p_.num_thin == 0) {
+                draws.push_back(replicas_.back().snapshot(chain_id_));
+                report(p_.on_sample, progress_.samples, p_.num_chains * draws_per_chain(p_));
+            }
+            swap();
+        }
+        return draws;
+    }
+
+    // One iteration of every replica: sweeps_per_sample sweeps at its beta.
+    void sweep() {
+        for (std::size_t ci = 0; ci < replicas_.size(); ++ci)
+            replicas_[ci].MCMC_sweep(betas_[ci], p_.sweeps_per_sample, p_.merge_split_enabled);
+    }
+
+    // Exchange the states of neighbouring replicas (Metropolis).  The criterion is
+    // the tempered energy, the data likelihood terms only: every move targets
+    // exp(-(H_b + H_s_G_b_depths + priors + beta * H_total)), with the partition
+    // prior H_b and the score prior H_s_G_b_depths untempered (MCMC_core.h), so an
+    // exchange between inverse temperatures involves H_total alone.
+    void swap() {
+        auto H_total = [](const MCMC& c) { return c.H_A_G_b + c.H_Adir_G_A_s_nu; };
+        for (std::size_t ci = 0; ci + 1 < replicas_.size(); ++ci) {
+            const double db = betas_[ci + 1] - betas_[ci];
+            const double dH = H_total(replicas_[ci + 1]) - H_total(replicas_[ci]);
+            if (next_uniform(swap_rng_) < std::exp(db * dH))
+                std::swap(replicas_[ci], replicas_[ci + 1]);
+        }
+    }
+
+    // The weight of the collective moves, while the caller leaves
+    // MERGE_SPLIT_WEIGHT negative: the equal-spend rule w = q / (C M), never below
+    // the linear-time value n / (M (n + m)) (globals.h).  The linear-time value
+    // alone budgets a worst-case cost of M (n + m) per collective move, as if
+    // restaging touched the whole graph, though it restages only the two groups
+    // involved; on dense networks collective moves then stop firing (about 5 in a
+    // 1250-sweep run on the 456-node English football graph, which missed the
+    // leagues by ~1000 nats).  Retuned during warm-up only: q changes as the chain
+    // runs, and a state-dependent weight would bias the q-marginal.
+    void retune() {
+        for (auto& c : replicas_) c.retune_collective_weight();
+    }
+
+    bool running() const {
+        const double elapsed =
+            std::chrono::duration<double>(std::chrono::steady_clock::now() - start_).count();
+        const bool aborted = p_.abort_flag && p_.abort_flag->load(std::memory_order_relaxed);
+        return elapsed < p_.timeout && !aborted;
+    }
+
+    static void report(const std::function<void(int, int)>& callback, std::atomic<int>& counter,
+                       int total) {
+        if (!callback) return;
+        callback(counter.fetch_add(1, std::memory_order_relaxed) + 1, total);
+    }
+
+    const FitParams& p_;
+    const int chain_id_;
+    Progress& progress_;
+    const std::uint64_t seed_;
+    std::mt19937_64 swap_rng_;
+    const std::vector<double> betas_;
+    std::chrono::steady_clock::time_point start_;
+    std::vector<MCMC> replicas_;
+};
+
+}  // namespace
+
+FitResult fit(FitParams p) {
+    complete_start(p);  // the default starting state (initial_state.h)
+    Progress progress;
+
+    // The chains run in parallel, each on its own thread (and its own thread_local
+    // generator, globals.h).
+    std::vector<std::future<std::vector<SampleState>>> futures;
+    for (int c = 0; c < p.num_chains; ++c)
+        futures.emplace_back(std::async(
+            std::launch::async, [&p, &progress, c] { return ChainRun(p, c, progress).run(); }));
+
+    std::vector<SampleState> samples;
+    for (auto& f : futures) {
+        auto chunk = f.get();
+        samples.insert(samples.end(), std::make_move_iterator(chunk.begin()),
+                       std::make_move_iterator(chunk.end()));
+    }
+    return FitResult(static_cast<int>(p.wins.size()), std::move(samples));
 }

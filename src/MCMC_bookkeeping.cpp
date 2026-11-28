@@ -6,223 +6,147 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
-#include <iostream>
 #include <stdexcept>
 #include <unordered_map>
 #include <vector>
 
+namespace {
+
+// cached := actual.  With throw_error, first throw if the sizes differ or an
+// element differs by more than the tolerance (value_check's, for doubles).
+template <class T>
+void sync(std::vector<T>& cached, const std::vector<T>& actual, bool throw_error,
+          const std::string& name, double tolerance = 0.0) {
+    if (throw_error) {
+        if (cached.size() != actual.size())
+            throw std::runtime_error(name + " has " + std::to_string(cached.size()) +
+                                     " entries, expected " + std::to_string(actual.size()));
+        for (std::size_t r = 0; r < actual.size(); ++r)
+            value_check(static_cast<double>(actual[r]), static_cast<double>(cached[r]), tolerance,
+                        true, name + "[" + std::to_string(r) + "]");
+    }
+    cached = actual;
+}
+
+}  // namespace
+
 /**
- * check_state_bookkeeping: Validate and recompute all bookkeeping variables
- * 
- * This function serves two purposes:
- * 1. Validation: Check that cached bookkeeping matches actual partition state
- * 2. Initialization/Repair: Recompute bookkeeping from scratch if needed
- * 
- * It verifies and updates:
- * - num_groups: Number of groups in partition
- * - node_counts[r]: Number of nodes in each group
- * - group_members[r]: Vector of node IDs in each group
- * - node_indices_in_groups[r][node]: Position of node in group_members[r]
- * - edge_counts[r][s]: edge count between groups r and s (diagonal doubled)
- * - edge_counts_sum[r]: Total degree of group r
- * - weighted_SBM: weight_counts, weight_counts_sum and nonzero_pairs
- * - group_score_sums
- * - All entropy components: H_b, H_k, H_M, H_A_G_k_M_b, H_W, H_A_G_b, H_A_b,
- *   H_Adir_G_A_s_nu, H_s_G_b_depths
- * - Density parameters: density_in, density_out
- *
- * Tolerance: value_check, |cached - actual| <= tol + NUMERICAL_CHECK_REL_TOL |actual|.
- *
- * @param throw_error: If true, throw std::runtime_error on inconsistency; if
- *                     false, repair silently
+ * check_state_bookkeeping: recompute every cached quantity from the state
+ * (partition, scores and parameters).  With throw_error, throw std::runtime_error
+ * where a cached value differs from the recomputed one beyond the tolerance of
+ * value_check, |cached - actual| <= tol + NUMERICAL_CHECK_REL_TOL |actual|; then
+ * (or without throw_error, silently) replace the cache by the recomputed values.
+ * The constructor calls it without throw_error to fill the cache, and MCMC_sweep
+ * with throw_error after every sweep.
  */
 void MCMC::check_state_bookkeeping(bool throw_error) {
-    // === Validate num_groups ===
-    int num_groups_actual = *std::max_element(partition.begin(), partition.end()) + 1;
-    num_groups = value_check(num_groups_actual, num_groups, NUMERICAL_CHECK_EPSILON, throw_error,
-                             "num_groups");
+    check_groups(throw_error);
+    check_block_counts(throw_error);
+    check_parameters(throw_error);
+    check_entropies(throw_error);
+}
 
-    // === Recompute node_counts, group_members, node_indices_in_groups from partition ===
-    std::vector<int> node_counts_actual(num_groups, 0);
-    std::vector<std::vector<int>> group_members_actual(num_groups);
-    std::vector<std::unordered_map<int, size_t>> node_indices_in_groups_actual(num_groups);
+// num_groups, node_counts, group_members, node_indices_in_groups, group_score_sums.
+void MCMC::check_groups(bool throw_error) {
+    const int q = *std::max_element(partition.begin(), partition.end()) + 1;
+    num_groups = value_check(q, num_groups, NUMERICAL_CHECK_EPSILON, throw_error, "num_groups");
 
-    // Populate from partition
+    std::vector<int> counts(num_groups, 0);
+    std::vector<std::vector<int>> members(num_groups);
+    std::vector<std::unordered_map<int, size_t>> positions(num_groups);
+    std::vector<double> score_sums(num_groups, 0.0);
     for (int i = 0; i < n; i++) {
-        int group = partition[i];
-        node_counts_actual[group]++;
-        group_members_actual[group].push_back(i);
-        // Store index position for O(1) removal later
-        node_indices_in_groups_actual[group][i] = group_members_actual[group].size() - 1;
+        const int r = partition[i];
+        counts[r]++;
+        members[r].push_back(i);
+        positions[r][i] = members[r].size() - 1;  // for O(1) removal in flip_nodes
+        score_sums[r] += scores[i];
     }
 
-    // === Validate or update node_counts ===
-    for (std::size_t r = 0; r < static_cast<std::size_t>(num_groups); r++) {
-        if (r < node_counts.size()) {
-            if (node_counts_actual[r] != node_counts[r] && throw_error) {
-                throw std::runtime_error("node_counts[" + std::to_string(r) +
-                                         "] mismatch: cached=" + std::to_string(node_counts[r]) +
-                                         ", actual=" + std::to_string(node_counts_actual[r]));
-            }
-            node_counts[r] = node_counts_actual[r];
-        } else {
-            if (throw_error) {
+    sync(node_counts, counts, throw_error, "node_counts");
+    if (throw_error) {  // the same members, in any order
+        if (group_members.size() != members.size())
+            throw std::runtime_error("group_members has " + std::to_string(group_members.size()) +
+                                     " groups, expected " + std::to_string(members.size()));
+        for (std::size_t r = 0; r < members.size(); r++) {
+            std::vector<int> cached = group_members[r];
+            std::sort(cached.begin(), cached.end());
+            if (cached != members[r])
+                throw std::runtime_error("group_members[" + std::to_string(r) +
+                                         "] does not match the partition");
+        }
+    }
+    group_members = members;
+    node_indices_in_groups = positions;
+    // Score sums accumulate += / -= round-off: tolerance relative to the sum.
+    if (throw_error) {
+        if (group_score_sums.size() != score_sums.size())
+            throw std::runtime_error("group_score_sums has the wrong length");
+        for (std::size_t r = 0; r < score_sums.size(); r++)
+            if (std::isnan(score_sums[r]) || std::isnan(group_score_sums[r]) ||
+                std::abs(score_sums[r] - group_score_sums[r]) >
+                    NUMERICAL_CHECK_EPSILON * std::max(1.0, std::abs(score_sums[r])))
                 throw std::runtime_error(
-                    "node_counts is too short: size=" + std::to_string(node_counts.size()) +
-                    ", needed index " + std::to_string(r));
-            }
-            node_counts.push_back(node_counts_actual[r]);
-        }
+                    "group_score_sums[" + std::to_string(r) +
+                    "] mismatch: cached=" + std::to_string(group_score_sums[r]) +
+                    ", actual=" + std::to_string(score_sums[r]));
+    }
+    group_score_sums = score_sums;
+}
 
-        // === Validate or update group_members ===
-        if (r < group_members_actual.size()) {
-            for (int i_actual : group_members_actual[r]) {
-                if (throw_error && std::find(group_members[r].begin(), group_members[r].end(),
-                                             i_actual) == group_members[r].end()) {
-                    throw std::runtime_error("node " + std::to_string(i_actual) +
-                                             " from actual group " + std::to_string(r) +
-                                             " not found in cached group_members[" +
-                                             std::to_string(r) + "]");
-                }
-            }
-            for (int i : group_members[r]) {
-                if (throw_error &&
-                    std::find(group_members_actual[r].begin(), group_members_actual[r].end(), i) ==
-                        group_members_actual[r].end()) {
-                    throw std::runtime_error(
-                        "node " + std::to_string(i) + " from cached group " + std::to_string(r) +
-                        " not found in actual group_members[" + std::to_string(r) + "]");
-                }
-            }
-            // Update cached bookkeeping with actual values
-            group_members[r] = group_members_actual[r];
-            node_indices_in_groups[r] = node_indices_in_groups_actual[r];
-        } else {
-            if (throw_error) {
-                throw std::runtime_error(
-                    "group_members is too short: size=" + std::to_string(group_members.size()) +
-                    ", needed index " + std::to_string(r));
-            }
-            group_members.push_back(group_members_actual[r]);
-            node_indices_in_groups.push_back(node_indices_in_groups_actual[r]);
+// edge_counts, edge_counts_sum; weighted_SBM: weight_counts, weight_counts_sum,
+// nonzero_pairs.  Edge counts are binary (1 per neighbour) in weighted and
+// two-layer mode, and multiplicities otherwise; weight_counts are the real sums.
+void MCMC::check_block_counts(bool throw_error) {
+    const int q = num_groups;
+    std::vector<std::vector<int>> counts(q, std::vector<int>(q, 0));
+    std::vector<std::vector<double>> weights(q, std::vector<double>(q, 0.0));
+    for (int i = 0; i < n; i++)
+        for (const auto& [j, w] : neighbors_com[i]) {
+            const int r = partition[i], s = partition[j];
+            counts[r][s] += (weighted_SBM || two_layer_mode) ? 1 : static_cast<int>(w);
+            if (weighted_SBM) weights[r][s] += w;
         }
-    }
+    std::vector<int> sums(q, 0);
+    for (int r = 0; r < q; r++)
+        for (int s = 0; s < q; s++) sums[r] += counts[r][s];
 
-    // === Recompute edge_counts matrix ===
-    // In two-layer or weighted mode: edge_counts = binary (1 per neighbour, weights ignored for counts).
-    // In single-layer unweighted mode: edge_counts = sum of rounded integer weights.
-    // weighted_SBM additionally fills weight_counts with real-valued weight sums.
-    std::vector<std::vector<int>> edge_counts_actual(num_groups, std::vector<int>(num_groups, 0));
-    std::vector<int> edge_counts_sum_actual(num_groups, 0);
-    std::vector<std::vector<double>> weight_counts_actual(num_groups,
-                                                          std::vector<double>(num_groups, 0.0));
-    std::vector<double> weight_counts_sum_actual(num_groups, 0.0);
-    for (int i = 0; i < n; i++) {
-        int group_i = partition[i];
-        for (const auto& edge : neighbors_com[i]) {
-            int j = edge.first;
-            double weight = edge.second;
-            int group_j = partition[j];
-            if (weighted_SBM || two_layer_mode) {
-                edge_counts_actual[group_i][group_j] += 1;
-            } else {
-                edge_counts_actual[group_i][group_j] += static_cast<int>(weight);
-            }
-            if (weighted_SBM) {
-                weight_counts_actual[group_i][group_j] += weight;
-            }
-        }
-    }
-    for (int r = 0; r < num_groups; r++) {
-        for (int s = 0; s < num_groups; s++) {
-            edge_counts_sum_actual[r] += edge_counts_actual[r][s];
-        }
-    }
-    for (std::size_t r = 0; r < static_cast<std::size_t>(num_groups); r++) {
-        for (std::size_t s = 0; s < static_cast<std::size_t>(num_groups); s++) {
-            if (r < edge_counts.size() && s < edge_counts[r].size()) {
-                edge_counts[r][s] = value_check(
-                    edge_counts_actual[r][s], edge_counts[r][s], NUMERICAL_CHECK_EPSILON,
-                    throw_error,
-                    "edge_counts[" + std::to_string(r) + "][" + std::to_string(s) + "]");
-            } else {
-                if (throw_error) {
-                    throw std::runtime_error("edge_counts[" + std::to_string(r) +
-                                             "] too short for column " + std::to_string(s));
-                }
-                edge_counts[r].push_back(edge_counts_actual[r][s]);
-            }
-        }
-        if (r < edge_counts_sum.size()) {
-            edge_counts_sum[r] =
-                value_check(edge_counts_sum_actual[r], edge_counts_sum[r], NUMERICAL_CHECK_EPSILON,
-                            throw_error, "edge_counts_sum[" + std::to_string(r) + "]");
-        } else {
-            if (throw_error) {
-                throw std::runtime_error(
-                    "edge_counts_sum is too short: size=" + std::to_string(edge_counts_sum.size()) +
-                    ", needed index " + std::to_string(r));
-            }
-            edge_counts_sum.push_back(edge_counts_sum_actual[r]);
-        }
-    }
-    // === Validate edge_counts dimensions ===
-    if (edge_counts.size() != static_cast<std::size_t>(num_groups) ||
-        edge_counts[0].size() != static_cast<std::size_t>(num_groups)) {
-        if (throw_error) {
-            throw std::runtime_error(
-                "edge_counts dimensions " + std::to_string(edge_counts.size()) + "x" +
-                std::to_string(edge_counts.empty() ? 0 : edge_counts[0].size()) +
-                " do not match num_groups=" + std::to_string(num_groups));
-        } else {
-            // Repair: resize to match num_groups
-            edge_counts.resize(num_groups);
-            for (auto& row : edge_counts) {
-                row.resize(num_groups, 0);
-            }
-        }
-    }
+    if (throw_error && edge_counts.size() != static_cast<std::size_t>(q))
+        throw std::runtime_error("edge_counts has " + std::to_string(edge_counts.size()) +
+                                 " rows, expected num_groups=" + std::to_string(q));
+    edge_counts.resize(q);
+    for (int r = 0; r < q; r++)
+        sync(edge_counts[r], counts[r], throw_error, "edge_counts[" + std::to_string(r) + "]");
+    sync(edge_counts_sum, sums, throw_error, "edge_counts_sum");
 
-    // === Validate and rebuild weight_counts (weighted mode only) ===
-    // weight_counts are real sums updated by += / -= in flip_nodes, so they are
-    // compared with a tolerance relative to the total weight; nonzero_pairs is an
-    // integer and must match exactly.  Then the cache is replaced by the recount.
-    if (weighted_SBM) {
-        int nonzero_pairs_actual = 0;
-        for (int r = 0; r < num_groups; r++)
-            for (int s = r; s < num_groups; s++)
-                if (edge_counts_actual[r][s] > 0) nonzero_pairs_actual++;
-        for (int r = 0; r < num_groups; r++)
-            for (int s = 0; s < num_groups; s++)
-                weight_counts_sum_actual[r] += weight_counts_actual[r][s];
-        if (throw_error) {
-            const double wtol = NUMERICAL_CHECK_EPSILON + NUMERICAL_CHECK_REL_TOL * 2.0 * w_total;
-            if (weight_counts.size() != static_cast<std::size_t>(num_groups) ||
-                weight_counts_sum.size() != static_cast<std::size_t>(num_groups))
-                throw std::runtime_error("weight_counts dimensions do not match num_groups=" +
-                                         std::to_string(num_groups));
-            for (int r = 0; r < num_groups; r++) {
-                if (weight_counts[r].size() != static_cast<std::size_t>(num_groups))
-                    throw std::runtime_error("weight_counts[" + std::to_string(r) +
-                                             "] has the wrong length");
-                for (int s = 0; s < num_groups; s++)
-                    value_check(
-                        weight_counts_actual[r][s], weight_counts[r][s], wtol, true,
-                        "weight_counts[" + std::to_string(r) + "][" + std::to_string(s) + "]");
-                value_check(weight_counts_sum_actual[r], weight_counts_sum[r], wtol, true,
-                            "weight_counts_sum[" + std::to_string(r) + "]");
-            }
-            if (nonzero_pairs != nonzero_pairs_actual)
-                throw std::runtime_error("Bookkeeping mismatch for nonzero_pairs: cached=" +
-                                         std::to_string(nonzero_pairs) +
-                                         ", actual=" + std::to_string(nonzero_pairs_actual));
-        }
-        weight_counts = weight_counts_actual;
-        weight_counts_sum = weight_counts_sum_actual;
-        nonzero_pairs = nonzero_pairs_actual;
+    if (!weighted_SBM) return;
+    // weight_counts accumulate += / -= in flip_nodes: tolerance relative to the
+    // total weight.  nonzero_pairs is an integer and must match exactly.
+    int nonzero = 0;
+    std::vector<double> weight_sums(q, 0.0);
+    for (int r = 0; r < q; r++) {
+        for (int s = r; s < q; s++)
+            if (counts[r][s] > 0) nonzero++;
+        for (int s = 0; s < q; s++) weight_sums[r] += weights[r][s];
     }
+    const double wtol = NUMERICAL_CHECK_EPSILON + NUMERICAL_CHECK_REL_TOL * 2.0 * w_total;
+    if (throw_error && weight_counts.size() != static_cast<std::size_t>(q))
+        throw std::runtime_error("weight_counts has the wrong number of rows");
+    weight_counts.resize(q);
+    for (int r = 0; r < q; r++)
+        sync(weight_counts[r], weights[r], throw_error, "weight_counts[" + std::to_string(r) + "]",
+             wtol);
+    sync(weight_counts_sum, weight_sums, throw_error, "weight_counts_sum", wtol);
+    if (throw_error && nonzero_pairs != nonzero)
+        throw std::runtime_error(
+            "Bookkeeping mismatch for nonzero_pairs: cached=" + std::to_string(nonzero_pairs) +
+            ", actual=" + std::to_string(nonzero));
+    nonzero_pairs = nonzero;
+}
 
-    // === Initialize or validate density/weight parameters ===
+// Densities (initialised on the first call) and the concentrations of the
+// variations.
+void MCMC::check_parameters(bool throw_error) {
     // On first call, density_in < 0 indicates uninitialized state
     if (density_in < 0.0) {
         // Initialize to overall graph density
@@ -252,33 +176,10 @@ void MCMC::check_state_bookkeeping(bool throw_error) {
     degree_correction_concentration =
         value_check(degree_correction_concentration_actual, degree_correction_concentration,
                     NUMERICAL_CHECK_EPSILON, throw_error, "degree_correction_concentration");
+}
 
-    // === Validate group_score_sums ===
-    std::vector<double> group_score_sums_actual(num_groups, 0.0);
-    for (int i = 0; i < n; i++) group_score_sums_actual[partition[i]] += scores[i];
-    for (std::size_t r = 0; r < static_cast<std::size_t>(num_groups); r++) {
-        if (r < group_score_sums.size()) {
-            if (throw_error &&
-                (std::isnan(group_score_sums_actual[r]) || std::isnan(group_score_sums[r]) ||
-                 std::abs(group_score_sums_actual[r] - group_score_sums[r]) >
-                     NUMERICAL_CHECK_EPSILON *
-                         std::max(1.0, std::abs(group_score_sums_actual[r])))) {
-                throw std::runtime_error(
-                    "group_score_sums[" + std::to_string(r) +
-                    "] mismatch: cached=" + std::to_string(group_score_sums[r]) +
-                    ", actual=" + std::to_string(group_score_sums_actual[r]));
-            }
-            group_score_sums[r] = group_score_sums_actual[r];
-        } else {
-            if (throw_error) {
-                throw std::runtime_error("group_score_sums is too short: size=" +
-                                         std::to_string(group_score_sums.size()) +
-                                         ", needed index " + std::to_string(r));
-            }
-            group_score_sums.push_back(group_score_sums_actual[r]);
-        }
-    }
-
+// Every description-length term, recomputed from scratch.
+void MCMC::check_entropies(bool throw_error) {
     // === Compute H_b: Partition entropy ===
     // H_b = -log P(b) with Peixoto's nonparametric partition prior (Peixoto 2017,
     // Phys. Rev. E 95, 012317), P(b) = P(b | n_r) P(n_r | q) P(q):

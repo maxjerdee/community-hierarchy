@@ -4,6 +4,7 @@
 #define MCMC_CORE_H
 
 #include <algorithm>
+#include <functional>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -242,6 +243,8 @@ public:
     // value may be rejected.  For individual_depth the scores are rescaled with
     // it, unless scores_fixed (then the scores are held fixed).
     void change_parameter(const std::string& param_name, double new_value);
+    bool metropolis_step(double& H, const std::function<double()>& apply,
+                         const std::function<void()>& undo, bool tempered, bool sbm_term);
 
     // Functions that include the logic to generate a proposal
     void propose_move();  // Generate and accept/reject a random proposal
@@ -301,12 +304,38 @@ public:
     // relabelled into its slot, so labels stay 0..num_groups-1; a group opened in
     // the same call then ends up labelled old_group.
     void flip_nodes(const std::vector<int>& nodes, int new_group);
+    // flip_nodes' steps: the impacted groups' description-length terms, and the
+    // bookkeeping of one node or group.
+    double shift_group_terms(const std::set<int>& groups, double sign);
+    void shift_edge_counts(int node, int g, int sign);
+    void remove_from_group(int node, int g);
+    void add_to_group(int node, int g);
+    void add_empty_group();
+    void remove_last_group();
     // Exchange the labels of groups group1 and group2 (all bookkeeping follows).
     void swap_groups(int group1, int group2);
 
     // Recompute all bookkeeping from the state; with throw_error, throw on any
     // mismatch with the cached values (value_check tolerance), else just repair.
+    // The constructor's steps.
+    void check_input(const std::vector<std::unordered_map<int, double>>& wins_in,
+                     const std::vector<std::unordered_map<int, double>>& ties_in,
+                     const std::vector<std::unordered_map<int, double>>& group_adj);
+    void build_adjacency(const std::vector<std::unordered_map<int, double>>& wins_in,
+                         const std::vector<std::unordered_map<int, double>>& ties_in,
+                         const std::vector<std::unordered_map<int, double>>& group_adj,
+                         bool ties_parameter_fixed);
+    void count_edges();
+    void set_free_parameters(bool variation_in_fixed, bool variation_out_fixed,
+                             bool degree_correction_fixed, bool individual_depth_fixed,
+                             bool group_depth_fixed, bool ties_parameter_fixed);
+
     void check_state_bookkeeping(bool throw_error = true);
+    // Its parts: the groups, the block counts, the parameters, the entropies.
+    void check_groups(bool throw_error);
+    void check_block_counts(bool throw_error);
+    void check_parameters(bool throw_error);
+    void check_entropies(bool throw_error);
 
     double
     calculate_H_k();  // Calculate the entropy of the degrees given the current state (H(k|M,b,alpha))
